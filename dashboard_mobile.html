@@ -572,32 +572,36 @@
     </div>
     <div id="player-meta-line" class="player-meta"></div>
 
-    <!-- v4.0: 5 KPI (측정·체력·출력·전달·누수) + 부상위험 옆 배지 -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px">
+    <!-- v5.14 흐름 ── ① 현재 상태 ── -->
+    <div style="margin:14px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#0969da10,transparent);border-left:4px solid #0969da;border-radius:4px">
+      <div style="font-size:14px;font-weight:600;color:#0969da">📍 1. 현재 상태 — Where am I now?</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">측정 구속과 3가지 향상 시나리오로 현재 위치 + 발달 잠재를 한눈에.</div>
+    </div>
+
+    <!-- v5.13: 4 KPI (측정 구속 + 향상 시나리오 3종) -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px">
       <div class="kpi" style="border-left:3px solid #0969da">
-        <div class="label">측정 구속</div>
+        <div class="label">📍 현재 측정 구속</div>
         <div class="value" id="p-velo">—</div>
         <div class="delta">최고 <b id="p-velo-max">—</b> · <span id="p-velo-group">—</span></div>
       </div>
-      <div class="kpi" style="border-left:3px solid #bc4c00;background:#fff8f0">
-        <div class="label">체력 Ceiling</div>
-        <div class="value" id="p-velo-pot">—</div>
-        <div class="delta" id="p-velo-pot-delta">Predicted Velo</div>
+      <div class="kpi" style="border-left:3px solid #bc4c00;background:#fff8f0"
+           title="체력 변수(CMJ, IMTP, Hop RSI, Grip)를 elite 수준으로 끌어올렸을 때 기대 구속">
+        <div class="label">💪 체력 향상 기대 구속</div>
+        <div class="value" id="p-fitness-velo">—</div>
+        <div class="delta" id="p-fitness-detail">실측 — · 향상 +— km/h</div>
       </div>
-      <div class="kpi" style="border-left:3px solid #1a7f37">
-        <div class="label">⚡ 출력 (Generation)</div>
-        <div class="value" id="p-out-score">—</div>
-        <div class="delta" id="p-out-detail">Pelvis · Trunk · Power</div>
+      <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
+           title="메카닉 변수(분절 회전·X-factor·stride 등)를 프로 수준으로 끌어올렸을 때 기대 구속">
+        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
+        <div class="value" id="p-mech-velo">—</div>
+        <div class="delta" id="p-mech-detail">실측 — · 향상 +— km/h</div>
       </div>
-      <div class="kpi" style="border-left:3px solid #8250df">
-        <div class="label">🔗 전달 (Transfer)</div>
-        <div class="value" id="p-trf-score">—</div>
-        <div class="delta" id="p-trf-detail">ETE · Speed Gain · Lag</div>
-      </div>
-      <div class="kpi" style="border-left:3px solid #cf222e">
-        <div class="label">💧 누수 관리 (역 ELI)</div>
-        <div class="value" id="p-leak-score">—</div>
-        <div class="delta" id="p-leak-detail">6 zone · 인과 chain</div>
+      <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
+           title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
+        <div class="label">🎯 통합 향상 기대 구속</div>
+        <div class="value" id="p-total-velo">—</div>
+        <div class="delta" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
       </div>
     </div>
     <!-- 보조 정보: 부상위험 배지 + 메카닉 효율 (AE) 인라인 -->
@@ -611,22 +615,45 @@
     </div>
   </div>
 
+  <!-- v5.14 흐름 ── ② 체력 (체력 카드들이 메카닉 위로 표시되도록 — DOM placeholder) ── -->
+  <div id="section-fitness-anchor" style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#bc4c0010,transparent);border-left:4px solid #bc4c00;border-radius:4px">
+    <div style="font-size:14px;font-weight:600;color:#bc4c00">💪 2. 체력 (Physical) — How strong am I?</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">CMJ·SJ·Hop·IMTP·PP 5축 분석. 체력 발달 시 기대되는 구속 향상의 근거.</div>
+  </div>
+  <!-- ② 체력 카드 자리 — render.js가 동적으로 HP Assessment 카드를 여기로 이동 -->
+  <div id="section-fitness-cards"></div>
+
+  <!-- v5.14 흐름 ── ③ 메카닉 (이 리포트의 핵심) ── -->
+  <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#1a7f3710,transparent);border-left:4px solid #1a7f37;border-radius:4px">
+    <div style="font-size:14px;font-weight:600;color:#1a7f37">⚙️ 3. 메카닉 분석 (Mechanics) — How do I throw? <span style="font-size:11px;background:#1a7f3720;padding:2px 8px;border-radius:3px;font-weight:500">이 리포트의 핵심</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">4축 종합 능력 → 시간축 분석 → 자세 안정성 → 발달 권장 순으로 진단.</div>
+    <div style="font-size:11px;color:#1a7f37;margin-top:4px">3-1. 종합 능력 (4축 라디아 + percentile) · 3-2. 시간축 (키네틱 시퀀스 + 분절 metric) · 3-3. 안정성 (ELI 6 zone) · 3-4. 발달 권장</div>
+  </div>
+
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
   <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">투구 4대 능력 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.4</span></h2>
-      <div class="chart-wrap" style="height:280px"><canvas id="p-radar"></canvas></div>
-      <div class="footnote" style="font-size:11px;line-height:1.55">
-        <b>⚡ 힘 만들기</b> (출력) · <b>🔗 힘 전달</b> (시퀀싱 효율) ·
-        <b>💧 주요 누수</b> (자세 결함) · <b>🎯 제구 안정</b> (반복 일관성)<br>
-        <span style="color:var(--muted)">전달은 분절 간 시퀀싱 시간을, 누수는 6 zone 자세 결함을 본다 — <b>다른 측면</b>이라 한쪽이 높고 다른 쪽이 낮을 수 있다.</span><br>
-        비교 reference 2종:
-        <span style="color:#bc8a0f">🏆 합성 베스트</span> (전체 측정 N개에서 각 축 최고) ·
-        <span style="color:#656d76">📊 Elite 41 ref</span> (Driveline pro + 한국 고교 elite 138+ km/h 코호트 추정)
+      <h2 style="font-size:15px">3-1. 종합 능력 — 4축 라디아 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.12</span></h2>
+      <div class="chart-wrap" style="height:260px"><canvas id="p-radar"></canvas></div>
+      <!-- v5.14: 4축 + 6 metric percentile 상세 표 -->
+      <table id="p-mech-percentile-table" style="width:100%;font-size:11px;margin-top:10px;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+            <th style="text-align:left;padding:5px 6px;color:var(--muted);font-weight:600">Metric</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">본인</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">아마 %ile</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">프로 %ile</th>
+          </tr>
+        </thead>
+        <tbody id="p-mech-percentile-body"></tbody>
+      </table>
+      <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
+        <b>⚡ 힘</b> · <b>⏱ 타이밍</b> · <b>✂️ 분리</b> · <b>🛡 안정성</b> 각 0-100 백분위.<br>
+        <span style="color:var(--muted)">아마 (n=139, 한국 57 + OBP HS+College 82) · 프로 (n=18, OBP MiLB+Indep)</span>
       </div>
     </div>
     <div class="panel">
-      <h2>키네틱 시퀀스 (타이밍 곡선) <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
+      <h2>3-2. 시간축 분석 — 키네틱 시퀀스 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
       <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
         <div>
           <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
@@ -635,91 +662,98 @@
             골반 → 몸통 → 팔 → 손 가속 순서 (proper sequence)
           </div>
         </div>
-        <div class="chart-wrap" style="height:360px"><canvas id="p-sequence"></canvas></div>
+        <div class="chart-wrap" style="height:300px"><canvas id="p-sequence"></canvas></div>
       </div>
-      <div class="footnote">
-        정밀 바이오메카닉스 측정. <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>.
-        4분절(골반·몸통·팔·손)이 차례로 피크 찍는 모습 — Driveline / Driveline Plus / K-Motion 표준 시각.
-        곡선은 lag(P→T, T→A) + peak 각속도 데이터로 합성한 Gaussian 종모양 (σ는 분절별 표준).
-        팀 평균은 회색 점선. ETE = 분절 간 에너지 전달 효율(%).
+      <!-- v5.14: 분절별 상세 metric 표 (peak ω + KE_rot + lag) -->
+      <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:10px;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+            <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="피크 각속도 (°/s)">Peak ω</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="회전 운동에너지 (J, De Leva 1996)">KE_rot</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 대비 가속비">Speed Gain</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 피크 후 lag (ms)">Lag</th>
+          </tr>
+        </thead>
+        <tbody id="p-segment-body"></tbody>
+      </table>
+      <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
+        <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>. 4분절(골반·몸통·팔·손)이 차례로 피크 — Driveline 표준.
+        Speed Gain = 다음 분절 ω / 현재 분절 ω (proper sequence 시 1.4-2.0). Lag = 분절 간 피크 시각 차 (proper 30-60ms).
       </div>
     </div>
   </div>
 
   <!-- ⚡ 에너지 분석 — 1차 측정의 헤드라인 (출력·전달·누수) -->
-  <div class="panel">
-    <h2>⚡ 에너지 분석 — 출력 · 전달 · 누수
-        <span class="protocol-tag theia">Theia+GRF</span>
-        <span class="badge">Theia+GRF 리포트의 핵심 프레임워크</span></h2>
-    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      회전 power가 어떻게 만들어지고(<b>생성</b>) → 분절 간에 얼마나 잘 넘어가고(<b>전달</b>) → 어디서 새는지(<b>누수</b>)를 한눈에.
-    </div>
-    <div class="grid grid-3">
-      <!-- ① 에너지 생성 (Output) — v4.1: Rear GRF 통합 -->
-      <div class="scard" style="border-top:3px solid #0969da">
-        <h3>① ⚡ 힘 만들기 (Output)
-          <span style="font-size:18px;font-weight:700" id="p-en-gen-score">—</span>
-        </h3>
-        <div class="grp-title">피크 회전속도 (°/s)</div>
-        <div class="row"><span>골반 / 몸통 / 팔</span><span class="v" id="p-en-omega" style="font-size:11.5px">—</span></div>
-        <div class="grp-title">관절 파워 — Joint Power Scalar (W)</div>
-        <div class="row"><span>투구 어깨 / 팔꿈치</span><span class="v" id="p-en-arm-power">—</span></div>
-        <div class="row"><span>힙 (R / L)</span><span class="v" id="p-en-hip">—</span></div>
-        <div class="row"><span>무릎 (R / L)</span><span class="v" id="p-en-knee">—</span></div>
-        <div class="row"><span>합계 (Total)</span><span class="v" id="p-en-total-w">—</span></div>
-        <div class="grp-title">분절 운동에너지 (J)</div>
-        <div class="row"><span>골반 / 몸통 / 상완</span><span class="v" id="p-en-mech" style="font-size:11.5px">—</span></div>
-        <div class="grp-title">★ 축발 push-off (지면반력 → 운동량 시작)</div>
-        <div class="row"><span>축발 (Rear) GRF</span><span class="v" id="p-rear">—</span></div>
-      </div>
+  <!-- v5.12: 출력/전달/누수 큰 에너지 분석 카드 제거 — 4축 라디아로 흡수
+       기존 ID는 호환성 위해 hidden span으로 보존 (다른 코드가 참조 시 안전) -->
+  <span id="p-en-gen-score" style="display:none"></span>
+  <span id="p-en-omega" style="display:none"></span>
+  <span id="p-en-arm-power" style="display:none"></span>
+  <span id="p-en-hip" style="display:none"></span>
+  <span id="p-en-knee" style="display:none"></span>
+  <span id="p-en-total-w" style="display:none"></span>
+  <span id="p-en-mech" style="display:none"></span>
+  <span id="p-rear" style="display:none"></span>
+  <span id="p-en-trf-score" style="display:none"></span>
+  <span id="p-en-trf-kine" style="display:none"></span>
+  <span id="p-en-trf-kinetic" style="display:none"></span>
+  <span id="p-en-trf-ratio" style="display:none"></span>
+  <span id="p-en-ete" style="display:none"></span>
+  <span id="p-en-sg-pt" style="display:none"></span>
+  <span id="p-en-sg-ta" style="display:none"></span>
+  <span id="p-en-proper" style="display:none"></span>
+  <span id="p-en-lag-pt" style="display:none"></span>
+  <span id="p-en-lag-ta" style="display:none"></span>
+  <span id="p-lead" style="display:none"></span>
+  <span id="p-lhei" style="display:none"></span>
+  <span id="p-grf-type" style="display:none"></span>
+  <span id="p-cog-decel" style="display:none"></span>
+  <span id="p-en-eli-score" style="display:none"></span>
+  <span id="p-eli-zones" style="display:none"></span>
 
-      <!-- ② 에너지 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 -->
-      <div class="scard" style="border-top:3px solid #1a7f37">
-        <h3>② 🔗 힘 전달 (Transfer)
-          <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
-        </h3>
-        <div class="grp-title" title="v5.5: 시퀀싱 50% + 에너지 전달 50% 가중평균 — 학술 근거 Aguinaldo & Escamilla (2019)">합성 점수 분해</div>
-        <div class="row"><span>⏱ Kinematic (시퀀싱)</span><span class="v" id="p-en-trf-kine">—</span></div>
-        <div class="row"><span>⚡ Kinetic ETE (에너지)</span><span class="v" id="p-en-trf-kinetic">—</span></div>
-        <div class="row"><span title="humerus_J / pelvis_J × 100 · elite 65~85%">Power Ratio (H/P)</span><span class="v" id="p-en-trf-ratio">—</span></div>
-        <div class="grp-title">전달 효율 (시간 차원)</div>
-        <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
-        <div class="grp-title">Speed Gain (분절 간 가속비)</div>
-        <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>
-        <div class="row"><span>몸통 → 팔</span><span class="v" id="p-en-sg-ta">—</span></div>
-        <div class="grp-title">시퀀스 정확성</div>
-        <div class="row"><span>Proper Sequence</span><span class="v" id="p-en-proper">—</span></div>
-        <div class="row"><span>Pelvis→Trunk lag</span><span class="v" id="p-en-lag-pt">—</span></div>
-        <div class="row"><span>Trunk→Arm lag</span><span class="v" id="p-en-lag-ta">—</span></div>
-        <div class="grp-title">★ 착지발 block (linear → angular 전환)</div>
-        <div class="row"><span>착지발 (Lead) GRF</span><span class="v" id="p-lead">—</span></div>
-        <div class="row"><span>LHEI (하체 효율)</span><span class="v" id="p-lhei">—</span></div>
-        <div class="row"><span>투수 유형</span><span class="v" id="p-grf-type" style="font-size:11px">—</span></div>
-        <div class="row"><span title="BBL v33.22 핵심 변수">CoG_Decel (운동량 감속)</span><span class="v" id="p-cog-decel">—</span></div>
-      </div>
-
-      <!-- ③ 에너지 누수 (Leak / ELI) -->
-      <div class="scard" style="border-top:3px solid #cf222e">
-        <h3>③ 에너지 누수 (ELI 6 zones)
-          <span style="font-size:18px;font-weight:700" id="p-en-eli-score">—</span>
-        </h3>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">100=완벽 / 50=중간 / 0=완전누수</div>
-        <div id="p-eli-zones"></div>
+  <!-- v5.14: 3-3. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 -->
+  <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
+    <div class="panel">
+      <h2 style="font-size:15px">3-3. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
+      <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+            <th style="text-align:left;padding:5px 6px;color:var(--muted)">Zone</th>
+            <th style="text-align:left;padding:5px 6px;color:var(--muted)">정의</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)">점수</th>
+          </tr>
+        </thead>
+        <tbody id="p-eli-detail-body"></tbody>
+      </table>
+      <div class="footnote" style="font-size:10.5px;margin-top:8px">
+        <b>Zone 1</b> Sequential timing · <b>Z2</b> X-factor 분리 · <b>Z3</b> Lead leg block · <b>Z4</b> Trunk at FC · <b>Z5</b> Shoulder ER · <b>Z6</b> Pelvis braking
       </div>
     </div>
-
-    <!-- 결함 인과 분석 (causal chains, top 3) -->
-    <div style="margin-top:14px;padding:14px;background:var(--panel2);
-                border:1px solid var(--line-soft);border-radius:6px">
-      <h3 style="margin:0 0 10px;font-size:13px">🔗 결함 → 힘 손실 인과 분석 (우선순위 Top 3)</h3>
+    <div class="panel">
+      <h2 style="font-size:15px">🔗 메카닉 결함 → 손실 인과 분석 <span class="badge" style="background:#fee9e9;color:#cf222e">Top 3</span></h2>
       <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. 훈련 처방 1순위.
+        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. <b>훈련 처방 1순위</b>.
       </div>
       <div id="p-causal-chains"></div>
+      <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
     </div>
+  </div>
 
-    <!-- v4.0 [5] 자동 진단 카드 (Outcome diagnosis) -->
-    <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
+  <!-- v5.14: 3-4. 메카닉 발달 권장 카드 (NEW) -->
+  <div class="panel" style="border-left:4px solid #1a7f37">
+    <h2 style="font-size:15px">3-4. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+      4축 점수 + ELI 약점을 종합해 우선순위 훈련을 자동 매핑. 코치가 다음 세션 짜기에 직접 활용.
+    </div>
+    <div id="p-mech-action-plan" style="font-size:12.5px;line-height:1.6"></div>
+  </div>
+
+  <!-- v5.14 흐름 ── ④ 결과 (Pitching Outcome) ── -->
+  <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#8250df10,transparent);border-left:4px solid #8250df;border-radius:4px">
+    <div style="font-size:14px;font-weight:600;color:#8250df">🎯 4. 결과 (Pitching Outcome) — How does the ball move?</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">메카닉이 만든 결과 — 공의 회전·무브먼트, 부상 위험, 제구 일관성.</div>
   </div>
 
   <!-- v4.1: 지면반력 단독 카드 제거 — Rear GRF는 ⚡출력에, Lead GRF·LHEI·CoG_Decel는 🔗전달 섹션에 통합됨 -->
@@ -767,8 +801,22 @@
     </div>
   </div>
 
+  <!-- v5.14 흐름 ── ⑤ 종합 권장 (Action Plan) ── -->
+  <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#cf222e10,transparent);border-left:4px solid #cf222e;border-radius:4px">
+    <div style="font-size:14px;font-weight:600;color:#cf222e">📋 5. 종합 권장 (Action Plan) — What's next?</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">3가지 향상 시나리오 비교 + 4축 약점 우선순위 + 다음 3개월 훈련 권장.</div>
+  </div>
+  <div class="panel" style="border-left:4px solid #cf222e">
+    <h2 style="font-size:15px">📋 종합 권장 — Bigger Lever 진단 + 우선순위 훈련</h2>
+    <div id="p-summary-action" style="font-size:12.5px;line-height:1.7"></div>
+  </div>
+
+</section>
+
+<!-- v5.14: 체력 카드들 — section-fitness-cards 자리로 render.js가 옮김 (DOM 자체는 여기 보존) -->
+<section style="display:none" id="hidden-fitness-source">
   <!-- v4.2 신규: HP Assessment — Velo Group 분포 (Driveline 스타일) -->
-  <div class="panel">
+  <div class="panel" id="card-hp-assessment">
     <h2>💪 HP Assessment — 체력 능력 종합 (Velo Group 분포)
       <span class="badge" style="background:#fff3e7;color:#bc4c00">v4.2 — Driveline HP Assessment 스타일</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
@@ -779,25 +827,22 @@
   </div>
 
   <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
-  <div class="panel">
+  <div class="panel" id="card-fitness-raw">
     <h2>보조 측정 — 체력 (ForceDecks 4 테스트 raw 변수) <span class="protocol-tag fitness">ForceDecks</span>
         <span class="badge">CMJ · SJ · Pogo · IMTP raw 측정값</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      위 HP Assessment 의 원본 측정값. 1차 측정의 헤드라인은 ⚡ 에너지 분석(Theia+GRF) — 체력은 capacity ceiling 설명용.
+      위 HP Assessment 의 원본 측정값. 체력 capacity ceiling 설명용.
     </div>
-    <!-- v3.5-4: 3-tier 코호트 비교 (한국 elite vs College vs MLB) -->
     <div id="p-tier-overlay" style="margin-bottom:12px"></div>
-
     <div class="grid grid-4" id="fitness-cards"></div>
     <div class="footnote">
       <b>SSC 스펙트럼:</b> SJ (SSC 없음) → CMJ (Slow SSC) → Pogo (Fast SSC) → IMTP (Isometric).
       투수 메커니즘 매칭: Drive leg push-off ≈ CMJ · FC reactive ≈ Pogo · Max strength ≈ IMTP Peak · Release explosive ≈ IMTP RFD.
       <details><summary>EUR (CMJ JH / SJ JH) 해석 — McGuigan 2018</summary>
-        EUR &gt; 1.10 우수 SSC 활용 · 1.00~1.10 정상 · &lt; 1.00 SSC 미활용 (감속 후 즉시 추진력 못 살림)
+        EUR &gt; 1.10 우수 SSC 활용 · 1.00~1.10 정상 · &lt; 1.00 SSC 미활용
       </details>
     </div>
   </div>
-
 </section>
 
 <!-- ╔══════════════════════════════════════════════════════════╗
@@ -1553,6 +1598,206 @@ function dualReferenceDiagnosis(input){
     else label = '⚠ 아마 평균 이하 (' + a + '%ile)';
     out[m] = {amateur_pctile: a, pro_pctile: p, label: label, value: input[m]};
   }
+  return out;
+}
+
+/**
+ * v5.12: 메카닉 개선 시 기대 구속 (코치/선수용 핵심 KPI)
+ *
+ *   현재 본인 메카닉 → OBP 모델 → predicted_self
+ *   프로 메카닉(PRO_REFERENCE)으로 교체(신체조건 유지) → predicted_pro
+ *   기대 향상 = predicted_pro − predicted_self  (model-internal 차이만 사용)
+ *   → 한국 cohort systematic bias 자동 우회
+ *
+ *   "메카닉 활용도" 라는 추상적 개념 대신 "메카닉 개선으로 기대하는 구속" 직관적 메시지
+ *
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, stride_pct, mass_kg, height_m
+ * @param {number} measuredKmh  실측 구속
+ * @returns {{predicted_self, predicted_pro, expected_gain, expected_velo, message}}
+ */
+function expectedVelocityWithImprovement(input, measuredKmh){
+  const M = OBP_VELO_MODEL;
+  if(!input || input.pelvis_dps==null || input.trunk_dps==null || input.arm_dps==null) return null;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const stridePctSelf = input.stride_pct
+                     ?? (input.stride_length && input.height_m ? input.stride_length / input.height_m : 0.80);
+  const xFacSelf = input.x_factor ?? 28;
+  const massKg   = input.mass_kg ?? 80;
+  const heightM  = input.height_m ?? 1.80;
+
+  const predict = (pelvis, trunk, arm, xfac, stride) =>
+    M.intercept + M.pelvis_dps_coef*pelvis + M.trunk_dps_coef*trunk + M.arm_dps_coef*arm
+                + M.x_factor_coef*xfac + M.mass_kg_coef*massKg + M.height_m_coef*heightM
+                + M.stride_pct_coef*stride;
+
+  const predSelf = predict(input.pelvis_dps, input.trunk_dps, input.arm_dps, xFacSelf, stridePctSelf);
+  const predPro  = predict(PRO_REFERENCE.pelvis_dps, PRO_REFERENCE.trunk_dps,
+                           PRO_REFERENCE.arm_dps, PRO_REFERENCE.x_factor, PRO_REFERENCE.stride_pct);
+  const gain = predPro - predSelf;
+  const expectedVelo = (measuredKmh != null) ? measuredKmh + gain : null;
+
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(gain < 0.5) message = '이미 메카닉 잠재 발달 — 신체조건/release efficiency 발달이 다음 단계';
+  else if(gain < 2)   message = '메카닉 개선으로 약 +' + r(gain) + ' km/h 향상 기대 (작지만 의미 있음)';
+  else if(gain < 5)   message = '메카닉 개선으로 +' + r(gain) + ' km/h 향상 기대 — 4축 약점 발달 권장';
+  else                message = '메카닉 개선 잠재 +' + r(gain) + ' km/h — 4축 모두 큰 향상 여지';
+
+  return {
+    predicted_self: r(predSelf),
+    predicted_pro:  r(predPro),
+    expected_gain:  r(gain),
+    expected_velo:  expectedVelo != null ? r(expectedVelo) : null,
+    measured_velo:  measuredKmh,
+    message: message
+  };
+}
+
+/**
+ * v5.13: 체력 향상 시 기대 구속 (PHYSICAL_VELO_MODEL 활용)
+ *
+ *   본인 체력 → predicted_self_fitness
+ *   Elite 체력 (VELO_GROUP_NORMS Elite) → predicted_elite_fitness
+ *   향상 = elite − self  (model-internal 차이만 사용)
+ *   신체조건(height/weight)은 본인 값 유지 — "체력 변수만 elite로 끌어올렸을 때"
+ *
+ * @param {object} input  cmj_pp_bm, imtp_pf_bm, hop_rsi, grip_kg, height_cm, weight_kg
+ * @param {number} measuredKmh  실측 구속
+ * @returns {{predicted_self, predicted_elite, expected_gain, expected_velo, message}}
+ */
+function expectedVelocityFromFitness(input, measuredKmh){
+  const M = PHYSICAL_VELO_MODEL;
+  if(!input) return null;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  // Elite 체력 reference (VELO_GROUP_NORMS Elite — 학술 추정)
+  const eliteFit = { cmj_pp_bm: 32, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65 };
+  let predSelf = M.intercept, predElite = M.intercept;
+  for(const [k, c] of Object.entries(M.coefs)){
+    const selfV = input[k] != null && !isNaN(input[k]) ? input[k] : M.defaults[k];
+    let eliteV;
+    if(k === 'height_cm' || k === 'weight_kg'){
+      eliteV = selfV;   // 신체조건은 본인 값 유지
+    } else {
+      eliteV = eliteFit[k] ?? selfV;
+    }
+    predSelf  += c * selfV;
+    predElite += c * eliteV;
+  }
+  const gain = predElite - predSelf;
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(gain < 0.5) message = '체력이 이미 elite 수준 — 메카닉 발달이 다음 단계';
+  else if(gain < 3)   message = '체력 향상으로 +' + r(gain) + ' km/h 기대 — CMJ/IMTP 우선';
+  else if(gain < 6)   message = '체력 향상 잠재 +' + r(gain) + ' km/h — 4가지 fitness 변수 종합 발달';
+  else                message = '체력 향상 잠재 +' + r(gain) + ' km/h — 큰 향상 여지';
+
+  return {
+    predicted_self:  r(predSelf),
+    predicted_elite: r(predElite),
+    expected_gain:   r(gain),
+    expected_velo:   measuredKmh != null ? r(measuredKmh + gain) : null,
+    measured_velo:   measuredKmh,
+    message: message
+  };
+}
+
+/**
+ * v5.13: 체력 + 메카닉 모두 향상 시 통합 기대 구속
+ *   가법 합산 — 두 모델의 향상량을 단순 더함
+ *   학술 한계: cross-term interaction 무시 (단순화)
+ */
+function expectedVelocityCombined(mechInput, fitInput, measuredKmh){
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const mech = expectedVelocityWithImprovement(mechInput, measuredKmh);
+  const fit  = expectedVelocityFromFitness(fitInput, measuredKmh);
+  const mGain = mech?.expected_gain ?? 0;
+  const fGain = fit?.expected_gain ?? 0;
+  const totalGain = mGain + fGain;
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(totalGain < 1) message = '이미 종합 잠재 도달 — release/spin 등 기타 요인 발달';
+  else if(totalGain < 5) message = '통합 향상으로 +' + r(totalGain) + ' km/h 기대';
+  else if(totalGain < 10) message = '통합 향상 잠재 +' + r(totalGain) + ' km/h — 메카닉/체력 모두 발달 권장';
+  else                    message = '통합 향상 잠재 +' + r(totalGain) + ' km/h — 큰 발달 여지';
+
+  return {
+    mechanic_gain:  r(mGain),
+    fitness_gain:   r(fGain),
+    expected_gain:  r(totalGain),
+    expected_velo:  measuredKmh != null ? r(measuredKmh + totalGain) : null,
+    measured_velo:  measuredKmh,
+    message:        message,
+    bigger_lever:   mGain > fGain ? '메카닉' : '체력'
+  };
+}
+
+/**
+ * v5.12: 4축 능력 점수 (Power / Timing / Separation / Stability)
+ *   각 0-100 percentile (아마 기준 + 프로 기준 동시 산출)
+ *   - Power      = pelvis/trunk/arm ω peak 종합 percentile
+ *   - Timing     = speed_gain_pt + speed_gain_ta percentile (시간 차원)
+ *   - Separation = X-factor + stride% percentile
+ *   - Stability  = ELI 6 zone (역값) percentile
+ *
+ * @param {object} input  메카닉 변수들
+ * @returns {object} 4축 점수 + 강약 진단
+ */
+function fourAxisDiagnosis(input){
+  const out = {};
+  // Power
+  const pp = [percentileVsRef(input.pelvis_dps, 'pelvis_dps','AMATEUR'),
+              percentileVsRef(input.trunk_dps, 'trunk_dps','AMATEUR'),
+              percentileVsRef(input.arm_dps,   'arm_dps',  'AMATEUR')].filter(x=>x!=null);
+  const ppPro = [percentileVsRef(input.pelvis_dps, 'pelvis_dps','PRO'),
+                 percentileVsRef(input.trunk_dps, 'trunk_dps','PRO'),
+                 percentileVsRef(input.arm_dps,   'arm_dps',  'PRO')].filter(x=>x!=null);
+  out.power = {
+    score: pp.length ? Math.round(pp.reduce((a,b)=>a+b,0)/pp.length) : null,
+    pro:   ppPro.length ? Math.round(ppPro.reduce((a,b)=>a+b,0)/ppPro.length) : null,
+    label: '⚡ 힘 (Power)',
+    desc:  '분절 회전속도 종합 — 골반·몸통·팔'
+  };
+  // Separation
+  const sp = [percentileVsRef(input.x_factor, 'x_factor','AMATEUR'),
+              percentileVsRef(input.stride_pct, 'stride_pct','AMATEUR')].filter(x=>x!=null);
+  const spPro = [percentileVsRef(input.x_factor, 'x_factor','PRO'),
+                 percentileVsRef(input.stride_pct, 'stride_pct','PRO')].filter(x=>x!=null);
+  out.separation = {
+    score: sp.length ? Math.round(sp.reduce((a,b)=>a+b,0)/sp.length) : null,
+    pro:   spPro.length ? Math.round(spPro.reduce((a,b)=>a+b,0)/spPro.length) : null,
+    label: '✂️ 분리 (Separation)',
+    desc:  'X-factor 분리 + stride 활용도'
+  };
+  // Timing — speed gain (proper sequence) 기반
+  // speed_gain_pt 1.4 (한국 cohort median) 기준, 이상 1.7-2.0 (프로)
+  // speed_gain_ta 5.4 (한국) ~ 4.5 (프로 — H/P 보면 프로가 trunk 큰 만큼 ta는 작음)
+  let timingScore = null, timingPro = null;
+  if(input.speed_gain_pt != null){
+    timingScore = Math.max(20, Math.min(98, 50 + (input.speed_gain_pt - 1.4) * 100));
+    timingPro   = Math.max(20, Math.min(98, 50 + (input.speed_gain_pt - 1.7) * 80));
+  }
+  out.timing = {
+    score: timingScore != null ? Math.round(timingScore) : null,
+    pro:   timingPro != null ? Math.round(timingPro) : null,
+    label: '⏱ 타이밍 (Timing)',
+    desc:  '분절 간 가속 비율 — 골반→몸통→팔 순차 가속'
+  };
+  // Stability — ELI score (기존 학술 정의 그대로)
+  out.stability = {
+    score: input.eli_score != null ? Math.round(input.eli_score) : null,
+    pro:   input.eli_score != null ? Math.max(20, Math.round(input.eli_score - 5)) : null,    // 프로는 5점 더 엄격
+    label: '🛡 안정성 (Stability)',
+    desc:  '6 zone 자세 결함 회피 — 일관된 메카닉'
+  };
+
+  // 강점/약점 진단
+  const arr = [
+    {k:'power', v:out.power}, {k:'timing', v:out.timing},
+    {k:'separation', v:out.separation}, {k:'stability', v:out.stability}
+  ].filter(x=>x.v.score != null);
+  arr.sort((a,b)=>b.v.score - a.v.score);
+  out.strength = arr[0]?.v.label || '—';
+  out.weakness = arr[arr.length-1]?.v.label || '—';
   return out;
 }
 
@@ -3155,7 +3400,13 @@ const ANALYTICS = {
   PRO_REFERENCE,
   REFERENCE_DISTRIBUTIONS,
   percentileVsRef,
-  dualReferenceDiagnosis
+  dualReferenceDiagnosis,
+  // v5.12: 코치/선수용 핵심 KPI + 4축 능력 진단
+  expectedVelocityWithImprovement,
+  fourAxisDiagnosis,
+  // v5.13: 체력/통합 향상 시나리오
+  expectedVelocityFromFitness,
+  expectedVelocityCombined
 };
 
 // 브라우저 빌드에서 직접 접근 가능
@@ -3936,30 +4187,59 @@ function renderPlayerView(pid){
       m.velocity.predicted_kmh != null ? `Predicted ${m.velocity.predicted_group} 그룹` : '잔차 —';
   }
 
-  // [3] 출력 (Generation)
-  const out = m.energy?.generation;
-  if(document.getElementById('p-out-score')){
-    const s = out?.score ?? null;
-    document.getElementById('p-out-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-out-detail').textContent =
-      `Pelvis ${m.sequence.pelvis_dps}° · Trunk ${m.sequence.trunk_dps}° · Power ${out?.total_W ?? '—'}W`;
+  // [v5.13] 향상 시나리오 3종 KPI — 체력 / 메카닉 / 통합
+  const A = (typeof ANALYTICS !== 'undefined') ? ANALYTICS : null;
+  const measured = m.velocity?.measured_kmh;
+  const mechInput = {
+    pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+    arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+    stride_pct: m.faults?.stride_pct ?? 0.80,
+    mass_kg: p.weight, height_m: p.height/100
+  };
+  const fitInput = {
+    height_cm: p.height, weight_kg: p.weight,
+    cmj_pp_bm: m.fitness?.cmj?.peak_power_bm_w_kg,
+    imtp_pf_bm: m.fitness?.imtp?.peak_force_bm_n_kg,
+    hop_rsi:    m.fitness?.pogo?.rsi_ms,
+    grip_kg:    null    // 한국 cohort grip 데이터 부족 → default 사용
+  };
+  const colorByGain = g => g > 8 ? '#1a7f37' : g > 4 ? '#bc4c00' : g > 1 ? '#0969da' : '#656d76';
+
+  // [3] 💪 체력 향상 기대 구속
+  if(A?.expectedVelocityFromFitness){
+    const fit = A.expectedVelocityFromFitness(fitInput, measured);
+    const fitVeloEl = document.getElementById('p-fitness-velo');
+    if(fitVeloEl && fit && fit.expected_velo != null){
+      const c = colorByGain(fit.expected_gain);
+      fitVeloEl.innerHTML = `<span style="color:${c}">${fit.expected_velo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
+      document.getElementById('p-fitness-detail').innerHTML =
+        `실측 ${fit.measured_velo} → <b style="color:${c}">+${fit.expected_gain}</b> km/h 향상`;
+    } else if(fitVeloEl){ fitVeloEl.textContent = '—'; document.getElementById('p-fitness-detail').textContent = '체력 데이터 부족'; }
   }
-  // [4] 전달 (Transfer)
-  const trf = m.energy?.transfer;
-  if(document.getElementById('p-trf-score')){
-    const s = trf?.score ?? null;
-    document.getElementById('p-trf-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-trf-detail').textContent =
-      `ETE ${trf?.ete_pct ?? '—'}% · Speed Gain ${trf?.speed_gain_pt ?? '—'}× · Lag ${trf?.pelvis_to_trunk_lag_ms ?? '—'}ms`;
+  // [4] ⚙️ 메카닉 향상 기대 구속
+  if(A?.expectedVelocityWithImprovement){
+    const mech = A.expectedVelocityWithImprovement(mechInput, measured);
+    const mechVeloEl = document.getElementById('p-mech-velo');
+    if(mechVeloEl && mech && mech.expected_velo != null){
+      const c = colorByGain(mech.expected_gain);
+      mechVeloEl.innerHTML = `<span style="color:${c}">${mech.expected_velo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
+      document.getElementById('p-mech-detail').innerHTML =
+        `실측 ${mech.measured_velo} → <b style="color:${c}">+${mech.expected_gain}</b> km/h 향상`;
+    } else if(mechVeloEl){ mechVeloEl.textContent = '—'; document.getElementById('p-mech-detail').textContent = '메카닉 데이터 부족'; }
   }
-  // [5] 누수 관리 (역 ELI)
-  const leak = m.energy?.leakage;
-  if(document.getElementById('p-leak-score')){
-    const s = leak?.eli_score ?? null;
-    document.getElementById('p-leak-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-leak-detail').textContent =
-      leak?.causal_chains?.length ? `Top: ${leak.causal_chains[0].defect}` : '6 zone · 인과 chain';
+  // [5] 🎯 통합 향상 기대 구속 (체력 + 메카닉)
+  if(A?.expectedVelocityCombined){
+    const tot = A.expectedVelocityCombined(mechInput, fitInput, measured);
+    const totVeloEl = document.getElementById('p-total-velo');
+    if(totVeloEl && tot && tot.expected_velo != null){
+      const c = colorByGain(tot.expected_gain);
+      totVeloEl.innerHTML = `<span style="color:${c}">${tot.expected_velo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
+      document.getElementById('p-total-detail').innerHTML =
+        `체력 +<b>${tot.fitness_gain}</b> · 메카닉 +<b>${tot.mechanic_gain}</b> · 합 <b style="color:${c}">+${tot.expected_gain}</b>`;
+    } else if(totVeloEl){ totVeloEl.textContent = '—'; document.getElementById('p-total-detail').textContent = '데이터 부족'; }
   }
+  // 호환성: 기존 hidden span에도 값 채움 (다른 코드가 참조 시 안전)
+  const out = m.energy?.generation, trf = m.energy?.transfer, leak = m.energy?.leakage;
 
   // 보조 정보: 부상위험 + 메카닉 효율 (AE) + 종합 점수 (숨김 ID)
   const elrk = document.getElementById('p-risk');
@@ -3977,10 +4257,18 @@ function renderPlayerView(pid){
   document.getElementById('p-score-delta').textContent =
     `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
-  // v5.4: 4축 능력 차트 — 본인 + 합성 베스트(전체 측정 max) + Elite 41 reference (3 dataset)
-  // ⚡ 힘 만들기 / 🔗 힘 전달 (시퀀싱 효율, ETE) / 💧 주요 누수 (자세 결함, ELI) / 🎯 제구 안정
+  // v5.12: 4축 능력 차트 — Power/Timing/Separation/Stability (아마/프로 percentile 기반)
   if(chartsP.r) chartsP.r.destroy();
   const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
+  // v5.12 fourAxisDiagnosis 사용
+  const fa4 = (typeof ANALYTICS !== 'undefined' && ANALYTICS.fourAxisDiagnosis) ?
+    ANALYTICS.fourAxisDiagnosis({
+      pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+      arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+      stride_pct: m.faults?.stride_pct ?? 0.80,
+      speed_gain_pt: et?.speed_gain_pt, speed_gain_ta: et?.speed_gain_ta,
+      eli_score: el?.eli_score
+    }) : null;
   // 합성 베스트 — 모든 PLAYERS × SESSIONS 측정에서 각 축 최고치 (가상 챔피언)
   const allM = [];
   PLAYERS.forEach(pl => SESSIONS.forEach(s => {
@@ -4004,26 +4292,42 @@ function renderPlayerView(pid){
     command_composite: 80, label: '📊 Elite 41 ref'
   };
   const proData = [proRef.generation_score, proRef.transfer_score, proRef.eli_score, proRef.command_composite];
+  // v5.12 — 4축 percentile 기반 (본인 / 아마 50%ile 평균 / 프로 50%ile 평균)
+  const myData = fa4 ? [
+    fa4.power?.score ?? 0, fa4.timing?.score ?? 0,
+    fa4.separation?.score ?? 0, fa4.stability?.score ?? 0
+  ] : [0, 0, 0, 0];
+  const myProData = fa4 ? [
+    fa4.power?.pro ?? 0, fa4.timing?.pro ?? 0,
+    fa4.separation?.pro ?? 0, fa4.stability?.pro ?? 0
+  ] : [0, 0, 0, 0];
+  // 아마/프로 reference 자체는 50점 (median 위치)
+  const amateurRefData = [50, 50, 50, 50];
+  const proRefData     = [50, 50, 50, 50];   // 프로 reference는 본인의 프로 percentile 기준
   chartsP.r = new Chart(document.getElementById('p-radar'),{
     type:'radar',
     data:{
-      labels:['⚡ 힘 만들기','🔗 힘 전달\n(시퀀싱 효율)','💧 주요 누수\n(자세 결함)','🎯 제구 안정'],
+      labels:['⚡ 힘\n(Power)','⏱ 타이밍\n(Timing)','✂️ 분리\n(Separation)','🛡 안정성\n(Stability)'],
       datasets:[{
-        label: p.name,
-        data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0,
-              m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
-        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
+        label: `${p.name} (아마 percentile)`,
+        data: myData,
+        backgroundColor:'rgba(9,105,218,.20)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
         pointBackgroundColor:'#0969da', order: 1
       },{
-        label: `🏆 합성 베스트 (N=${allM.length})`,
-        data: bestData,
-        backgroundColor:'rgba(212,138,15,.06)', borderColor:'#bc8a0f', borderWidth:1.5,
-        borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#bc8a0f', order: 2
+        label: `${p.name} (프로 percentile)`,
+        data: myProData,
+        backgroundColor:'rgba(207,34,46,.10)', borderColor:'#cf222e', borderWidth:1.8, pointRadius:3,
+        borderDash:[3,3], pointBackgroundColor:'#cf222e', order: 2
       },{
-        label: proRef.label,
-        data: proData,
-        backgroundColor:'rgba(101,109,118,.05)', borderColor:'#656d76', borderWidth:1.3,
-        borderDash:[2,3], pointRadius:2.5, pointBackgroundColor:'#656d76', order: 3
+        label: '🟧 아마 평균 (n=139)',
+        data: amateurRefData,
+        backgroundColor:'rgba(212,138,15,.04)', borderColor:'#bc8a0f', borderWidth:1.3,
+        borderDash:[5,4], pointRadius:0, order: 3
+      },{
+        label: '⬜ 프로 평균 (n=18)',
+        data: proRefData,
+        backgroundColor:'rgba(101,109,118,.0)', borderColor:'#656d76', borderWidth:1.0,
+        borderDash:[2,3], pointRadius:0, order: 4, hidden: true
       }]
     },
     options:{
@@ -4343,6 +4647,246 @@ function renderPlayerView(pid){
   // v3.5-4: 3-tier 코호트 overlay (한국 elite + College + MLB)
   renderTierOverlay(m, p);
   renderFitnessCards(m.fitness);
+
+  // v5.14: 새 흐름 — 체력 카드 DOM 이동 + 메카닉 보강 표/카드
+  v514_moveFitnessCards();
+  v514_renderMechanicTables(m, p);
+  v514_renderActionPlan(m, p);
+  v514_renderSummaryAction(m, p);
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  v5.14: 새 5섹션 흐름 — 체력 이동 + 메카닉 보강           ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function v514_moveFitnessCards(){
+  // HP Assessment + ForceDecks 카드를 § 2 체력 자리(section-fitness-cards)로 이동
+  const target = document.getElementById('section-fitness-cards');
+  const cards = ['card-hp-assessment','card-fitness-raw'];
+  if(!target) return;
+  for(const id of cards){
+    const c = document.getElementById(id);
+    if(c && c.parentElement?.id === 'hidden-fitness-source'){
+      target.appendChild(c);   // hidden source → 체력 섹션 자리
+    }
+  }
+}
+
+function v514_renderMechanicTables(m, p){
+  if(typeof ANALYTICS === 'undefined') return;
+  const A = ANALYTICS;
+  const fmtPctile = pct => {
+    if(pct == null) return '<span style="color:var(--muted)">—</span>';
+    const c = pct >= 75 ? '#1a7f37' : pct >= 50 ? '#0969da' : pct >= 25 ? '#bc4c00' : '#cf222e';
+    return `<span style="color:${c};font-weight:600">${pct}</span>`;
+  };
+
+  // [3-1] 4축 + 6 metric percentile 상세 표
+  const tbody = document.getElementById('p-mech-percentile-body');
+  if(tbody && A.dualReferenceDiagnosis){
+    const d = A.dualReferenceDiagnosis({
+      pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+      arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+      stride_pct: m.faults?.stride_pct ?? 0.80,
+      hp_ratio_pct: m.energy?.transfer?.ratio_humerus_to_pelvis_pct
+    });
+    const rows = [
+      ['pelvis_dps','Pelvis ω peak','°/s'],
+      ['trunk_dps','Trunk ω peak','°/s'],
+      ['arm_dps','Arm ω peak','°/s'],
+      ['x_factor','X-factor','°'],
+      ['stride_pct','Stride %height','%'],
+      ['hp_ratio_pct','H/P ratio','%']
+    ];
+    tbody.innerHTML = rows.map(([k, lbl, unit]) => {
+      const r = d[k]; if(!r) return `<tr><td colspan="4" style="padding:4px 6px;color:var(--muted)">${lbl}: 데이터 없음</td></tr>`;
+      const v = (typeof r.value === 'number') ? (k === 'stride_pct' ? (r.value*100).toFixed(0) : (k === 'x_factor' ? r.value.toFixed(1) : Math.round(r.value))) : '—';
+      return `<tr style="border-bottom:1px solid #f0f3f6">
+        <td style="padding:5px 6px">${lbl}</td>
+        <td style="text-align:right;padding:5px 6px">${v}<span style="color:var(--muted);font-size:10px"> ${unit}</span></td>
+        <td style="text-align:right;padding:5px 6px">${fmtPctile(r.amateur_pctile)}</td>
+        <td style="text-align:right;padding:5px 6px">${fmtPctile(r.pro_pctile)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // [3-2] 분절별 metric 표 — peak ω + KE_rot + speed gain + lag
+  const segBody = document.getElementById('p-segment-body');
+  if(segBody){
+    const seq = m.sequence; const trf = m.energy?.transfer;
+    const massKg = p.weight, heightM = p.height/100;
+    const ke = (seg, omega) => (A.selfCalcSegmentKE && omega) ? A.selfCalcSegmentKE(seg, massKg, heightM, omega) : null;
+    const fmt0 = v => v == null ? '—' : Math.round(v);
+    const fmt1 = v => v == null ? '—' : v.toFixed(1);
+    const segs = [
+      {lbl:'골반', omega: seq?.pelvis_dps, ke: ke('pelvis', seq?.pelvis_dps), gain: '—', lag: '—'},
+      {lbl:'몸통', omega: seq?.trunk_dps,  ke: ke('trunk',  seq?.trunk_dps),
+       gain: trf?.speed_gain_pt != null ? trf.speed_gain_pt.toFixed(2) + '×' : '—',
+       lag: trf?.pelvis_to_trunk_lag_ms != null ? trf.pelvis_to_trunk_lag_ms + ' ms' : '—'},
+      {lbl:'팔 (Humerus IR)', omega: seq?.arm_dps, ke: ke('humerus', seq?.arm_dps),
+       gain: trf?.speed_gain_ta != null ? trf.speed_gain_ta.toFixed(2) + '×' : '—',
+       lag: trf?.trunk_to_arm_lag_ms != null ? trf.trunk_to_arm_lag_ms + ' ms' : '—'},
+      {lbl:'손 (추정)', omega: seq?.arm_dps != null ? Math.round(seq.arm_dps * 1.8) : null,
+       ke: '—', gain: '~1.8×', lag: '~20 ms'}
+    ];
+    segBody.innerHTML = segs.map(s => `<tr style="border-bottom:1px solid #f0f3f6">
+      <td style="padding:5px 6px">${s.lbl}</td>
+      <td style="text-align:right;padding:5px 6px">${fmt0(s.omega)} <span style="color:var(--muted);font-size:10px">°/s</span></td>
+      <td style="text-align:right;padding:5px 6px">${typeof s.ke === 'number' ? fmt1(s.ke) : '—'} <span style="color:var(--muted);font-size:10px">J</span></td>
+      <td style="text-align:right;padding:5px 6px">${s.gain}</td>
+      <td style="text-align:right;padding:5px 6px">${s.lag}</td>
+    </tr>`).join('');
+  }
+
+  // [3-3] ELI 6 zone 상세 표
+  const eliBody = document.getElementById('p-eli-detail-body');
+  const leak = m.energy?.leakage;
+  if(eliBody && leak){
+    const zones = [
+      ['Z1','Sequential timing — 분절 가속 순차성', leak.zone1_sequence],
+      ['Z2','X-factor 분리 — 골반-상체 분리각', leak.zone2_x_factor],
+      ['Z3','Lead leg block — 앞발 받쳐주기', leak.zone3_lead_block],
+      ['Z4','Trunk at FC — FC 시점 트렁크 자세', leak.zone4_trunk_at_fc],
+      ['Z5','Shoulder ER — 어깨 외회전 가동성', leak.zone5_shoulder_align],
+      ['Z6','Pelvis braking — 골반 감속', leak.zone6_pelvis_brake]
+    ];
+    const colorScore = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#bc4c00' : s >= 40 ? '#d4a017' : '#cf222e';
+    eliBody.innerHTML = zones.map(([z, desc, score]) => `<tr style="border-bottom:1px solid #f0f3f6">
+      <td style="padding:5px 6px;font-weight:600;color:#0969da">${z}</td>
+      <td style="padding:5px 6px;color:var(--muted)">${desc}</td>
+      <td style="text-align:right;padding:5px 6px;font-weight:600;color:${colorScore(score)}">${score ?? '—'}</td>
+    </tr>`).join('');
+  }
+}
+
+function v514_renderActionPlan(m, p){
+  // [3-4] 메카닉 발달 권장 — 4축 약점 + ELI 약점 → 우선순위 훈련
+  const wrap = document.getElementById('p-mech-action-plan');
+  if(!wrap || typeof ANALYTICS === 'undefined') return;
+  const A = ANALYTICS;
+  const fa = A.fourAxisDiagnosis ? A.fourAxisDiagnosis({
+    pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+    arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+    stride_pct: m.faults?.stride_pct ?? 0.80,
+    speed_gain_pt: m.energy?.transfer?.speed_gain_pt,
+    speed_gain_ta: m.energy?.transfer?.speed_gain_ta,
+    eli_score: m.energy?.leakage?.eli_score
+  }) : null;
+  if(!fa) { wrap.innerHTML = '<span style="color:var(--muted)">데이터 부족</span>'; return; }
+
+  // 4축 점수 → 약점 우선순위
+  const axes = [
+    {key:'power', label:'⚡ 힘 (Power)', score: fa.power.score,
+     drills: ['분절 회전 power (medicine ball rotational throw)', 'Plyometric trunk drill', 'Hip rotation banded resistance']},
+    {key:'timing', label:'⏱ 타이밍 (Timing)', score: fa.timing.score,
+     drills: ['Kinematic sequence drill (towel drill)', 'Walking windup', 'Tempo/rhythm 변화 throw']},
+    {key:'separation', label:'✂️ 분리 (Separation)', score: fa.separation.score,
+     drills: ['Hip-shoulder separation (X-factor) stretch', 'Anti-rotation core (Pallof press)', 'Stride length 발달 drill']},
+    {key:'stability', label:'🛡 안정성 (Stability)', score: fa.stability.score,
+     drills: ['Lead leg block 강화 (single leg box jump)', 'Trunk control (Pallof press)', 'Pelvis braking drill (RFE split squat)']}
+  ];
+  axes.sort((a,b) => (a.score ?? 100) - (b.score ?? 100));   // 가장 낮은 점수 순
+
+  // ELI 가장 낮은 zone 1개 추가
+  const leak = m.energy?.leakage;
+  let eliWeakest = null;
+  if(leak){
+    const zones = [
+      ['Z1', '분절 시퀀싱 timing', leak.zone1_sequence, 'Towel drill, walking windup'],
+      ['Z2', 'X-factor 분리', leak.zone2_x_factor, 'Hip-shoulder separation stretch'],
+      ['Z3', 'Lead leg block', leak.zone3_lead_block, '단일하지 박스점프, 깊은 스쿼트'],
+      ['Z4', 'Trunk at FC', leak.zone4_trunk_at_fc, 'Anti-rotation core (Pallof)'],
+      ['Z5', 'Shoulder ER', leak.zone5_shoulder_align, 'Sleeper stretch + cuff 강화'],
+      ['Z6', 'Pelvis braking', leak.zone6_pelvis_brake, 'RFE 스플릿 스쿼트, 디셀러레이션']
+    ].filter(z => z[2] != null).sort((a,b) => a[2] - b[2]);
+    eliWeakest = zones[0];
+  }
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
+  // 4축 약점 Top 2
+  html += `<div>`;
+  html += `<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#cf222e">▼ 4축 약점 우선순위</div>`;
+  axes.slice(0, 2).forEach((a, i) => {
+    html += `<div style="background:#fff5f5;border-left:3px solid #cf222e;padding:8px 10px;margin-bottom:6px;border-radius:4px">
+      <div style="font-weight:600;font-size:12px">${i+1}. ${a.label} <span style="color:#cf222e;font-size:11px">(${a.score ?? '—'}점)</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">권장 drill:</div>
+      <ul style="margin:4px 0 0;padding-left:16px;font-size:11px;line-height:1.5">${a.drills.map(d => `<li>${d}</li>`).join('')}</ul>
+    </div>`;
+  });
+  html += `</div>`;
+  // ELI 가장 낮은 zone + 강점 1개
+  html += `<div>`;
+  if(eliWeakest){
+    html += `<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#bc4c00">⚠ 가장 낮은 ELI Zone</div>`;
+    html += `<div style="background:#fff8f0;border-left:3px solid #bc4c00;padding:8px 10px;margin-bottom:8px;border-radius:4px">
+      <div style="font-weight:600;font-size:12px">${eliWeakest[0]} ${eliWeakest[1]} <span style="color:#bc4c00;font-size:11px">(${eliWeakest[2]}점)</span></div>
+      <div style="font-size:11px;margin-top:4px">→ ${eliWeakest[3]}</div>
+    </div>`;
+  }
+  html += `<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#1a7f37">▲ 강점 (유지)</div>`;
+  html += `<div style="background:#f0fff4;border-left:3px solid #1a7f37;padding:8px 10px;border-radius:4px">
+    <div style="font-weight:600;font-size:12px">${axes[axes.length-1].label} <span style="color:#1a7f37;font-size:11px">(${axes[axes.length-1].score ?? '—'}점)</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">현재 수준 유지하면서 약점 발달 우선</div>
+  </div>`;
+  html += `</div></div>`;
+  wrap.innerHTML = html;
+}
+
+function v514_renderSummaryAction(m, p){
+  // [§ 5] 종합 권장 — bigger lever 진단
+  const wrap = document.getElementById('p-summary-action');
+  if(!wrap || typeof ANALYTICS === 'undefined') return;
+  const A = ANALYTICS;
+  const measured = m.velocity?.measured_kmh;
+  if(!A.expectedVelocityCombined || measured == null){
+    wrap.innerHTML = '<span style="color:var(--muted)">실측 구속 또는 모델 데이터 부족</span>';
+    return;
+  }
+  const mechIn = {
+    pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+    arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+    stride_pct: m.faults?.stride_pct ?? 0.80,
+    mass_kg: p.weight, height_m: p.height/100
+  };
+  const fitIn = {
+    height_cm: p.height, weight_kg: p.weight,
+    cmj_pp_bm: m.fitness?.cmj?.peak_power_bm_w_kg,
+    imtp_pf_bm: m.fitness?.imtp?.peak_force_bm_n_kg,
+    hop_rsi: m.fitness?.pogo?.rsi_ms, grip_kg: null
+  };
+  const tot = A.expectedVelocityCombined(mechIn, fitIn, measured);
+  if(!tot) { wrap.innerHTML = '<span style="color:var(--muted)">진단 데이터 부족</span>'; return; }
+
+  const lever = tot.bigger_lever;
+  const leverColor = lever === '체력' ? '#bc4c00' : '#1a7f37';
+
+  let html = `<div style="background:#f6f8fa;border-radius:6px;padding:12px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">🎯 향상 시나리오 비교</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px">
+      <div style="background:#fff8f0;padding:8px 10px;border-radius:4px;border-left:3px solid #bc4c00">
+        <div style="font-size:11px;color:var(--muted)">💪 체력만 향상</div>
+        <div style="font-size:18px;font-weight:600;color:#bc4c00">+${tot.fitness_gain} km/h</div>
+      </div>
+      <div style="background:#f0f9f4;padding:8px 10px;border-radius:4px;border-left:3px solid #1a7f37">
+        <div style="font-size:11px;color:var(--muted)">⚙️ 메카닉만 향상</div>
+        <div style="font-size:18px;font-weight:600;color:#1a7f37">+${tot.mechanic_gain} km/h</div>
+      </div>
+      <div style="background:#f5f0ff;padding:8px 10px;border-radius:4px;border-left:3px solid #8250df">
+        <div style="font-size:11px;color:var(--muted)">🎯 통합 향상</div>
+        <div style="font-size:18px;font-weight:600;color:#8250df">+${tot.expected_gain} km/h</div>
+      </div>
+    </div>
+  </div>`;
+  html += `<div style="padding:10px;background:${leverColor}10;border-left:4px solid ${leverColor};border-radius:4px;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:600;color:${leverColor}">💡 더 큰 leverage: <b>${lever}</b></div>
+    <div style="font-size:11.5px;color:var(--text);margin-top:4px">${tot.message}</div>
+  </div>`;
+  html += `<div style="font-size:11.5px;color:var(--muted);margin-top:8px">
+    <b>📋 다음 3개월 권장 흐름:</b><br>
+    1. <b>§ 3-4 메카닉 발달 권장</b>의 4축 약점 Top 2 drill 4-6주 적용<br>
+    2. <b>§ 2 체력</b> ForceDecks 측정값 weak link 변수에 S&C 보강<br>
+    3. <b>다음 측정 (3개월 후)</b> 같은 방식 측정 후 percentile 변화 확인 → 효과 검증
+  </div>`;
+  wrap.innerHTML = html;
 }
 
 /* 코호트 모드 — KBO/HS 토글로 비교 평가 변경 */

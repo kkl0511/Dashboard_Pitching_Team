@@ -274,6 +274,84 @@ function expectedVelocityWithImprovement(input, measuredKmh){
 }
 
 /**
+ * v5.13: 체력 향상 시 기대 구속 (PHYSICAL_VELO_MODEL 활용)
+ *
+ *   본인 체력 → predicted_self_fitness
+ *   Elite 체력 (VELO_GROUP_NORMS Elite) → predicted_elite_fitness
+ *   향상 = elite − self  (model-internal 차이만 사용)
+ *   신체조건(height/weight)은 본인 값 유지 — "체력 변수만 elite로 끌어올렸을 때"
+ *
+ * @param {object} input  cmj_pp_bm, imtp_pf_bm, hop_rsi, grip_kg, height_cm, weight_kg
+ * @param {number} measuredKmh  실측 구속
+ * @returns {{predicted_self, predicted_elite, expected_gain, expected_velo, message}}
+ */
+function expectedVelocityFromFitness(input, measuredKmh){
+  const M = PHYSICAL_VELO_MODEL;
+  if(!input) return null;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  // Elite 체력 reference (VELO_GROUP_NORMS Elite — 학술 추정)
+  const eliteFit = { cmj_pp_bm: 32, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65 };
+  let predSelf = M.intercept, predElite = M.intercept;
+  for(const [k, c] of Object.entries(M.coefs)){
+    const selfV = input[k] != null && !isNaN(input[k]) ? input[k] : M.defaults[k];
+    let eliteV;
+    if(k === 'height_cm' || k === 'weight_kg'){
+      eliteV = selfV;   // 신체조건은 본인 값 유지
+    } else {
+      eliteV = eliteFit[k] ?? selfV;
+    }
+    predSelf  += c * selfV;
+    predElite += c * eliteV;
+  }
+  const gain = predElite - predSelf;
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(gain < 0.5) message = '체력이 이미 elite 수준 — 메카닉 발달이 다음 단계';
+  else if(gain < 3)   message = '체력 향상으로 +' + r(gain) + ' km/h 기대 — CMJ/IMTP 우선';
+  else if(gain < 6)   message = '체력 향상 잠재 +' + r(gain) + ' km/h — 4가지 fitness 변수 종합 발달';
+  else                message = '체력 향상 잠재 +' + r(gain) + ' km/h — 큰 향상 여지';
+
+  return {
+    predicted_self:  r(predSelf),
+    predicted_elite: r(predElite),
+    expected_gain:   r(gain),
+    expected_velo:   measuredKmh != null ? r(measuredKmh + gain) : null,
+    measured_velo:   measuredKmh,
+    message: message
+  };
+}
+
+/**
+ * v5.13: 체력 + 메카닉 모두 향상 시 통합 기대 구속
+ *   가법 합산 — 두 모델의 향상량을 단순 더함
+ *   학술 한계: cross-term interaction 무시 (단순화)
+ */
+function expectedVelocityCombined(mechInput, fitInput, measuredKmh){
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const mech = expectedVelocityWithImprovement(mechInput, measuredKmh);
+  const fit  = expectedVelocityFromFitness(fitInput, measuredKmh);
+  const mGain = mech?.expected_gain ?? 0;
+  const fGain = fit?.expected_gain ?? 0;
+  const totalGain = mGain + fGain;
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(totalGain < 1) message = '이미 종합 잠재 도달 — release/spin 등 기타 요인 발달';
+  else if(totalGain < 5) message = '통합 향상으로 +' + r(totalGain) + ' km/h 기대';
+  else if(totalGain < 10) message = '통합 향상 잠재 +' + r(totalGain) + ' km/h — 메카닉/체력 모두 발달 권장';
+  else                    message = '통합 향상 잠재 +' + r(totalGain) + ' km/h — 큰 발달 여지';
+
+  return {
+    mechanic_gain:  r(mGain),
+    fitness_gain:   r(fGain),
+    expected_gain:  r(totalGain),
+    expected_velo:  measuredKmh != null ? r(measuredKmh + totalGain) : null,
+    measured_velo:  measuredKmh,
+    message:        message,
+    bigger_lever:   mGain > fGain ? '메카닉' : '체력'
+  };
+}
+
+/**
  * v5.12: 4축 능력 점수 (Power / Timing / Separation / Stability)
  *   각 0-100 percentile (아마 기준 + 프로 기준 동시 산출)
  *   - Power      = pelvis/trunk/arm ω peak 종합 percentile
@@ -1945,7 +2023,10 @@ const ANALYTICS = {
   dualReferenceDiagnosis,
   // v5.12: 코치/선수용 핵심 KPI + 4축 능력 진단
   expectedVelocityWithImprovement,
-  fourAxisDiagnosis
+  fourAxisDiagnosis,
+  // v5.13: 체력/통합 향상 시나리오
+  expectedVelocityFromFitness,
+  expectedVelocityCombined
 };
 
 // 브라우저 빌드에서 직접 접근 가능
