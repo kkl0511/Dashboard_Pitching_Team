@@ -221,7 +221,18 @@ async function handleJsonFiles(fileList){
   const result = document.getElementById('theia-json-result');
   const all = [];
   const messages = [];
-  for(const file of fileList){
+
+  // v5.1: c3d.txt 원본과 가공 JSON 분리 처리 (사용자가 raw 끌어놓는 경우 graceful)
+  const c3dFiles  = [...fileList].filter(f => /\.c3d\.txt$/i.test(f.name));
+  const jsonFiles = [...fileList].filter(f => !/\.c3d\.txt$/i.test(f.name));
+
+  if(c3dFiles.length){
+    const cr = await handleC3DTxtFiles(c3dFiles);
+    messages.push(...cr.messages);
+    all.push(...cr.applied);
+  }
+
+  for(const file of jsonFiles){
     try {
       const text = await file.text();
       const obj = JSON.parse(text);
@@ -240,9 +251,232 @@ async function handleJsonFiles(fileList){
   }
   if(all.length) refreshAllAfterImport();
   result.innerHTML = messages.map(m=>{
-    const cls = m.startsWith('✓') ? 'good' : m.startsWith('⚠') ? 'warn' : 'bad';
-    return `<div class="pill ${cls}" style="display:block;padding:6px 10px;margin:3px 0;font-weight:500">${m}</div>`;
+    const cls = m.startsWith('✓') ? 'good' : m.startsWith('⚠') ? 'warn' : m.startsWith('  ') ? '' : 'bad';
+    return cls
+      ? `<div class="pill ${cls}" style="display:block;padding:6px 10px;margin:3px 0;font-weight:500">${m}</div>`
+      : `<div style="padding:2px 18px;color:var(--muted);font-size:11px">${m}</div>`;
   }).join('');
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  8a. v5.1 — Visual3D ASCII (.c3d.txt) 인-브라우저 파서        ║
+   ║      process_pitching_session.py를 거치지 않고 바로 인식       ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+// 단일 c3d.txt → trial summary dict
+function parseC3DTxtTrial(text){
+  const lines = text.split(/\r?\n/);
+  if(lines.length < 6) return {error: '파일 줄 수 부족 (<6)'};
+
+  const var_names  = lines[1].split('\t');
+  const components = lines[4].split('\t');
+  const colMap = {};
+  for(let i = 0; i < var_names.length; i++){
+    const n = (var_names[i] || '').trim();
+    const c = (components[i] || '').trim();
+    if(n){
+      const key = c ? `${n}_${c}` : n;
+      if(!(key in colMap)) colMap[key] = i;
+    }
+  }
+
+  const dataRows = [];
+  for(let i = 5; i < lines.length; i++){
+    if(!lines[i].trim()) continue;
+    dataRows.push(lines[i].split('\t'));
+  }
+  if(!dataRows.length) return {error: '데이터 행 없음'};
+
+  const safeFloat = v => { const n = parseFloat(String(v).trim()); return isNaN(n) ? null : n; };
+  const colByName = name => {
+    const idx = colMap[name];
+    if(idx === undefined) return [];
+    return dataRows.map(r => idx < r.length ? safeFloat(r[idx]) : null);
+  };
+  const safeMaxAbs = arr => {
+    let m = null;
+    for(const x of arr){ if(x !== null){ const a = Math.abs(x); if(m === null || a > m) m = a; } }
+    return m;
+  };
+
+  const fp1z = safeMaxAbs(colByName('FP1_Z'));
+  const fp2z = safeMaxAbs(colByName('FP2_Z'));
+  const humZ = safeMaxAbs(colByName('Pitching_Humerus_Ang_Vel_Z'));
+
+  return {
+    n_frames:        dataRows.length,
+    peak_pelvis_v:   safeMaxAbs(colByName('Pelvis_Ang_Vel_Z')),
+    peak_trunk_v:    safeMaxAbs(colByName('Thorax_Ang_Vel_Z')),
+    // process_pitching_session.py와 동일 bias 보정 (xlsx 처리값 대비 +490 deg/s)
+    peak_humerus_v:  humZ != null ? humZ - 490 : null,
+    peak_arm_v:      humZ,
+    peak_shoulder_v: safeMaxAbs(colByName('Pitching_Shoulder_Ang_Vel_Z')),
+    peak_elbow_v:    safeMaxAbs(colByName('Pitching_Elbow_Ang_Vel_X')),
+    max_x_factor:    safeMaxAbs(colByName('Trunk_wrt_Pelvis_Angle_Z')),
+    fp1_z_peak:      fp1z,
+    fp2_z_peak:      fp2z,
+    stride_length:   safeMaxAbs(colByName('STRIDE_LENGTH_X')),
+    lead_knee_max:   safeMaxAbs(colByName('Lead_Knee_Angle_X')),
+    trunk_lateral_tilt: safeMaxAbs(colByName('Trunk_Angle_Y')),
+    trunk_forward_tilt: safeMaxAbs(colByName('Trunk_Angle_X')),
+  };
+}
+
+// trials 배열 → DATA[pid][sid] body (process_pitching_session.py synthesize_player_summary 포팅)
+function synthesizeRecordFromTrials(pid, trials, sid){
+  const median = (arr, lo, hi, fb) => {
+    const vs = arr.filter(v => v != null && (lo == null || v >= lo) && (hi == null || v <= hi))
+                  .sort((a, b) => a - b);
+    return vs.length ? vs[Math.floor(vs.length / 2)] : fb;
+  };
+  const norm = (v, base, mult) => Math.max(20, Math.min(98, 50 + (v - base) * mult));
+
+  const peakPelvis = median(trials.map(t => t.peak_pelvis_v),  200, 1300, 600);
+  const peakTrunk  = median(trials.map(t => t.peak_trunk_v),   600, 1300, 900);
+  const peakArm    = median(trials.map(t => t.peak_arm_v),    1500, 2200, 1970);
+  const xFactor    = median(trials.map(t => t.max_x_factor),  30, 180, 50);
+  const fp1Peak    = median(trials.map(t => t.fp1_z_peak),    500, 2000, 1100);
+  const fp2Peak    = median(trials.map(t => t.fp2_z_peak),    500, 1500, 750);
+
+  const player = PLAYERS.find(p => p.id === pid);
+  const weight = player?.weight || 91;
+
+  const genScore = Math.round(norm(peakArm, 1900, 0.05)*0.3 + norm(800, 800, 0.04)*0.3
+                  + norm(peakTrunk, 850, 0.04)*0.2 + norm(400, 350, 0.05)*0.2);
+  const speedGainPt = Math.round((peakTrunk / peakPelvis) * 100) / 100;
+  const speedGainTa = Math.round((peakArm / peakTrunk) * 100) / 100;
+  const etePct = 80;
+  const trfScore = Math.round(norm(etePct, 75, 1.5)*0.4 + norm(speedGainPt*100, 150, 0.4)*0.3
+                  + norm(speedGainTa*100, 200, 0.3)*0.3);
+
+  const zones = [
+    ['zone1','골반→몸통→팔 시퀀스', '분절 가속 순서 결함', 88],
+    ['zone2','골반-상체 분리 (X-팩터)', 'X-factor 미달', Math.round(norm(xFactor, 60, 1.0))],
+    ['zone3','앞발 받쳐주기 (블로킹)', 'Lead knee collapse', Math.round(norm(fp2Peak/weight*100, 110, 0.4))],
+    ['zone4','앞발 착지 시 몸통 자세', 'FC 시 트렁크 기울기 부적절', 78],
+    ['zone5','어깨 정렬 (외전·외회전)', 'Shoulder alignment 결함', 84],
+    ['zone6','골반 감속 (브레이크)', 'Pelvis braking 부족', 72]
+  ];
+  const eliScore = Math.round(zones.reduce((a, z) => a + z[3], 0) / 6);
+  const causal = [...zones].sort((a, b) => a[3] - b[3]).slice(0, 3).map(z => ({
+    zone: z[0], zone_label: z[1], defect: z[2],
+    impact_kmh: Math.round((-((100 - z[3]) / 12 + 0.4)) * 10) / 10
+  }));
+
+  const sessionMeta = SESSIONS.find(s => s.id === sid) || {date: '2026-05-15', protocol: 'Theia+GRF'};
+
+  return {
+    athlete_external_id: pid,
+    session_id: sid,
+    test_date: sessionMeta.date,
+    protocol: 'Theia+GRF',
+    sequence: {
+      pelvis_dps: Math.round(peakPelvis),
+      trunk_dps:  Math.round(peakTrunk),
+      arm_dps:    Math.round(peakArm),
+      ete_pct: etePct, speed_gain: speedGainPt,
+      proper_seq: true, score: trfScore
+    },
+    energy: {
+      generation: {
+        hip_R_W: 280, hip_L_W: 260, knee_R_W: 360, knee_L_W: 340,
+        shoulder_W: 800, elbow_W: 240, total_W: 1900,
+        mech_energy_pelvis_J: 400, mech_energy_trunk_J: 600, mech_energy_humerus_J: 590,
+        score: genScore
+      },
+      transfer: {
+        ete_pct: etePct, speed_gain_pt: speedGainPt, speed_gain_ta: speedGainTa,
+        proper_seq: true, pelvis_to_trunk_lag_ms: 50, trunk_to_arm_lag_ms: 35,
+        score: trfScore
+      },
+      leakage: {
+        zone1_sequence: zones[0][3], zone2_x_factor: zones[1][3],
+        zone3_lead_block: zones[2][3], zone4_trunk_at_fc: zones[3][3],
+        zone5_shoulder_align: zones[4][3], zone6_pelvis_brake: zones[5][3],
+        eli_score: eliScore, causal_chains: causal
+      }
+    },
+    grf: {
+      lhei: Math.min(98, Math.round(zones[2][3]*0.3 + zones[5][3]*0.2
+              + norm(fp1Peak/weight*100, 80, 0.5)*0.25
+              + norm(fp2Peak/weight*100, 110, 0.4)*0.25)),
+      rear_force_pct: Math.round(fp1Peak / (weight * 9.81) * 100 * 100) / 100,
+      lead_force_pct: Math.round(fp2Peak / (weight * 9.81) * 100 * 100) / 100,
+      type: '균형형'
+    },
+    faults: {
+      x_factor_deg: Math.round(xFactor * 10) / 10,
+      lead_knee_change: 12,
+      release_height_sd_cm: 4.0,
+      wrist_pos_sd_cm: 2.5, trunk_tilt_sd_deg: 1.8,
+      consistency_score: 88, fault_score: 85,
+      injury_risk: 'low', fault_count: 1
+    }
+  };
+}
+
+// 끌어놓은 c3d.txt 파일들 → 1명의 record 합성·적용
+async function handleC3DTxtFiles(files){
+  const messages = [`▶ Visual3D ASCII (.c3d.txt) ${files.length}개 감지 — 인-브라우저 처리`];
+  const applied = [];
+
+  // 모든 파일 텍스트 비동기 로드
+  const fileTexts = await Promise.all(files.map(async f => ({
+    name: f.name, text: await f.text()
+  })));
+
+  // PID 자동 감지: 파일 첫 1KB에서 \P##_ 또는 /P##_ 패턴 (Visual3D 경로 헤더)
+  let detectedPID = null;
+  for(const ft of fileTexts){
+    const head = ft.text.slice(0, 1500);
+    const m = head.match(/[\\\/](P\d{2})[_\s\\\/]/);
+    if(m){ detectedPID = m[1]; break; }
+    // 백슬래시 escape 환경에 따라 다른 패턴도 시도
+    const m2 = head.match(/(P\d{2})_[A-Z]+/);
+    if(m2){ detectedPID = m2[1]; break; }
+  }
+
+  if(!detectedPID){
+    const opts = PLAYERS.map(p => `${p.id} ${p.name}`).join(', ');
+    const ans = window.prompt(
+      `c3d.txt에서 선수 PID를 자동 감지하지 못했습니다.\n어느 선수의 데이터인가요? (예: P01)\n\n선수 목록: ${opts}`,
+      'P01'
+    );
+    if(!ans){ messages.push('✗ PID 입력 취소 — 처리 중단'); return {messages, applied}; }
+    detectedPID = ans.trim().toUpperCase();
+  }
+
+  if(!PLAYERS.find(p => p.id === detectedPID)){
+    messages.push(`✗ PID ${detectedPID} 가 PLAYERS 명단에 없음`);
+    return {messages, applied};
+  }
+  messages.push(`  · 선수 PID: ${detectedPID} ${PLAYERS.find(p => p.id === detectedPID).name}`);
+
+  // 파일별 trial summary 추출
+  const trials = [];
+  for(const ft of fileTexts){
+    const summary = parseC3DTxtTrial(ft.text);
+    if(summary.error){
+      messages.push(`  ⚠ ${ft.name}: ${summary.error}`);
+      continue;
+    }
+    trials.push(summary);
+  }
+  if(!trials.length){
+    messages.push('✗ 파싱 가능한 trial 없음 — 처리 중단');
+    return {messages, applied};
+  }
+
+  // 어느 세션에 적용? 기본 1차 (Theia+GRF). 수동 변경은 추후 dropdown으로.
+  const sid = 1;
+  const body = synthesizeRecordFromTrials(detectedPID, trials, sid);
+  const rec  = {pid: detectedPID, sid, body};
+  applyTheiaRecord(rec);
+  applied.push(rec);
+  messages.push(`✓ ${detectedPID} S${sid} 적용 완료 (${trials.length} trials median 합성)`);
+  messages.push(`  · 골반/몸통/팔 peak: ${body.sequence.pelvis_dps}/${body.sequence.trunk_dps}/${body.sequence.arm_dps} dps · X-factor ${body.faults.x_factor_deg}° · ELI ${body.energy.leakage.eli_score}`);
+
+  return {messages, applied};
 }
 
 // 드래그 & 클릭 둘 다 지원
