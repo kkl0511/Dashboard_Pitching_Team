@@ -343,9 +343,15 @@ function renderPlayerView(pid){
     };
     return `${labelMap[c.var]||c.var} +${c.gain_kmh}`;
   }).join(' · ');
+  // v3.8-2: BBL 외부 회귀 모델 cross-check (작은 inline)
+  const bblNote = m.velocity.bbl_predicted_kmh != null
+    ? ` <span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 5px;border-radius:3px"
+         title="BBL Uplift n=169 회귀 (LOO-CV R²=${m.velocity.bbl_R2_loo})">BBL ${m.velocity.bbl_predicted_kmh}</span>`
+    : '';
   document.getElementById('p-velo-pot-delta').innerHTML =
     `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b>` +
     (contribTop ? ` <span style="color:var(--muted);font-size:11px">| ${contribTop}</span>` : '') +
+    bblNote +
     ` <span style="font-size:10px;color:#999" title="회귀모델 v${m.velocity.model||'?'}">${m.velocity.model?'·v'+m.velocity.model:''}</span>`;
   const elsc = document.getElementById('p-score');
   elsc.textContent = m.velocity.score;
@@ -477,7 +483,7 @@ function renderPlayerView(pid){
         </div>`;
       }).join('');
 
-      // 인과 분석 — top 3
+      // 인과 분석 — top 3 (v3.8-3: BBL fault_images 시각 통합)
       const cw = document.getElementById('p-causal-chains');
       if(leak.causal_chains && leak.causal_chains.length){
         cw.innerHTML = leak.causal_chains.map((c,i)=>`
@@ -486,6 +492,10 @@ function renderPlayerView(pid){
             <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'#0969da'};
                          color:#fff;border-radius:50%;text-align:center;font-weight:700;
                          line-height:22px;font-size:11px">${i+1}</span>
+            ${c.image ? `<img src="assets/fault_images/${c.image}" alt="${c.defect}"
+                 style="flex:0 0 50px;height:50px;object-fit:contain;border-radius:4px;
+                        border:1px solid var(--line-soft);background:#fafbfc"
+                 title="결함 시각 — ${c.defect}">` : ''}
             <span style="flex:1;font-size:12.5px"><b>${c.defect}</b>
               <span style="color:var(--muted);font-size:11px"> → ${c.zone_label || c.zone}</span></span>
             <span class="pill bad" style="flex:0 0 auto">추정 ${c.impact_kmh} km/h</span>

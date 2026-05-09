@@ -95,6 +95,21 @@ function genMeasurements(){
         ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit, p.grade)
         : { potential_kmh: r1(velo + 6), gap_kmh: 6, contributions: [], model: 'fallback' };
 
+      // v3.8-2: BBL 외부 회귀 모델 cross-check
+      const bblPred = (typeof ANALYTICS !== 'undefined' && typeof ANALYTICS.predictMaxVelocityBBL === 'function')
+        ? ANALYTICS.predictMaxVelocityBBL({
+            max_x_factor_mean:                  x_factor,
+            lead_knee_ext_change_fc_to_br_mean: lead_knee,
+            proper_sequence_binary_mean:        rng() > 0.15 ? 1.0 : 0.0,
+            elbow_ext_vel_max_mean:             1100 + rng()*800,
+            height_m:                           p.height/100,
+            weight_kg:                          p.weight,
+            cmj_pp_bm:                          tmpFit.cmj_pp_bm,
+            imtp_pp_bm:                         tmpFit.imtp_pf_bm,
+            grip_strength:                      40 + rng()*30
+          })
+        : null;
+
       const m = {
         protocol: s.protocol, date: s.date,
         velocity: {
@@ -103,7 +118,11 @@ function genMeasurements(){
           gap_kmh:       latent.gap_kmh,
           contributions: latent.contributions,
           model:         latent.model,
-          score:         Math.round(score)
+          score:         Math.round(score),
+          // v3.8-2 BBL 외부 회귀 모델 cross-check
+          bbl_predicted_kmh: bblPred?.predicted_kmh ?? null,
+          bbl_R2_loo:        bblPred?.R2_loo ?? null,
+          bbl_top_contrib:   bblPred?.contributors?.slice(0,3) ?? null,
         },
         sequence: {
           pelvis_dps: pelvis_dps,

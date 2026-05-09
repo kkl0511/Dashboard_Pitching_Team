@@ -811,13 +811,14 @@ function eliScoresFromTheia(m){
   const eli = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0) / valid.length) : null;
 
   // 인과 chain — 점수 낮은 zone 3개 + 추정 손실 km/h
+  // v3.8-3: BBL Uplift fault_images SVG 매핑 추가
   const labels = [
-    {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함', impact_w: 0.18},
-    {key:'zone2', label:'X-factor 부족',                defect:'골반-상체 분리 미달',  impact_w: 0.15},
-    {key:'zone3', label:'앞발 받쳐주기 약함',           defect:'Lead knee collapse',   impact_w: 0.18},
-    {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',   defect:'FC 시 트렁크 기울기 부적절', impact_w: 0.14},
-    {key:'zone5', label:'어깨 ER 부족 / 과도',          defect:'Shoulder ER 부적절',    impact_w: 0.12},
-    {key:'zone6', label:'골반 감속 부족',               defect:'Pelvis braking 부족',   impact_w: 0.20}
+    {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함', impact_w: 0.18, image:'EarlyRelease.png'},
+    {key:'zone2', label:'X-factor 부족',                defect:'골반-상체 분리 미달',  impact_w: 0.15, image:'FlyingOpen.png'},
+    {key:'zone3', label:'앞발 받쳐주기 약함',           defect:'Lead knee collapse',   impact_w: 0.18, image:'KneeCollapse.png'},
+    {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',   defect:'FC 시 트렁크 기울기 부적절', impact_w: 0.14, image:'Sway.png'},
+    {key:'zone5', label:'어깨 ER 부족 / 과도',          defect:'Shoulder ER 부적절',    impact_w: 0.12, image:'ForearmFlyout.png'},
+    {key:'zone6', label:'골반 감속 부족',               defect:'Pelvis braking 부족',   impact_w: 0.20, image:'GettingOutFront.png'}
   ];
   const enriched = zones.map((s, i) => ({ ...labels[i], score: s }))
                         .filter(z => z.score != null);
@@ -826,7 +827,8 @@ function eliScoresFromTheia(m){
     .slice(0, 3)
     .map(z => ({
       zone: z.key, zone_label: z.label, defect: z.defect,
-      impact_kmh: Math.round(-((100 - z.score) * z.impact_w / 10) * 10) / 10
+      impact_kmh: Math.round(-((100 - z.score) * z.impact_w / 10) * 10) / 10,
+      image: z.image  // v3.8-3: 결함 시각 이미지 파일명
     }));
 
   return {

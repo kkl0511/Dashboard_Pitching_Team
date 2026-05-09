@@ -604,11 +604,20 @@
       </div>
     </div>
     <div class="panel">
-      <h2>키네틱 시퀀스 (피크 회전속도)</h2>
-      <div class="chart-wrap lg"><canvas id="p-sequence"></canvas></div>
+      <h2>키네틱 시퀀스 (피크 회전속도) <span class="badge" style="background:#ddf4ff;color:#0969da">v3.8 시각</span></h2>
+      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:center">
+        <div>
+          <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
+               style="width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line-soft)">
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
+            골반 → 몸통 → 팔 가속 순서 (proper sequence)
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="p-sequence"></canvas></div>
+      </div>
       <div class="footnote">
         Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
-        ETE = 분절 간 에너지 전달 효율(%).
+        ETE = 분절 간 에너지 전달 효율(%). 애니메이션 reference: BBL Kinematic Report.
       </div>
     </div>
   </div>
@@ -1300,7 +1309,83 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '3.6';
+const ANALYTICS_VERSION = '3.8';
+
+/* ────────────────────────────────────────────────────────────
+   v3.8-2: BBL VELO_REGRESSION_v33_22 — 외부 reference 회귀 모델
+   출처: kkl0511/Uplift_Pitching_Report (BBL n=169 sessions, OLS)
+   - 학습 R²    = 0.377
+   - LOO-CV R² = 0.268 (cross-validation 검증 통과)
+   - 한국 고교 + 고2~고3 mixed cohort
+   우리 LATENT_VELOCITY_WEIGHTS 와 cross-check reference
+   ──────────────────────────────────────────────────────────── */
+
+const BBL_VELO_MODEL = {
+  intercept: 15.6232,
+  // 비표준화 계수 (km/h per unit)
+  coefs: {
+    max_x_factor_mean:                   0.177448,
+    lead_knee_ext_change_fc_to_br_mean:  0.022827,
+    proper_sequence_binary_mean:         8.733000,   // ★ β=0.276 (1순위)
+    pelvis_to_trunk_lag_ms_sd:           0.000924,
+    elbow_ext_vel_max_mean:              0.001245,
+    height_m:                            40.227000,  // ★ β=0.235
+    weight_kg:                           0.007000,
+    cmj_pp_bm:                           0.051000,
+    imtp_pp_bm:                          0.309000,
+    grip_strength:                       0.280420,   // ★ β=0.266 (2순위)
+    cog_decel:                           3.282000,   // v33.22 신규 (Driveline 검증)
+  },
+  // 비어있을 때 사용할 코호트 평균 (BBL imputation)
+  defaults: {
+    max_x_factor_mean:                   31.0,
+    lead_knee_ext_change_fc_to_br_mean:  3.0,
+    proper_sequence_binary_mean:         0.92,
+    pelvis_to_trunk_lag_ms_sd:           14.0,
+    elbow_ext_vel_max_mean:              1450.0,
+    height_m:                            1.78,
+    weight_kg:                           76.0,
+    cmj_pp_bm:                           45.0,
+    imtp_pp_bm:                          27.0,
+    grip_strength:                       55.0,
+    cog_decel:                           1.5,
+  },
+  R2: 0.377, R2_loo: 0.268, n: 169,
+  source: 'BBL Uplift Pitching Report v33.22 (kkl0511)',
+  // 표준화 β 1~5순위 (UI 인용)
+  top5_beta: ['proper_sequence (+0.276)', 'grip_strength (+0.266)',
+              'height (+0.235)', 'max_x_factor (+0.214)', 'cog_decel (+0.183)']
+};
+
+/**
+ * BBL 외부 회귀모델로 max velocity 예측
+ * @param {object} input  10~11 변수 (없으면 코호트 mean으로 imputation)
+ * @returns {{predicted_kmh, used_imputation, contributors}}
+ */
+function predictMaxVelocityBBL(input = {}){
+  const m = BBL_VELO_MODEL;
+  let pred = m.intercept;
+  const used_imputation = [];
+  const contributors = [];
+  for(const [k, c] of Object.entries(m.coefs)){
+    let v = input[k];
+    if(v == null || isNaN(v)){
+      v = m.defaults[k]; used_imputation.push(k);
+    }
+    const contribution = c * v;
+    pred += contribution;
+    contributors.push({ var: k, value: v, coef: c, contribution: Math.round(contribution*10)/10 });
+  }
+  return {
+    predicted_kmh: Math.round(pred*10)/10,
+    used_imputation,
+    contributors: contributors.sort((a,b)=>b.contribution-a.contribution),
+    source: m.source,
+    R2: m.R2,
+    R2_loo: m.R2_loo,
+    n: m.n
+  };
+}
 
 /* ────────────────────────────────────────────────────────────
    v3.2 — VALD College Baseball 노메이티브 데이터 (USA, College, N≈수백)
@@ -2024,13 +2109,14 @@ function eliScoresFromTheia(m){
   const eli = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0) / valid.length) : null;
 
   // 인과 chain — 점수 낮은 zone 3개 + 추정 손실 km/h
+  // v3.8-3: BBL Uplift fault_images SVG 매핑 추가
   const labels = [
-    {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함', impact_w: 0.18},
-    {key:'zone2', label:'X-factor 부족',                defect:'골반-상체 분리 미달',  impact_w: 0.15},
-    {key:'zone3', label:'앞발 받쳐주기 약함',           defect:'Lead knee collapse',   impact_w: 0.18},
-    {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',   defect:'FC 시 트렁크 기울기 부적절', impact_w: 0.14},
-    {key:'zone5', label:'어깨 ER 부족 / 과도',          defect:'Shoulder ER 부적절',    impact_w: 0.12},
-    {key:'zone6', label:'골반 감속 부족',               defect:'Pelvis braking 부족',   impact_w: 0.20}
+    {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함', impact_w: 0.18, image:'EarlyRelease.png'},
+    {key:'zone2', label:'X-factor 부족',                defect:'골반-상체 분리 미달',  impact_w: 0.15, image:'FlyingOpen.png'},
+    {key:'zone3', label:'앞발 받쳐주기 약함',           defect:'Lead knee collapse',   impact_w: 0.18, image:'KneeCollapse.png'},
+    {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',   defect:'FC 시 트렁크 기울기 부적절', impact_w: 0.14, image:'Sway.png'},
+    {key:'zone5', label:'어깨 ER 부족 / 과도',          defect:'Shoulder ER 부적절',    impact_w: 0.12, image:'ForearmFlyout.png'},
+    {key:'zone6', label:'골반 감속 부족',               defect:'Pelvis braking 부족',   impact_w: 0.20, image:'GettingOutFront.png'}
   ];
   const enriched = zones.map((s, i) => ({ ...labels[i], score: s }))
                         .filter(z => z.score != null);
@@ -2039,7 +2125,8 @@ function eliScoresFromTheia(m){
     .slice(0, 3)
     .map(z => ({
       zone: z.key, zone_label: z.label, defect: z.defect,
-      impact_kmh: Math.round(-((100 - z.score) * z.impact_w / 10) * 10) / 10
+      impact_kmh: Math.round(-((100 - z.score) * z.impact_w / 10) * 10) / 10,
+      image: z.image  // v3.8-3: 결함 시각 이미지 파일명
     }));
 
   return {
@@ -2456,6 +2543,8 @@ const ANALYTICS = {
   valdPercentile, injuryRisk,
   // v3.3 — 3-tier cohort 비교
   valdMultiTier,
+  // v3.8 — BBL 외부 회귀 모델
+  predictMaxVelocityBBL, BBL_VELO_MODEL,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
   COMPOSITE_WEIGHTS,
@@ -2568,6 +2657,21 @@ function genMeasurements(){
         ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit, p.grade)
         : { potential_kmh: r1(velo + 6), gap_kmh: 6, contributions: [], model: 'fallback' };
 
+      // v3.8-2: BBL 외부 회귀 모델 cross-check
+      const bblPred = (typeof ANALYTICS !== 'undefined' && typeof ANALYTICS.predictMaxVelocityBBL === 'function')
+        ? ANALYTICS.predictMaxVelocityBBL({
+            max_x_factor_mean:                  x_factor,
+            lead_knee_ext_change_fc_to_br_mean: lead_knee,
+            proper_sequence_binary_mean:        rng() > 0.15 ? 1.0 : 0.0,
+            elbow_ext_vel_max_mean:             1100 + rng()*800,
+            height_m:                           p.height/100,
+            weight_kg:                          p.weight,
+            cmj_pp_bm:                          tmpFit.cmj_pp_bm,
+            imtp_pp_bm:                         tmpFit.imtp_pf_bm,
+            grip_strength:                      40 + rng()*30
+          })
+        : null;
+
       const m = {
         protocol: s.protocol, date: s.date,
         velocity: {
@@ -2576,7 +2680,11 @@ function genMeasurements(){
           gap_kmh:       latent.gap_kmh,
           contributions: latent.contributions,
           model:         latent.model,
-          score:         Math.round(score)
+          score:         Math.round(score),
+          // v3.8-2 BBL 외부 회귀 모델 cross-check
+          bbl_predicted_kmh: bblPred?.predicted_kmh ?? null,
+          bbl_R2_loo:        bblPred?.R2_loo ?? null,
+          bbl_top_contrib:   bblPred?.contributors?.slice(0,3) ?? null,
         },
         sequence: {
           pelvis_dps: pelvis_dps,
@@ -3158,9 +3266,15 @@ function renderPlayerView(pid){
     };
     return `${labelMap[c.var]||c.var} +${c.gain_kmh}`;
   }).join(' · ');
+  // v3.8-2: BBL 외부 회귀 모델 cross-check (작은 inline)
+  const bblNote = m.velocity.bbl_predicted_kmh != null
+    ? ` <span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 5px;border-radius:3px"
+         title="BBL Uplift n=169 회귀 (LOO-CV R²=${m.velocity.bbl_R2_loo})">BBL ${m.velocity.bbl_predicted_kmh}</span>`
+    : '';
   document.getElementById('p-velo-pot-delta').innerHTML =
     `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b>` +
     (contribTop ? ` <span style="color:var(--muted);font-size:11px">| ${contribTop}</span>` : '') +
+    bblNote +
     ` <span style="font-size:10px;color:#999" title="회귀모델 v${m.velocity.model||'?'}">${m.velocity.model?'·v'+m.velocity.model:''}</span>`;
   const elsc = document.getElementById('p-score');
   elsc.textContent = m.velocity.score;
@@ -3292,7 +3406,7 @@ function renderPlayerView(pid){
         </div>`;
       }).join('');
 
-      // 인과 분석 — top 3
+      // 인과 분석 — top 3 (v3.8-3: BBL fault_images 시각 통합)
       const cw = document.getElementById('p-causal-chains');
       if(leak.causal_chains && leak.causal_chains.length){
         cw.innerHTML = leak.causal_chains.map((c,i)=>`
@@ -3301,6 +3415,10 @@ function renderPlayerView(pid){
             <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'#0969da'};
                          color:#fff;border-radius:50%;text-align:center;font-weight:700;
                          line-height:22px;font-size:11px">${i+1}</span>
+            ${c.image ? `<img src="assets/fault_images/${c.image}" alt="${c.defect}"
+                 style="flex:0 0 50px;height:50px;object-fit:contain;border-radius:4px;
+                        border:1px solid var(--line-soft);background:#fafbfc"
+                 title="결함 시각 — ${c.defect}">` : ''}
             <span style="flex:1;font-size:12.5px"><b>${c.defect}</b>
               <span style="color:var(--muted);font-size:11px"> → ${c.zone_label || c.zone}</span></span>
             <span class="pill bad" style="flex:0 0 auto">추정 ${c.impact_kmh} km/h</span>
