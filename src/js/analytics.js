@@ -64,20 +64,25 @@ const VELO_GROUP_NORMS = {
    ──────────────────────────────────────────────────────────── */
 
 const PHYSICAL_VELO_MODEL = {
-  intercept: 100.0,    // 한국 elite p10 베이스라인 (대략)
+  // v4.3-A: intercept 보정 — default 값 입력 시 한국 elite mean (134 km/h) 도달
+  // 역산: 134 = intercept + 18.3 + 6.88 + 10.8 + 8.1 + 9.6 + 8.7 → intercept = 71.6
+  intercept: 71.6,
   coefs: {
     height_cm:    0.10,    // 1cm = +0.1 km/h
-    weight_kg:    0.08,    // 1kg = +0.08 km/h
-    cmj_pp_bm:    0.40,    // CMJ PP/BM 1 W/kg = +0.4 km/h
-    imtp_pf_bm:   0.30,    // IMTP PF/BM 1 N/kg = +0.3 km/h
-    hop_rsi:      4.0,     // RSI 1 = +4 km/h
-    grip_kg:      0.15     // grip 1 kg = +0.15 km/h
+    weight_kg:    0.08,
+    cmj_pp_bm:    0.40,
+    imtp_pf_bm:   0.30,
+    hop_rsi:      4.0,
+    grip_kg:      0.15
   },
   defaults: {  // 59명 cohort mean
     height_cm: 183, weight_kg: 86,
     cmj_pp_bm: 27, imtp_pf_bm: 27, hop_rsi: 2.4, grip_kg: 58
   },
-  note: 'Driveline HP Assessment 스타일 — 체력+신체만으로 구속 baseline 산출'
+  // v4.3-A: 비현실 cap (한국 고교 elite 분포 기준)
+  cap_min: 110,  // 미달 그룹 최저
+  cap_max: 145,  // 41명 elite max=145.4
+  note: 'Driveline HP Assessment 스타일 — 체력+신체만으로 구속 baseline 산출. Cap 110~145 km/h.'
 };
 
 /**
@@ -94,8 +99,15 @@ function predictedVelocity(input = {}){
     pred += contribution;
     contributors.push({ var: k, value: v, contribution: Math.round(contribution*10)/10 });
   }
+  // v4.3-A: 비현실 cap 적용
+  const raw = pred;
+  let capped = false;
+  if(pred < m.cap_min) { pred = m.cap_min; capped = 'min'; }
+  if(pred > m.cap_max) { pred = m.cap_max; capped = 'max'; }
   return {
     predicted_kmh: Math.round(pred*10)/10,
+    raw_predicted_kmh: Math.round(raw*10)/10,
+    capped,
     group: veloGroup(pred),
     contributors: contributors.sort((a,b)=>b.contribution-a.contribution),
     source: m.note

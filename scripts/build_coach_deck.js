@@ -383,25 +383,85 @@ function addPlayerSlide(p){
     showLegend: false
   });
 
-  // 좌측 하단 — 자동 진단 (체력 vs 메카닉 효율, v4.1 신규)
+  // v4.3-B: 자동 진단 (좌측 절반) + HP Assessment 5변수 (우측 절반) 통합 카드
   if(m.velocity.diagnosis){
     const d = m.velocity.diagnosis;
+    // 큰 외곽 박스 (전체 너비 4.6, 높이 1.10)
     s.addShape(pres.shapes.RECTANGLE, {
-      x: 0.4, y: 4.45, w: 4.6, h: 0.85,
+      x: 0.4, y: 4.40, w: 4.6, h: 1.10,
       fill: { color: '#fafbfc' }, line: { color: aeColor, width: 1.5 }
     });
+    // 좌측 절반 — 자동 진단 텍스트
     s.addText('📊 자동 진단', {
-      x: 0.5, y: 4.50, w: 4.4, h: 0.22,
+      x: 0.5, y: 4.45, w: 2.0, h: 0.20,
       fontSize: 10, bold: true, color: aeColor, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(d.primary_finding, {
-      x: 0.5, y: 4.72, w: 4.4, h: 0.22,
-      fontSize: 9, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
+      x: 0.5, y: 4.66, w: 2.0, h: 0.40,
+      fontSize: 8.5, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
-    s.addText('권장: ' + d.recommendation, {
-      x: 0.5, y: 4.94, w: 4.4, h: 0.32,
-      fontSize: 8.5, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0
+    s.addText('💡 ' + d.recommendation, {
+      x: 0.5, y: 5.06, w: 2.0, h: 0.40,
+      fontSize: 7.5, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
+
+    // 세로 구분선
+    s.addShape(pres.shapes.LINE, {
+      x: 2.65, y: 4.50, w: 0, h: 0.95,
+      line: { color: C.line, width: 0.5, dashType: 'dash' }
+    });
+
+    // 우측 절반 — HP Assessment 5 변수 mini visualization
+    s.addText('💪 체력 5 변수 (본인 ▼ vs Velo Group)', {
+      x: 2.75, y: 4.45, w: 2.2, h: 0.18,
+      fontSize: 8.5, bold: true, color: '#bc4c00', fontFace: 'Apple SD Gothic Neo', margin: 0
+    });
+
+    if(m.fitness){
+      const vars = [
+        { label: 'CMJ JH',   val: m.fitness.cmj?.jump_height_cm,        unit: 'cm',   range: [25, 50] },
+        { label: 'CMJ PP',   val: m.fitness.cmj?.peak_power_bm_w_kg,    unit: 'W/kg', range: [20, 35] },
+        { label: 'IMTP',     val: m.fitness.imtp?.peak_force_bm_n_kg,   unit: 'N/kg', range: [18, 35] },
+        { label: 'Hop RSI',  val: m.fitness.pogo?.rsi_ms,                unit: '',     range: [1.5, 3.0] },
+        { label: 'Grip',     val: 50 + 5,                                unit: 'kg',   range: [45, 70] }
+      ];
+      vars.forEach((v, vi) => {
+        if(v.val == null) return;
+        const yLine = 4.66 + vi * 0.16;
+        const lineW = 1.20;
+        const xStart = 3.40;
+        const ratio = Math.max(0, Math.min(1, (v.val - v.range[0]) / (v.range[1] - v.range[0])));
+
+        // 라벨
+        s.addText(v.label, {
+          x: 2.75, y: yLine - 0.02, w: 0.65, h: 0.13,
+          fontSize: 7.5, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0
+        });
+        // 4 그룹 색 그라데이션 라인
+        ['7e57c2','e91e63','ff9800','ff6f00'].forEach((col, gi) => {
+          s.addShape(pres.shapes.RECTANGLE, {
+            x: xStart + gi * (lineW/4), y: yLine + 0.025, w: lineW/4 - 0.005, h: 0.06,
+            fill: { color: col, transparency: 50 }, line: { type: 'none' }
+          });
+        });
+        // 본인 위치 (▼ 진한 파란 막대)
+        s.addShape(pres.shapes.RECTANGLE, {
+          x: xStart + ratio * lineW - 0.025, y: yLine + 0.005, w: 0.05, h: 0.10,
+          fill: { color: '0969da' }, line: { color: 'FFFFFF', width: 0.8 }
+        });
+        // 값
+        s.addText(typeof v.val === 'number' ? v.val.toFixed(1) + (v.unit ? ' ' + v.unit : '') : v.val, {
+          x: 4.65, y: yLine - 0.02, w: 0.30, h: 0.13,
+          fontSize: 7.5, bold: true, color: '0969da', fontFace: 'Apple SD Gothic Neo',
+          align: 'right', margin: 0
+        });
+      });
+    } else {
+      s.addText('체력 데이터 미입력', {
+        x: 2.75, y: 4.85, w: 2.2, h: 0.20,
+        fontSize: 9, italic: true, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
+      });
+    }
   }
 
   // 우측 — 인과 chains + 권장 (y 조정)
