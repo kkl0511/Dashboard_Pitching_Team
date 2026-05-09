@@ -250,9 +250,20 @@ function expectedVelocityWithImprovement(input, measuredKmh){
                 + M.x_factor_coef*xfac + M.mass_kg_coef*massKg + M.height_m_coef*heightM
                 + M.stride_pct_coef*stride;
 
+  // v5.15: 각 metric별로 "본인 vs 프로 중 prediction에 유리한 쪽" 사용
+  //   coef >= 0 (큰 값이 좋음) → max(self, pro)
+  //   coef <  0 (작은 값이 좋음) → min(self, pro)
+  //   본인이 이미 프로보다 우수한 metric은 본인 값 유지 → gain ≥ 0 보장
+  const useBetter = (selfV, proV, coef) => coef >= 0 ? Math.max(selfV, proV) : Math.min(selfV, proV);
+
   const predSelf = predict(input.pelvis_dps, input.trunk_dps, input.arm_dps, xFacSelf, stridePctSelf);
-  const predPro  = predict(PRO_REFERENCE.pelvis_dps, PRO_REFERENCE.trunk_dps,
-                           PRO_REFERENCE.arm_dps, PRO_REFERENCE.x_factor, PRO_REFERENCE.stride_pct);
+  const predPro  = predict(
+    useBetter(input.pelvis_dps, PRO_REFERENCE.pelvis_dps, M.pelvis_dps_coef),
+    useBetter(input.trunk_dps,  PRO_REFERENCE.trunk_dps,  M.trunk_dps_coef),
+    useBetter(input.arm_dps,    PRO_REFERENCE.arm_dps,    M.arm_dps_coef),
+    useBetter(xFacSelf,         PRO_REFERENCE.x_factor,   M.x_factor_coef),
+    useBetter(stridePctSelf,    PRO_REFERENCE.stride_pct, M.stride_pct_coef)
+  );
   const gain = predPro - predSelf;
   const expectedVelo = (measuredKmh != null) ? measuredKmh + gain : null;
 
@@ -291,6 +302,7 @@ function expectedVelocityFromFitness(input, measuredKmh){
   const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
   // Elite 체력 reference (VELO_GROUP_NORMS Elite — 학술 추정)
   const eliteFit = { cmj_pp_bm: 32, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65 };
+  // v5.15: 본인이 이미 elite보다 우수한 체력 변수는 본인 값 유지 → gain ≥ 0
   let predSelf = M.intercept, predElite = M.intercept;
   for(const [k, c] of Object.entries(M.coefs)){
     const selfV = input[k] != null && !isNaN(input[k]) ? input[k] : M.defaults[k];
@@ -298,7 +310,10 @@ function expectedVelocityFromFitness(input, measuredKmh){
     if(k === 'height_cm' || k === 'weight_kg'){
       eliteV = selfV;   // 신체조건은 본인 값 유지
     } else {
-      eliteV = eliteFit[k] ?? selfV;
+      const eRef = eliteFit[k] ?? selfV;
+      // 양수 coef: 큰 값이 좋음 → max(self, elite)
+      // 음수 coef: 작은 값이 좋음 → min(self, elite)
+      eliteV = c >= 0 ? Math.max(selfV, eRef) : Math.min(selfV, eRef);
     }
     predSelf  += c * selfV;
     predElite += c * eliteV;
@@ -351,17 +366,379 @@ function expectedVelocityCombined(mechInput, fitInput, measuredKmh){
   };
 }
 
-/**
- * v5.12: 4축 능력 점수 (Power / Timing / Separation / Stability)
- *   각 0-100 percentile (아마 기준 + 프로 기준 동시 산출)
- *   - Power      = pelvis/trunk/arm ω peak 종합 percentile
- *   - Timing     = speed_gain_pt + speed_gain_ta percentile (시간 차원)
- *   - Separation = X-factor + stride% percentile
- *   - Stability  = ELI 6 zone (역값) percentile
+/* v5.23: Driveline 5 모델 framework — Mechanical Composite Scores+
+ *   학술 출처: Driveline Pitching Assessment 표준 (PDF reference 메모리 참고)
  *
- * @param {object} input  메카닉 변수들
- * @returns {object} 4축 점수 + 강약 진단
+ *   각 모델 100점 = median elite (90+ mph cohort), 150점 = ceiling
+ *   Total score = 모델별 가중평균 (영향력 = 구속 상관계수)
+ *
+ *   영향력 순위 (구속 / Velocity Above Expected):
+ *   1. Posture     — 구속 1위 / AE 2위 (X-factor + trunk control 통합)
+ *   2. Arm Action  — 구속 2위 / AE 1위 (메카닉 효율 핵심)
+ *   3. CoG         — 구속 3위 / AE 5위 (무게중심 이동 속도)
+ *   4. Rotation    — 구속 4위 / AE 3위 (Trunk + Pelvis ω)
+ *   5. Block       — 구속 5위 / AE 4위 (Lead leg block)
  */
+const DRIVELINE_5_MODELS = {
+  arm_action: {
+    label: '🚀 Arm Action',
+    sub:   '팔 동작 — 어깨/팔꿈치 효율',
+    velo_rank: 2, ae_rank: 1, weight: 0.22,
+    metrics: {
+      layback:           {label:'Layback (어깨 최대 외회전)',  unit:'deg',    median_elite: 190,  per_1mph: 5,    importance:'high'},
+      elbow_ext_velo:    {label:'Elbow Extension Velo',       unit:'deg/s',  median_elite: 2318, per_1mph: 203,  importance:'med'},
+      shoulder_abd_fp:   {label:'Shoulder Abduction at FP',   unit:'deg',    median_elite: 84,   per_1mph: 10,   importance:'med'},
+      scap_load_fp:      {label:'Scap Load at FP',            unit:'deg',    median_elite: 51,   per_1mph: 16,   importance:'med'},
+      shoulder_rot_velo: {label:'Shoulder Rotation Velo',     unit:'deg/s',  median_elite: 4673, per_1mph: 588,  importance:'med'},
+      elbow_flex_fp:     {label:'Elbow Flexion at FP',        unit:'deg',    median_elite: 102,  per_1mph: 35,   importance:'low'}
+    }
+  },
+  posture: {
+    label: '🛡 Posture',
+    sub:   '자세 — FP~릴리즈 자세 유지',
+    velo_rank: 1, ae_rank: 2, weight: 0.25,
+    metrics: {
+      hip_shoulder_sep_fp: {label:'Peak Hip-Shoulder Sep at FP (X-factor)', unit:'deg', median_elite: 30,  per_1mph: 3,  importance:'high'},
+      torso_counter_rot:   {label:'Peak Torso Counter Rot',                  unit:'deg', median_elite: -38, per_1mph: 13, importance:'high'},
+      torso_fwd_tilt_fp:   {label:'Torso Forward Tilt at FP',                unit:'deg', median_elite: 4,   per_1mph: 6,  importance:'high'},
+      torso_rot_fp:        {label:'Torso Rotation at FP',                    unit:'deg', median_elite: 2,   per_1mph: 10, importance:'high'},
+      torso_side_bend_mer: {label:'Torso Side Bend at MER',                  unit:'deg', median_elite: 25,  per_1mph: 3,  importance:'med'},
+      torso_rot_br:        {label:'Torso Rotation at BR',                    unit:'deg', median_elite: 111, per_1mph: 6,  importance:'med'}
+    }
+  },
+  rotation: {
+    label: '🔄 Rotation',
+    sub:   '회전 — Trunk + Pelvis 회전 속도',
+    velo_rank: 4, ae_rank: 3, weight: 0.18,
+    metrics: {
+      torso_rot_velo:  {label:'Torso Rotation Velo',  unit:'deg/s', median_elite: 965, per_1mph: 40,  importance:'high'},
+      pelvis_rot_velo: {label:'Pelvis Rotation Velo', unit:'deg/s', median_elite: 597, per_1mph: 128, importance:'low'}
+    }
+  },
+  block: {
+    label: '🦵 Block',
+    sub:   '앞발 블록 — Lead leg 활용',
+    velo_rank: 5, ae_rank: 4, weight: 0.15,
+    metrics: {
+      lead_knee_ext:        {label:'Lead Knee Extension',       unit:'deg',   median_elite: 11,  per_1mph: 5,   importance:'high'},
+      stride_length:        {label:'Stride Length',             unit:'in',    median_elite: 58,  per_1mph: 5,   importance:'high'},
+      cog_decel_ae:         {label:'CoG Decel AE',              unit:'m/s',   median_elite: 0.02,per_1mph: 0.35,importance:'med'},
+      lead_knee_ext_velo:   {label:'Peak Lead Knee Ext Velo',   unit:'deg/s', median_elite: 316, per_1mph: 103, importance:'low'}
+    }
+  },
+  cog: {
+    label: '🎯 CoG',
+    sub:   '무게중심 이동 — Drive 속도/감속',
+    velo_rank: 3, ae_rank: 5, weight: 0.20,
+    metrics: {
+      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.61, per_1mph: 0.15, importance:'high'},
+      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.84, per_1mph: 0.35, importance:'med'}
+    }
+  }
+};
+
+/**
+ * v5.23: 변인 값 → 점수 (100 = median elite, 150 = ceiling)
+ *   linear: 50점 = median elite의 50%, 100점 = median elite, 150점 = median elite의 150%
+ *   더 정확한 보간을 위해 per_1mph 적용 (median ± per_1mph 5번 = ±25점)
+ */
+function drivelineMetricScore(value, metric){
+  if(value == null || isNaN(value)) return null;
+  const me = metric.median_elite;
+  const per = metric.per_1mph;
+  if(me == null || per == null || per === 0) return null;
+  // value - median_elite를 per_1mph 단위로 환산 → 1mph당 5점으로 score
+  // 즉 +5 mph 기여 = +25점, +10 mph = +50점
+  const mphEquivalent = (value - me) / per;
+  const score = 100 + mphEquivalent * 5;
+  return Math.max(20, Math.min(150, Math.round(score)));
+}
+
+/**
+ * v5.23: Driveline 5 모델 진단
+ * @param {object} input  메카닉 측정값 (우리 데이터 → Driveline 매핑)
+ * @returns {object} 5 모델 점수 + Total + 강약
+ */
+function drivelineFiveModelDiagnosis(input){
+  if(!input) return null;
+  const out = {};
+  // ── 우리 데이터 → Driveline 변인 매핑 ──
+  const matched = {
+    arm_action: {
+      layback:           input.shoulder_er_max_deg ?? input.peak_shoulder_v ? input.shoulder_er_max_deg : null,
+      elbow_ext_velo:    input.peak_elbow_v,
+      shoulder_abd_fp:   input.shoulder_abd_fp_deg ?? null,
+      scap_load_fp:      input.scap_load_fp_deg ?? null,
+      shoulder_rot_velo: input.peak_shoulder_v ?? input.arm_dps,
+      elbow_flex_fp:     input.elbow_flex_fp_deg ?? null
+    },
+    posture: {
+      hip_shoulder_sep_fp: input.x_factor ?? input.x_factor_deg,
+      torso_counter_rot:   input.torso_counter_rot_deg ?? null,
+      torso_fwd_tilt_fp:   input.trunk_forward_tilt ?? input.trunk_tilt_at_fc_deg,
+      torso_rot_fp:        input.torso_rot_fp_deg ?? null,
+      torso_side_bend_mer: input.trunk_lateral_tilt ?? input.trunk_lat_tilt_deg,
+      torso_rot_br:        input.torso_rot_br_deg ?? null
+    },
+    rotation: {
+      torso_rot_velo:  input.trunk_dps,
+      pelvis_rot_velo: input.pelvis_dps
+    },
+    block: {
+      lead_knee_ext:      input.lead_knee_change ?? input.lead_knee_max,
+      stride_length:      input.stride_length_in ?? (input.stride_length ? input.stride_length * 39.37 : null),  // m → in
+      cog_decel_ae:       input.cog_decel_ae ?? null,
+      lead_knee_ext_velo: input.lead_knee_ext_velo ?? null
+    },
+    cog: {
+      cog_decel:    input.cog_decel ?? null,
+      max_cog_velo: input.max_cog_velo ?? null
+    }
+  };
+
+  // 각 모델 점수 = 가용 metric 평균 (importance 가중)
+  for(const [modelKey, model] of Object.entries(DRIVELINE_5_MODELS)){
+    const matched_vars = matched[modelKey];
+    const scores = [];
+    const metric_results = {};
+    for(const [mkey, mdef] of Object.entries(model.metrics)){
+      const v = matched_vars[mkey];
+      const s = drivelineMetricScore(v, mdef);
+      const wt = mdef.importance === 'high' ? 3 : mdef.importance === 'med' ? 2 : 1;
+      metric_results[mkey] = {
+        label:   mdef.label,
+        value:   v,
+        unit:    mdef.unit,
+        median_elite: mdef.median_elite,
+        per_1mph: mdef.per_1mph,
+        importance: mdef.importance,
+        score:   s
+      };
+      if(s != null){
+        for(let i = 0; i < wt; i++) scores.push(s);
+      }
+    }
+    out[modelKey] = {
+      label: model.label,
+      sub:   model.sub,
+      velo_rank: model.velo_rank,
+      ae_rank:   model.ae_rank,
+      weight:    model.weight,
+      score:     scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null,
+      metrics:   metric_results,
+      n_metrics_available: scores.length / scores.reduce((a,b,i,arr) => i === 0 ? 1 : a, 1)  // approx
+    };
+  }
+
+  // Total score = 모델별 가중평균
+  const validModels = Object.values(out).filter(m => m.score != null);
+  if(validModels.length){
+    const totalWeight = validModels.reduce((s,m) => s + m.weight, 0);
+    const total = validModels.reduce((s,m) => s + m.score * m.weight, 0) / totalWeight;
+    out.total = Math.round(total);
+    // 강점/약점
+    validModels.sort((a,b) => b.score - a.score);
+    out.strength = validModels[0].label;
+    out.weakness = validModels[validModels.length-1].label;
+  }
+  return out;
+}
+
+/**
+ * v5.23: Mechanical Ceiling 산출 — 메카닉이 150점 도달 시 기대 구속
+ *   현재 측정 구속 + 메카닉 향상 잠재 (각 모델 (150 - 현재 점수)/5 × per_1mph 합산)
+ */
+function drivelineMechanicalCeiling(diagnosis, measuredKmh){
+  if(!diagnosis || measuredKmh == null) return null;
+  let ceilingMph = measuredKmh / 1.60934;  // km/h → mph
+  let totalAddedMph = 0;
+  for(const [k, m] of Object.entries(diagnosis)){
+    if(!m || typeof m !== 'object' || m.score == null) continue;
+    if(m.score < 150){
+      const addedMph = (150 - m.score) / 5;   // 5점 = 1 mph 기여
+      totalAddedMph += addedMph * m.weight;
+    }
+  }
+  ceilingMph += totalAddedMph;
+  return {
+    ceiling_mph: Math.round(ceilingMph * 10) / 10,
+    ceiling_kmh: Math.round(ceilingMph * 1.60934 * 10) / 10,
+    added_mph_potential: Math.round(totalAddedMph * 10) / 10,
+    added_kmh_potential: Math.round(totalAddedMph * 1.60934 * 10) / 10
+  };
+}
+
+/* v5.18: 메카닉 변인 → 구속·제구 효과 매핑 (학술 출처)
+ *   학술 출처: Stodden 2001, Werner 2008, Aguinaldo & Escamilla 2019, Naito 2014
+ *   메카닉 7 변인 (4축 라디아의 raw 변인)
+ */
+const MECHANIC_VARIABLE_MAP = {
+  'pelvis_dps':   {label:'Pelvis ω peak',    short:'골반 회전속도',   unit:'°/s', goodKR: 634, mlb: 800,  effect:'velo', priority:2, purpose:'⚾ 분절 시퀀스 첫 단계 (Stodden 2001)'},
+  'trunk_dps':    {label:'Trunk ω peak',     short:'몸통 회전속도',   unit:'°/s', goodKR: 887, mlb: 1100, effect:'velo', priority:1, purpose:'⚾⚾ 가장 강한 within-subject 상관 (Werner 2008, r=+0.5)'},
+  'arm_dps':      {label:'Arm ω peak',       short:'팔 회전속도(IR)', unit:'°/s', goodKR: 4200, mlb: 4500, effect:'velo', priority:2, purpose:'⚾ Shoulder internal rotation peak'},
+  'x_factor':     {label:'X-factor',         short:'골반-상체 분리각', unit:'°',   goodKR: 26,  mlb: 39,   effect:'velo', priority:1, purpose:'⚾⚾ Stodden 2001 — 분리 각도 ↔ 구속 r=+0.30'},
+  'stride_pct':   {label:'Stride %height',   short:'스트라이드 비율', unit:'%',   goodKR: 80,  mlb: 83,   effect:'velo', priority:2, purpose:'⚾ Drive leg push-off 거리'},
+  'hp_ratio_pct': {label:'H/P KE_rot ratio', short:'분절 에너지 균형', unit:'%',   goodKR: 1310, mlb: 1190, effect:'cmd_velo', priority:2, purpose:'🎯⚾ 작을수록 분절 균형 (프로 1190 < 한국 우수 1310)', lowerBetter: true},
+  'ete_pct':      {label:'ETE 전달율',       short:'에너지 전달 효율', unit:'%',   goodKR: 80,  mlb: 85,   effect:'velo', priority:3, purpose:'⚾ 분절 간 KE 전달 (Aguinaldo 2019)'}
+};
+
+/* v5.17: 17개 fitness 변인의 본인/한국우수/MLB 학술 reference + 효과 매핑
+ *   학술 출처: Lehman 2013, Driveline HP Assessment, Werner 2008, McGuigan 2018
+ *   17 변인 = 4 측정 (CMJ 5 + SJ 4 + Pogo 3 + IMTP 5)
+ */
+const FITNESS_VARIABLE_MAP = {
+  // CMJ
+  'cmj_jh':       {test:'CMJ', label:'CMJ Jump Height', short:'CMJ JH', unit:'cm', goodKR: 36, mlb: 47, effect:'velo', priority:2, purpose:'하지 폭발력'},
+  'cmj_pp_bm':    {test:'CMJ', label:'CMJ Peak Power / BM', short:'CMJ PP/BM', unit:'W/kg', goodKR: 28, mlb: 60, effect:'velo', priority:1, purpose:'⚾⚾ Drive leg push-off (구속 핵심)'},
+  'cmj_rsi_mod':  {test:'CMJ', label:'CMJ RSI-modified', short:'RSI-mod', unit:'m/s', goodKR: 0.55, mlb: 0.65, effect:'velo', priority:3, purpose:'Slow SSC 효율'},
+  'cmj_conc_pf':  {test:'CMJ', label:'CMJ Conc PF / BM', short:'CMJ Conc PF', unit:'N/kg', goodKR: 42, mlb: 50, effect:'velo', priority:3, purpose:'가속 phase 힘'},
+  'cmj_ec_ratio': {test:'CMJ', label:'Ecc:Conc Ratio', short:'E:C Ratio', unit:'', goodKR: 1.05, mlb: 1.10, effect:'cmd', priority:4, purpose:'🎯 신장-단축 균형 (제구)'},
+  // SJ
+  'sj_jh':        {test:'SJ',  label:'SJ Jump Height', short:'SJ JH', unit:'cm', goodKR: 35, mlb: 42, effect:'velo', priority:3, purpose:'순수 concentric'},
+  'sj_pp_bm':     {test:'SJ',  label:'SJ Peak Power / BM', short:'SJ PP/BM', unit:'W/kg', goodKR: 32, mlb: 52, effect:'velo', priority:2, purpose:'SSC 없는 가속력'},
+  'sj_conc_pf':   {test:'SJ',  label:'SJ Conc PF / BM', short:'SJ Conc PF', unit:'N/kg', goodKR: 36, mlb: 42, effect:'velo', priority:3, purpose:'Concentric strength'},
+  'eur':          {test:'SJ',  label:'EUR (CMJ JH / SJ JH)', short:'EUR', unit:'', goodKR: 1.05, mlb: 1.10, effect:'velo', priority:2, purpose:'⚾⚾ SSC 활용도 (1.10+ 우수)'},
+  // Pogo
+  'pogo_rsi':     {test:'Pogo',label:'Pogo RSI', short:'Pogo RSI', unit:'m/s', goodKR: 2.4, mlb: 2.7, effect:'velo', priority:1, purpose:'⚾⚾ Fast SSC, FC reactive (구속 핵심)'},
+  'pogo_ct':      {test:'Pogo',label:'Mean Contact Time', short:'Contact Time', unit:'ms', goodKR: 140, mlb: 130, effect:'cmd', priority:2, purpose:'🎯 Stiffness · 낮을수록 좋음 (제구)', lowerBetter: true},
+  'pogo_jh':      {test:'Pogo',label:'Mean JH', short:'Pogo JH', unit:'cm', goodKR: 28, mlb: 32, effect:'velo', priority:3, purpose:'반응 점프 능력'},
+  // IMTP
+  'imtp_pf':      {test:'IMTP',label:'IMTP Peak Force', short:'IMTP PF', unit:'N', goodKR: 2400, mlb: 3000, effect:'velo', priority:3, purpose:'절대 최대힘 (체중 미보정)'},
+  'imtp_pf_bm':   {test:'IMTP',label:'IMTP Peak Force / BM', short:'IMTP PF/BM', unit:'N/kg', goodKR: 28, mlb: 32, effect:'velo', priority:1, purpose:'⚾⚾ 상대 최대근력 (구속 핵심)'},
+  'imtp_rfd':     {test:'IMTP',label:'IMTP RFD 0-100ms', short:'RFD 0-100', unit:'N/s', goodKR: 9000, mlb: 12000, effect:'velo', priority:1, purpose:'⚾⚾ 폭발적 힘 발현 (구속 최우선)'},
+  'imtp_f100':    {test:'IMTP',label:'Force at 100ms / BM', short:'F@100ms', unit:'N/kg', goodKR: 23, mlb: 28, effect:'velo', priority:2, purpose:'Early acceleration'},
+  'imtp_asym':    {test:'IMTP',label:'Asymmetry', short:'Asymmetry', unit:'%', goodKR: 5, mlb: 3, effect:'cmd_inj', priority:1, purpose:'🎯⚠ 좌우 균형 (제구·부상)', lowerBetter: true}
+};
+
+/**
+ * v5.17: 체력 6각 라디아 (구속·제구 핵심 6 변인)
+ *   - ⚾ 폭발 발현 (IMTP RFD 0-100ms) — 구속 핵심
+ *   - ⚾ 최대 근력 (IMTP Peak Force / BM) — 구속 핵심
+ *   - ⚾ 하지 폭발 (CMJ Peak Power / BM) — 구속 핵심
+ *   - ⚾ 발 반응성 (Pogo RSI) — 구속 핵심
+ *   - 🎯 접촉 효율 (Pogo Mean Contact Time) — 제구
+ *   - ⚠ 좌우 균형 (IMTP Asymmetry) — 제구 + 부상
+ */
+function fitnessAxisDiagnosis(input){
+  if(!input) return null;
+  const M = FITNESS_VARIABLE_MAP;
+  // VELO_GROUP_NORMS 기반 보간 (기존 cmj_pp_bm/imtp_pf_bm/hop_rsi/pp_peak_takeoff_bm은 그대로)
+  // 그 외 변인은 한국 우수=75점, MLB=90점 보간 (단순화)
+  function pctileScore(value, key){
+    if(value == null || isNaN(value)) return null;
+    const def = M[key]; if(!def) return null;
+    const goodK = def.goodKR, mlb = def.mlb;
+    if(goodK == null || mlb == null) return null;
+    // lowerBetter: Asymmetry 같은 경우 (낮을수록 좋음)
+    const lower = !!def.lowerBetter;
+    if(lower){
+      if(value <= mlb) return Math.min(100, 90 + (mlb - value) / mlb * 10);
+      if(value >= goodK * 2) return 0;
+      // mlb=3 → 90점, goodKR=5 → 75점, value=10 → 30점 정도
+      return Math.round(Math.max(0, Math.min(100, 90 - (value - mlb) / (goodK - mlb) * 15 - Math.max(0, value - goodK) * 6)));
+    }
+    if(value >= mlb) return Math.round(Math.min(100, 90 + (value - mlb) / mlb * 10));
+    if(value < goodK / 2) return 0;
+    if(value < goodK) return Math.round(Math.max(0, 50 + (value - goodK) / goodK * 100));
+    // goodK ≤ value < mlb → 75-90 점 보간
+    return Math.round(75 + (value - goodK) / (mlb - goodK) * 15);
+  }
+
+  // v5.21: 6 핵심 변인 — 사용자 지정 라벨 (투수 직관 우선)
+  const out = {
+    rfd:        {label:'⚡ 힘 발휘 속도',          sub:'0.1초 안에 빠르게 힘 발휘',        short:'IMTP RFD 0-100ms',         value: input.imtp_rfd,      unit:'N/s',  goodKR: M.imtp_rfd.goodKR,    mlb: M.imtp_rfd.mlb,    score: pctileScore(input.imtp_rfd,    'imtp_rfd'),    effect:'⚾⚾ 구속 핵심', purpose: M.imtp_rfd.purpose},
+    strength:   {label:'💪 최대 근력',             sub:'정적 최대 힘 (다리·체간)',         short:'IMTP Peak Force / BM',     value: input.imtp_pf_bm,    unit:'N/kg', goodKR: M.imtp_pf_bm.goodKR,  mlb: M.imtp_pf_bm.mlb,  score: pctileScore(input.imtp_pf_bm,  'imtp_pf_bm'),  effect:'⚾⚾ 구속 핵심', purpose: M.imtp_pf_bm.purpose},
+    explosive:  {label:'🦵 점프 파워',             sub:'다리 폭발력 (마운드 박차기)',       short:'CMJ Peak Power / BM',      value: input.cmj_pp_bm,     unit:'W/kg', goodKR: M.cmj_pp_bm.goodKR,   mlb: M.cmj_pp_bm.mlb,   score: pctileScore(input.cmj_pp_bm,   'cmj_pp_bm'),   effect:'⚾⚾ 구속 핵심', purpose: M.cmj_pp_bm.purpose},
+    reactive:   {label:'🦶 착지발 이용 능력',       sub:'앞발 착지 시 반발력 활용',         short:'Pogo RSI',                 value: input.pogo_rsi,      unit:'m/s',  goodKR: M.pogo_rsi.goodKR,    mlb: M.pogo_rsi.mlb,    score: pctileScore(input.pogo_rsi,    'pogo_rsi'),    effect:'⚾⚾ 구속 핵심', purpose: M.pogo_rsi.purpose},
+    contact:    {label:'⏱ 짧은 시간에 힘 발휘 능력', sub:'발 접촉 시간 (↓ 좋음)',           short:'Pogo Mean Contact Time',   value: input.pogo_ct,       unit:'ms',   goodKR: M.pogo_ct.goodKR,     mlb: M.pogo_ct.mlb,     score: pctileScore(input.pogo_ct,     'pogo_ct'),     effect:'🎯 제구',       purpose: M.pogo_ct.purpose,     lowerBetter: true},
+    asymmetry:  {label:'⚖️ 좌우 힘 차이',          sub:'좌·우 비대칭 (↓ 좋음)',           short:'IMTP Asymmetry',           value: input.imtp_asym,     unit:'%',    goodKR: M.imtp_asym.goodKR,   mlb: M.imtp_asym.mlb,   score: pctileScore(input.imtp_asym,   'imtp_asym'),   effect:'🎯⚠ 제구·부상', purpose: M.imtp_asym.purpose,   lowerBetter: true}
+  };
+  // 강점/약점 + 평균
+  const arr = Object.entries(out).filter(([k,v]) => v.score != null).map(([k,v]) => ({k, ...v}));
+  arr.sort((a,b) => b.score - a.score);
+  const valid = arr.length;
+  const avg = valid ? Math.round(arr.reduce((s,x) => s + x.score, 0) / valid) : null;
+  out.summary = {
+    avg_score: avg,
+    strength: arr[0]?.label || '—',
+    weakness: arr[valid-1]?.label || '—',
+    n_valid: valid
+  };
+  return out;
+}
+
+/**
+ * v5.22: 5축 메카닉 진단 — 선수/코치용 명확한 라벨
+ *   1. 🌀 회전 속도 — 골반·몸통·팔 분절 가속 (ω peak)
+ *   2. ⏱ 가속 순서 — proper sequence 시퀀싱 타이밍
+ *   3. ✂️ 골반-상체 분리 — X-factor (분리각, 클수록 좋음)
+ *   4. 💧 누수 회피 — ELI 6 zone 자세 결함 회피
+ *   5. 🦶 지면반력 활용 — 축발 추진 + 앞발 블로킹 (LHEI)
+ *
+ *   reference: 본인 1 + 고교 상위 10% (75점 line) + MLB (90점 line)
+ *
+ * @param {object} input  메카닉 변수들 + GRF
+ * @returns {object} 5축 점수 + 강약 진단
+ */
+function fiveAxisDiagnosis(input){
+  const out = {};
+  // 1. 회전 속도 — pelvis/trunk/arm ω 종합 percentile (아마 기준)
+  const rp = [percentileVsRef(input.pelvis_dps, 'pelvis_dps','AMATEUR'),
+              percentileVsRef(input.trunk_dps, 'trunk_dps','AMATEUR'),
+              percentileVsRef(input.arm_dps,   'arm_dps',  'AMATEUR')].filter(x=>x!=null);
+  out.rotation = {
+    score: rp.length ? Math.round(rp.reduce((a,b)=>a+b,0)/rp.length) : null,
+    label: '🌀 회전 속도',
+    sub:   '골반·몸통·팔 분절 가속',
+    detail:'pelvis ω + trunk ω + arm ω peak 종합'
+  };
+  // 2. 가속 순서 — speed gain 기반 timing
+  let timingScore = null;
+  if(input.speed_gain_pt != null){
+    timingScore = Math.max(20, Math.min(98, 50 + (input.speed_gain_pt - 1.4) * 100));
+  }
+  out.sequencing = {
+    score: timingScore != null ? Math.round(timingScore) : null,
+    label: '⏱ 가속 순서',
+    sub:   '골반→몸통→팔 순차 가속',
+    detail:'speed gain (1.4 한국 median, 1.7 MLB)'
+  };
+  // 3. 골반-상체 분리 — X-factor + stride
+  const sp = [percentileVsRef(input.x_factor, 'x_factor','AMATEUR'),
+              percentileVsRef(input.stride_pct, 'stride_pct','AMATEUR')].filter(x=>x!=null);
+  out.separation = {
+    score: sp.length ? Math.round(sp.reduce((a,b)=>a+b,0)/sp.length) : null,
+    label: '✂️ 골반-상체 분리',
+    sub:   'X-factor (클수록 비축 에너지 큼)',
+    detail:'X-factor 분리각 + stride length 활용'
+  };
+  // 4. 누수 회피 — ELI 6 zone (점수 ↑ = 누수 ↓)
+  out.leakage = {
+    score: input.eli_score != null ? Math.round(input.eli_score) : null,
+    label: '💧 누수 회피',
+    sub:   '6 zone 자세 결함 회피',
+    detail:'lead leg block · trunk control · pelvis brake 등 6 zone'
+  };
+  // 5. 지면반력 활용 — LHEI (또는 GRF score)
+  const grfScore = input.lhei ?? input.grf_score ?? null;
+  out.grf = {
+    score: grfScore != null ? Math.round(grfScore) : null,
+    label: '🦶 지면반력 활용',
+    sub:   '축발 추진 + 앞발 블로킹',
+    detail:'LHEI (Lower-half Effectiveness Index) — Rear/Lead GRF 종합'
+  };
+
+  // 강점/약점
+  const arr = ['rotation','sequencing','separation','leakage','grf']
+    .map(k => ({k, ...out[k]})).filter(x => x.score != null)
+    .sort((a,b) => b.score - a.score);
+  out.strength = arr[0]?.label || '—';
+  out.weakness = arr[arr.length-1]?.label || '—';
+  out.avg_score = arr.length ? Math.round(arr.reduce((s,x)=>s+x.score,0)/arr.length) : null;
+  return out;
+}
+
+// v5.12 호환 유지
 function fourAxisDiagnosis(input){
   const out = {};
   // Power
@@ -2024,9 +2401,22 @@ const ANALYTICS = {
   // v5.12: 코치/선수용 핵심 KPI + 4축 능력 진단
   expectedVelocityWithImprovement,
   fourAxisDiagnosis,
+  // v5.22: 5축 메카닉 진단 (회전속도/가속순서/분리/누수회피/지면반력)
+  fiveAxisDiagnosis,
+  // v5.23: Driveline 5 모델 framework
+  DRIVELINE_5_MODELS,
+  drivelineMetricScore,
+  drivelineFiveModelDiagnosis,
+  drivelineMechanicalCeiling,
   // v5.13: 체력/통합 향상 시나리오
   expectedVelocityFromFitness,
-  expectedVelocityCombined
+  expectedVelocityCombined,
+  // v5.16: 체력 6축 진단
+  fitnessAxisDiagnosis,
+  // v5.17: 17 변인 학술 reference + 효과 매핑
+  FITNESS_VARIABLE_MAP,
+  // v5.18: 메카닉 변인 효과 매핑
+  MECHANIC_VARIABLE_MAP
 };
 
 // 브라우저 빌드에서 직접 접근 가능

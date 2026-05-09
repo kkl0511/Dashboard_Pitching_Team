@@ -364,6 +364,52 @@ function parseC3DTxtTrial(text){
     const arr = colByName(name);
     return arr.length ? arr.slice(winStart, winEnd) : [];
   };
+  // v5.24: frame-specific 추출 (Driveline의 "at FP/MER/BR")
+  const valueAtFrame = (name, frameIdx) => {
+    if(frameIdx === null || frameIdx === undefined) return null;
+    const arr = colByName(name);
+    if(!arr.length || frameIdx >= arr.length) return null;
+    return arr[frameIdx];
+  };
+  // MER frame 찾기 (max external rotation)
+  let merFrame = null;
+  {
+    const arr = colByName('Pitching_Shoulder_Angle_Z');
+    if(arr.length){
+      const sub = arr.slice(winStart, winEnd);
+      let maxAbs = -1, maxI = null;
+      for(let i = 0; i < sub.length; i++){
+        if(sub[i] === null) continue;
+        if(Math.abs(sub[i]) > maxAbs){ maxAbs = Math.abs(sub[i]); maxI = i; }
+      }
+      merFrame = maxI !== null ? winStart + maxI : null;
+    }
+  }
+  // CoG metrics (COM_displacement_X 시계열 미분)
+  let maxCogVelo = null, cogDecel = null;
+  {
+    const comX = colByNameWindow('COM_displacement_X');
+    const timeArr = colByNameWindow('TIME_X');
+    if(comX.length >= 5 && timeArr.length >= 5){
+      const velos = [];
+      for(let i = 1; i < comX.length - 1; i++){
+        if(comX[i+1] === null || comX[i-1] === null) continue;
+        if(timeArr[i+1] === null || timeArr[i-1] === null) continue;
+        const dt = timeArr[i+1] - timeArr[i-1];
+        if(dt <= 0) continue;
+        velos.push((comX[i+1] - comX[i-1]) / dt);
+      }
+      if(velos.length){
+        maxCogVelo = Math.max(...velos.map(v => Math.abs(v)));
+        const maxIdx = velos.findIndex(v => Math.abs(v) === maxCogVelo);
+        if(maxIdx !== -1 && maxIdx < velos.length - 1){
+          const after = velos.slice(maxIdx);
+          const minAfter = Math.min(...after);
+          cogDecel = Math.abs(maxCogVelo - minAfter);
+        }
+      }
+    }
+  }
 
   const fp1z = safeMaxAbs(colByNameWindow('FP1_Z'));
   const fp2z = safeMaxAbs(colByNameWindow('FP2_Z'));
@@ -403,6 +449,21 @@ function parseC3DTxtTrial(text){
     pelvis_me_peak:  safeMaxAbs(colByNameWindow('Pelvis_Mechanical_Energy_X')),
     trunk_me_peak:   safeMaxAbs(colByNameWindow('Trunk_Mechanical_Energy_X')),
     humerus_me_peak: safeMaxAbs(colByNameWindow('R_Humerus_ME_X')),
+    // v5.24: Driveline 5 모델 frame-specific 변인
+    mer_frame:              merFrame,
+    layback_deg:            safeMaxAbs(colByNameWindow('Pitching_Shoulder_Angle_Z')),
+    shoulder_abd_at_fp:     valueAtFrame('Pitching_Shoulder_Angle_Y', fcEvent),
+    elbow_flex_at_fp:       valueAtFrame('Pitching_Elbow_Angle_X', fcEvent),
+    hip_shoulder_sep_at_fp: valueAtFrame('Trunk_wrt_Pelvis_Angle_Z', fcEvent),
+    torso_counter_rot:      (() => { const arr = colByNameWindow('Trunk_wrt_Pelvis_Angle_Z').filter(v => v !== null); return arr.length ? Math.min(...arr) : null; })(),
+    torso_fwd_tilt_at_fp:   valueAtFrame('Trunk_Angle_X', fcEvent),
+    torso_rot_at_fp:        valueAtFrame('Trunk_Angle_Z', fcEvent),
+    torso_side_bend_at_mer: valueAtFrame('Trunk_Angle_Y', merFrame),
+    torso_rot_at_br:        valueAtFrame('Trunk_Angle_Z', brEvent),
+    lead_knee_at_fp:        valueAtFrame('Lead_Knee_Angle_X', fcEvent),
+    lead_knee_at_br:        valueAtFrame('Lead_Knee_Angle_X', brEvent),
+    max_cog_velo_m_s:       maxCogVelo,
+    cog_decel_m_s:          cogDecel
   };
 }
 

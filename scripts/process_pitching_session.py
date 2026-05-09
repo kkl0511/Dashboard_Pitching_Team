@@ -207,6 +207,56 @@ def parse_theia_trial(path):
         if not arr: return []
         return arr[analysis_window[0]:analysis_window[1]]
 
+    # v5.24: frame-specific 추출 (Driveline의 "at FP", "at BR", "at MER" 시점값)
+    def value_at_frame(name, frame_idx):
+        if frame_idx is None: return None
+        arr = col_by_name(name)
+        if not arr or frame_idx >= len(arr): return None
+        return arr[frame_idx]
+
+    # MER (Maximum External Rotation) frame 찾기 — Layback 변인용
+    def find_mer_frame():
+        arr = col_by_name('Pitching_Shoulder_Angle_Z')
+        if not arr: return None
+        # FC~BR 구간 안에서 max abs
+        sub = arr[analysis_window[0]:analysis_window[1]]
+        if not sub: return None
+        max_abs = -1; max_i = None
+        for i, v in enumerate(sub):
+            if v is None: continue
+            if abs(v) > max_abs: max_abs, max_i = abs(v), i
+        return analysis_window[0] + max_i if max_i is not None else None
+
+    mer_frame = find_mer_frame()
+
+    # v5.24 + v5.25 보정: COM_displacement_Y (mound 방향, 전후방) 시계열 → 속도/감속
+    # 이전 v5.24는 X 사용 — Theia 좌표계는 X=lateral, Y=anterior-posterior(mound), Z=vertical
+    def cog_metrics():
+        """COM_displacement_Y (mound 방향) 시계열 → 속도/감속"""
+        com_y = col_by_name_window('COM_displacement_Y')
+        if not com_y or len(com_y) < 5: return None, None
+        time_arr = col_by_name_window('TIME_X') or col_by_name_window('TIME')
+        if not time_arr or len(time_arr) < 5: return None, None
+        velos = []
+        for i in range(1, len(com_y) - 1):
+            if com_y[i+1] is None or com_y[i-1] is None: continue
+            if time_arr[i+1] is None or time_arr[i-1] is None: continue
+            dt = time_arr[i+1] - time_arr[i-1]
+            if dt <= 0: continue
+            v = (com_y[i+1] - com_y[i-1]) / dt
+            velos.append(v)
+        if not velos: return None, None
+        max_velo = max(abs(v) for v in velos)
+        max_idx = next((i for i, v in enumerate(velos) if abs(v) == max_velo), None)
+        if max_idx is None or max_idx >= len(velos) - 1: return max_velo, None
+        decel_velos = velos[max_idx:]
+        if len(decel_velos) < 2: return max_velo, None
+        min_after = min(decel_velos)
+        decel = abs(max_velo - min_after)
+        return max_velo, decel
+
+    max_cog_velo, cog_decel = cog_metrics()
+
     # v3.7 GRF 자동 분류 — peak Z 큰 쪽 = lead (착지발), 작은 쪽 = rear (축발)
     # v5.7 분석 구간 제한 (FC~BR) — boundary noise 제거
     fp1z = safe_max_abs(col_by_name_window('FP1_Z'))
@@ -279,6 +329,25 @@ def parse_theia_trial(path):
         'trunk_me_peak':    safe_max_abs(col_by_name_window('Trunk_Mechanical_Energy_X')),
         'humerus_me_peak':  safe_max_abs(col_by_name_window('R_Humerus_ME_X')),
         'release_height_m': None,
+        # v5.24 — Driveline 5 모델 frame-specific 변인 (FP / MER / BR 시점값)
+        'mer_frame':                mer_frame,
+        # Arm Action
+        'layback_deg':              safe_max_abs(col_by_name_window('Pitching_Shoulder_Angle_Z')),  # max ER
+        'shoulder_abd_at_fp':       value_at_frame('Pitching_Shoulder_Angle_Y', fc_event),
+        'elbow_flex_at_fp':         value_at_frame('Pitching_Elbow_Angle_X', fc_event),
+        # Posture (FP 시점)
+        'hip_shoulder_sep_at_fp':   value_at_frame('Trunk_wrt_Pelvis_Angle_Z', fc_event),
+        'torso_counter_rot':        min((v for v in col_by_name_window('Trunk_wrt_Pelvis_Angle_Z') if v is not None), default=None),
+        'torso_fwd_tilt_at_fp':     value_at_frame('Trunk_Angle_X', fc_event),
+        'torso_rot_at_fp':          value_at_frame('Trunk_Angle_Z', fc_event),
+        'torso_side_bend_at_mer':   value_at_frame('Trunk_Angle_Y', mer_frame),
+        'torso_rot_at_br':          value_at_frame('Trunk_Angle_Z', br_event),
+        # Block (Lead Knee)
+        'lead_knee_at_fp':          value_at_frame('Lead_Knee_Angle_X', fc_event),
+        'lead_knee_at_br':          value_at_frame('Lead_Knee_Angle_X', br_event),
+        # CoG (v5.24)
+        'max_cog_velo_m_s':         max_cog_velo,
+        'cog_decel_m_s':            cog_decel,
     }
 
 def scan_theia_player(player_dir, log):

@@ -195,8 +195,7 @@
 
     <!-- v5.14 흐름 ── ① 현재 상태 ── -->
     <div style="margin:14px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#0969da10,transparent);border-left:4px solid #0969da;border-radius:4px">
-      <div style="font-size:14px;font-weight:600;color:#0969da">📍 1. 현재 상태 — Where am I now?</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">측정 구속과 3가지 향상 시나리오로 현재 위치 + 발달 잠재를 한눈에.</div>
+      <div style="font-size:14px;font-weight:600;color:#0969da">📍 1. 현재 상태</div>
     </div>
 
     <!-- v5.13: 4 KPI (측정 구속 + 향상 시나리오 3종) -->
@@ -213,10 +212,10 @@
         <div class="delta" id="p-fitness-detail">실측 — · 향상 +— km/h</div>
       </div>
       <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
-           title="메카닉 변수(분절 회전·X-factor·stride 등)를 프로 수준으로 끌어올렸을 때 기대 구속">
-        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
+           title="Driveline Mechanical Ceiling — 메카닉 5 모델이 모두 ceiling(150점) 도달 시 기대 구속">
+        <div class="label">⚙️ Mechanical Ceiling</div>
         <div class="value" id="p-mech-velo">—</div>
-        <div class="delta" id="p-mech-detail">실측 — · 향상 +— km/h</div>
+        <div class="delta" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
       </div>
       <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
            title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
@@ -236,42 +235,46 @@
     </div>
   </div>
 
-  <!-- v5.14 흐름 ── ② 체력 (체력 카드들이 메카닉 위로 표시되도록 — DOM placeholder) ── -->
+  <!-- v5.14 흐름 ── ② 체력 ── -->
   <div id="section-fitness-anchor" style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#bc4c0010,transparent);border-left:4px solid #bc4c00;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#bc4c00">💪 2. 체력 (Physical) — How strong am I?</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px">CMJ·SJ·Hop·IMTP·PP 5축 분석. 체력 발달 시 기대되는 구속 향상의 근거.</div>
+    <div style="font-size:14px;font-weight:600;color:#bc4c00">💪 2. 체력</div>
   </div>
-  <!-- ② 체력 카드 자리 — render.js가 동적으로 HP Assessment 카드를 여기로 이동 -->
   <div id="section-fitness-cards"></div>
 
-  <!-- v5.14 흐름 ── ③ 메카닉 (이 리포트의 핵심) ── -->
+  <!-- v5.14 흐름 ── ③ 메카닉 ── -->
   <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#1a7f3710,transparent);border-left:4px solid #1a7f37;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#1a7f37">⚙️ 3. 메카닉 분석 (Mechanics) — How do I throw? <span style="font-size:11px;background:#1a7f3720;padding:2px 8px;border-radius:3px;font-weight:500">이 리포트의 핵심</span></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px">4축 종합 능력 → 시간축 분석 → 자세 안정성 → 발달 권장 순으로 진단.</div>
-    <div style="font-size:11px;color:#1a7f37;margin-top:4px">3-1. 종합 능력 (4축 라디아 + percentile) · 3-2. 시간축 (키네틱 시퀀스 + 분절 metric) · 3-3. 안정성 (ELI 6 zone) · 3-4. 발달 권장</div>
+    <div style="font-size:14px;font-weight:600;color:#1a7f37">⚙️ 3. 메카닉</div>
   </div>
 
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
   <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">3-1. 종합 능력 — 4축 라디아 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.12</span></h2>
-      <div class="chart-wrap" style="height:260px"><canvas id="p-radar"></canvas></div>
-      <!-- v5.14: 4축 + 6 metric percentile 상세 표 -->
-      <table id="p-mech-percentile-table" style="width:100%;font-size:11px;margin-top:10px;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
-            <th style="text-align:left;padding:5px 6px;color:var(--muted);font-weight:600">Metric</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">본인</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">아마 %ile</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted);font-weight:600">프로 %ile</th>
-          </tr>
-        </thead>
-        <tbody id="p-mech-percentile-body"></tbody>
-      </table>
-      <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
-        <b>⚡ 힘</b> · <b>⏱ 타이밍</b> · <b>✂️ 분리</b> · <b>🛡 안정성</b> 각 0-100 백분위.<br>
-        <span style="color:var(--muted)">아마 (n=139, 한국 57 + OBP HS+College 82) · 프로 (n=18, OBP MiLB+Indep)</span>
-      </div>
+      <h2 style="font-size:15px">3-1. 메카닉 5 모델 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline 표준</span></h2>
+      <div class="chart-wrap" style="height:300px"><canvas id="p-radar"></canvas></div>
+      <!-- v5.24: Driveline 변인 Per 1mph 표 (분석가용 details 폴더) -->
+      <details style="margin-top:12px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 5 모델 변인 상세 + Per 1mph (분석가용)</summary>
+        <table style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">모델</th>
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">변인</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">본인</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">Median Elite</th>
+              <th style="text-align:center;padding:5px 6px;color:var(--muted)">중요도</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">Per 1mph</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">차이 (mph)</th>
+            </tr>
+          </thead>
+          <tbody id="p-driveline-vars-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;margin-top:8px;line-height:1.55">
+          Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph cohort 50th percentile.
+          <b>Per 1mph</b> = "1mph 향상에 필요한 변인 변화량".
+          <b>차이</b> = (본인 − Median Elite) / Per 1mph (mph 환산, 양수 = elite 대비 우수).<br>
+          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block
+        </div>
+      </details>
     </div>
     <div class="panel">
       <h2>3-2. 시간축 분석 — 키네틱 시퀀스 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
@@ -371,10 +374,9 @@
     <div id="p-mech-action-plan" style="font-size:12.5px;line-height:1.6"></div>
   </div>
 
-  <!-- v5.14 흐름 ── ④ 결과 (Pitching Outcome) ── -->
+  <!-- v5.14 흐름 ── ④ 결과 ── -->
   <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#8250df10,transparent);border-left:4px solid #8250df;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#8250df">🎯 4. 결과 (Pitching Outcome) — How does the ball move?</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px">메카닉이 만든 결과 — 공의 회전·무브먼트, 부상 위험, 제구 일관성.</div>
+    <div style="font-size:14px;font-weight:600;color:#8250df">🎯 4. 결과</div>
   </div>
 
   <!-- v4.1: 지면반력 단독 카드 제거 — Rear GRF는 ⚡출력에, Lead GRF·LHEI·CoG_Decel는 🔗전달 섹션에 통합됨 -->
@@ -422,10 +424,9 @@
     </div>
   </div>
 
-  <!-- v5.14 흐름 ── ⑤ 종합 권장 (Action Plan) ── -->
+  <!-- v5.14 흐름 ── ⑤ 종합 권장 ── -->
   <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#cf222e10,transparent);border-left:4px solid #cf222e;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#cf222e">📋 5. 종합 권장 (Action Plan) — What's next?</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px">3가지 향상 시나리오 비교 + 4축 약점 우선순위 + 다음 3개월 훈련 권장.</div>
+    <div style="font-size:14px;font-weight:600;color:#cf222e">📋 5. 종합 권장</div>
   </div>
   <div class="panel" style="border-left:4px solid #cf222e">
     <h2 style="font-size:15px">📋 종합 권장 — Bigger Lever 진단 + 우선순위 훈련</h2>
@@ -434,35 +435,70 @@
 
 </section>
 
-<!-- v5.14: 체력 카드들 — section-fitness-cards 자리로 render.js가 옮김 (DOM 자체는 여기 보존) -->
+<!-- v5.16: 체력 카드 — 6각 라디아 + raw details 폴더 (section-fitness-cards 자리로 render.js가 이동) -->
 <section style="display:none" id="hidden-fitness-source">
-  <!-- v4.2 신규: HP Assessment — Velo Group 분포 (Driveline 스타일) -->
+  <!-- 체력 종합 — 6각 라디아 (한눈에) -->
   <div class="panel" id="card-hp-assessment">
-    <h2>💪 HP Assessment — 체력 능력 종합 (Velo Group 분포)
-      <span class="badge" style="background:#fff3e7;color:#bc4c00">v4.2 — Driveline HP Assessment 스타일</span></h2>
+    <h2>💪 체력 종합 — 6축 다이어그램 <span class="badge" style="background:#fff3e7;color:#bc4c00">v5.16 · 우수고교 + 프로 비교</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      각 체력 변수가 Velo Group (미달 / 평균 / 우수 / Elite) 별로 어떻게 분포되는지, 본인은 어디 위치인지 한눈에.
-      → 어떤 변수가 본인의 ceiling 인가?
+      구속·제구와 관련된 6가지 체력 요소를 한눈에. 본인 위치 + 우수 고교 + 프로 reference 동시 비교.
     </div>
-    <div id="p-hp-assessment"></div>
+    <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:center">
+      <div class="chart-wrap" style="height:330px"><canvas id="p-fitness-radar"></canvas></div>
+      <div id="p-fitness-summary" style="font-size:12.5px;line-height:1.7"></div>
+    </div>
+    <details style="margin-top:14px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 17 변인 전체 표 + 학술 reference (분석가용)</summary>
+      <div style="margin-top:10px">
+        <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:6px;color:var(--muted);width:55px">측정</th>
+              <th style="text-align:left;padding:6px;color:var(--muted)">변인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">본인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">한국 우수</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">MLB</th>
+              <th style="text-align:left;padding:6px;color:var(--muted)">효과</th>
+              <th style="text-align:left;padding:6px;color:var(--muted)">학술 의미</th>
+            </tr>
+          </thead>
+          <tbody id="p-fitness-detail-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;margin-top:8px;line-height:1.55">
+          <b>⭐ = 구속 핵심 변인 (priority 1)</b> · 한국 우수 = 우수 그룹 (133-138 km/h, n=18) median · MLB = Driveline 공개치 + Lehman 2013 + Werner 2008 합본 추정<br>
+          학술 출처: Driveline HP Assessment · McGuigan 2018 (EUR) · Flanagan & Comyns 2008 (Pogo) · Lehman 2013 (IMTP)
+        </div>
+      </div>
+    </details>
   </div>
 
-  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <!-- 체력 (ForceDecks) 4 카드 — raw 측정값 (분석가용) -->
   <div class="panel" id="card-fitness-raw">
-    <h2>보조 측정 — 체력 (ForceDecks 4 테스트 raw 변수) <span class="protocol-tag fitness">ForceDecks</span>
-        <span class="badge">CMJ · SJ · Pogo · IMTP raw 측정값</span></h2>
-    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      위 HP Assessment 의 원본 측정값. 체력 capacity ceiling 설명용.
-    </div>
-    <div id="p-tier-overlay" style="margin-bottom:12px"></div>
-    <div class="grid grid-4" id="fitness-cards"></div>
-    <div class="footnote">
-      <b>SSC 스펙트럼:</b> SJ (SSC 없음) → CMJ (Slow SSC) → Pogo (Fast SSC) → IMTP (Isometric).
-      투수 메커니즘 매칭: Drive leg push-off ≈ CMJ · FC reactive ≈ Pogo · Max strength ≈ IMTP Peak · Release explosive ≈ IMTP RFD.
-      <details><summary>EUR (CMJ JH / SJ JH) 해석 — McGuigan 2018</summary>
-        EUR &gt; 1.10 우수 SSC 활용 · 1.00~1.10 정상 · &lt; 1.00 SSC 미활용
-      </details>
-    </div>
+    <h2 style="font-size:15px">📊 ForceDecks Raw 측정값 <span class="badge" style="background:#f6f8fa;color:var(--muted)">분석가용</span></h2>
+    <details>
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
+        펼쳐서 CMJ · SJ · Pogo · IMTP 4 테스트의 raw 측정값 + 한국·College·MLB cohort 비교 보기
+      </summary>
+      <div style="margin-top:10px">
+        <div id="p-tier-overlay" style="margin-bottom:12px"></div>
+        <div class="grid grid-4" id="fitness-cards"></div>
+        <div class="footnote">
+          <b>SSC 스펙트럼:</b> SJ (SSC 없음) → CMJ (Slow SSC) → Pogo (Fast SSC) → IMTP (Isometric).
+          투구 메커니즘 매칭: Drive leg push-off ≈ CMJ · FC reactive ≈ Pogo · Max strength ≈ IMTP Peak · Release explosive ≈ IMTP RFD.
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- v4.2 leftover: HP Assessment ridge plot — 별도 details 폴더로 보존 -->
+  <div class="panel" id="card-hp-ridge" style="display:none">
+    <h2 style="font-size:13px">💪 HP Assessment Ridge Plot <span class="badge" style="background:#f6f8fa;color:var(--muted)">분석가용</span></h2>
+    <details>
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
+        Velo Group 분포 ridge plot (각 변수의 그룹별 분포 + 본인 위치)
+      </summary>
+      <div id="p-hp-assessment" style="margin-top:10px"></div>
+    </details>
   </div>
 </section>
 
