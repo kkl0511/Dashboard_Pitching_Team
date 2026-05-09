@@ -1363,21 +1363,26 @@ function veloGroup(velocity_kmh){
 
 // 4-group 별 체력·메카닉 변수 평균 (59명 통합 기반 추정)
 // 추후 측정 누적 시 자동 갱신
+// v5.0: Driveline HP Assessment 6축 호환 — pp_peak_takeoff_bm 추가
 const VELO_GROUP_NORMS = {
   '미달': {
     cmj_pp_bm: 22, cmj_jh_cm: 30, imtp_pf_bm: 22, hop_rsi: 1.8, grip_kg: 50,
+    pp_peak_takeoff_bm: 7.5,    // v5.0: Plyo Push Up 추진력 (N/kg)
     pelvis_dps: 560, trunk_dps: 820, x_factor: 22, lead_grf_bw: 1.7, rear_grf_bw: 1.4
   },
   '평균': {
     cmj_pp_bm: 25, cmj_jh_cm: 33, imtp_pf_bm: 25, hop_rsi: 2.1, grip_kg: 55,
+    pp_peak_takeoff_bm: 9.0,
     pelvis_dps: 600, trunk_dps: 870, x_factor: 28, lead_grf_bw: 1.95, rear_grf_bw: 1.55
   },
   '우수': {
     cmj_pp_bm: 28, cmj_jh_cm: 36, imtp_pf_bm: 28, hop_rsi: 2.4, grip_kg: 60,
+    pp_peak_takeoff_bm: 10.5,
     pelvis_dps: 645, trunk_dps: 910, x_factor: 33, lead_grf_bw: 2.15, rear_grf_bw: 1.65
   },
   'Elite': {
     cmj_pp_bm: 32, cmj_jh_cm: 40, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65,
+    pp_peak_takeoff_bm: 12.0,
     pelvis_dps: 690, trunk_dps: 950, x_factor: 38, lead_grf_bw: 2.35, rear_grf_bw: 1.75
   }
 };
@@ -3073,6 +3078,12 @@ function genMeasurements(){
             rfd_0_100ms_n_s: Math.round(5500 + ff*4500),
             force_at_100ms_bm_n_kg: r1(15 + ff*12),
             asymmetry_pct: r1(1 + rng()*7)
+          },
+          // v5.0: Plyo Push Up — Driveline HP Assessment 6축 호환 (NEW)
+          pp: {
+            peak_takeoff_force_bm_n_kg:  r1(7.0 + ff*5.5),    // 7.0~12.5
+            peak_eccentric_force_bm_n_kg: r1(9.0 + ff*5.0),   // 9.0~14.0
+            asymmetry_pct: r1(2 + rng()*8)
           }
         };
         // 체력 종합점수 — v3.2 VALD College Baseball percentile 기반 + 학년 percentile 병행
@@ -4036,19 +4047,20 @@ function renderOutcomeDiagnosis(m, p){
     </div>`;
 }
 
-/* v4.2: HP Assessment — 5 체력 변수 × 4 Velo Group 분포 (Driveline 스타일) */
+/* v5.0: HP Assessment — 5 체력 변수 × 4 Velo Group 분포 (Driveline HP 5 테스트 + BW 자동 = 6축 호환)
+   매뉴얼 v2.0 호환 — Grip 제거 (Driveline HP에 없음), Plyo Push Up 추가 (NEW) */
 function renderHPAssessment(m, p){
   const wrap = document.getElementById('p-hp-assessment');
   if(!wrap || typeof ANALYTICS === 'undefined') return;
   if(!m.fitness){ wrap.innerHTML = '<div style="color:var(--muted);padding:14px;text-align:center">체력 데이터 미입력 (Theia+GRF 회차에만)</div>'; return; }
 
-  // 5 체력 변수 + 본인 측정값 + Velo Group 4그룹별 평균
+  // 5 체력 변수 (5 테스트 대표 1개씩) + 본인 측정값 + Velo Group 4그룹별 평균
   const vars = [
-    { key: 'cmj_jh_cm',  label: 'CMJ Jump Height',     unit: 'cm',   value: m.fitness.cmj?.jump_height_cm },
-    { key: 'cmj_pp_bm',  label: 'CMJ Peak Power / BM', unit: 'W/kg', value: m.fitness.cmj?.peak_power_bm_w_kg },
-    { key: 'imtp_pf_bm', label: 'IMTP Peak Force / BM',unit: 'N/kg', value: m.fitness.imtp?.peak_force_bm_n_kg },
-    { key: 'hop_rsi',    label: 'Hop Test RSI',        unit: '',     value: m.fitness.pogo?.rsi_ms },
-    { key: 'grip_kg',    label: 'Grip Strength',       unit: 'kg',   value: 50 + Math.random()*20 },  // 추정 (실측 시 m.fitness.grip 사용)
+    { key: 'cmj_jh_cm',         label: 'CMJ Jump Height',      unit: 'cm',   value: m.fitness.cmj?.jump_height_cm },
+    { key: 'cmj_pp_bm',         label: 'CMJ Peak Power / BM',  unit: 'W/kg', value: m.fitness.cmj?.peak_power_bm_w_kg },
+    { key: 'imtp_pf_bm',        label: 'IMTP Peak Force / BM', unit: 'N/kg', value: m.fitness.imtp?.peak_force_bm_n_kg },
+    { key: 'hop_rsi',           label: 'Hop Test RSI',         unit: '',     value: m.fitness.pogo?.rsi_ms },
+    { key: 'pp_peak_takeoff_bm',label: 'Plyo Push Up Takeoff', unit: 'N/kg', value: m.fitness.pp?.peak_takeoff_force_bm_n_kg },
   ];
 
   const groups = ['미달', '평균', '우수', 'Elite'];

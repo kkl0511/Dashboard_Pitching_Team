@@ -37,21 +37,26 @@ function veloGroup(velocity_kmh){
 
 // 4-group 별 체력·메카닉 변수 평균 (59명 통합 기반 추정)
 // 추후 측정 누적 시 자동 갱신
+// v5.0: Driveline HP Assessment 6축 호환 — pp_peak_takeoff_bm 추가
 const VELO_GROUP_NORMS = {
   '미달': {
     cmj_pp_bm: 22, cmj_jh_cm: 30, imtp_pf_bm: 22, hop_rsi: 1.8, grip_kg: 50,
+    pp_peak_takeoff_bm: 7.5,    // v5.0: Plyo Push Up 추진력 (N/kg)
     pelvis_dps: 560, trunk_dps: 820, x_factor: 22, lead_grf_bw: 1.7, rear_grf_bw: 1.4
   },
   '평균': {
     cmj_pp_bm: 25, cmj_jh_cm: 33, imtp_pf_bm: 25, hop_rsi: 2.1, grip_kg: 55,
+    pp_peak_takeoff_bm: 9.0,
     pelvis_dps: 600, trunk_dps: 870, x_factor: 28, lead_grf_bw: 1.95, rear_grf_bw: 1.55
   },
   '우수': {
     cmj_pp_bm: 28, cmj_jh_cm: 36, imtp_pf_bm: 28, hop_rsi: 2.4, grip_kg: 60,
+    pp_peak_takeoff_bm: 10.5,
     pelvis_dps: 645, trunk_dps: 910, x_factor: 33, lead_grf_bw: 2.15, rear_grf_bw: 1.65
   },
   'Elite': {
     cmj_pp_bm: 32, cmj_jh_cm: 40, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65,
+    pp_peak_takeoff_bm: 12.0,
     pelvis_dps: 690, trunk_dps: 950, x_factor: 38, lead_grf_bw: 2.35, rear_grf_bw: 1.75
   }
 };

@@ -869,19 +869,20 @@ function renderOutcomeDiagnosis(m, p){
     </div>`;
 }
 
-/* v4.2: HP Assessment — 5 체력 변수 × 4 Velo Group 분포 (Driveline 스타일) */
+/* v5.0: HP Assessment — 5 체력 변수 × 4 Velo Group 분포 (Driveline HP 5 테스트 + BW 자동 = 6축 호환)
+   매뉴얼 v2.0 호환 — Grip 제거 (Driveline HP에 없음), Plyo Push Up 추가 (NEW) */
 function renderHPAssessment(m, p){
   const wrap = document.getElementById('p-hp-assessment');
   if(!wrap || typeof ANALYTICS === 'undefined') return;
   if(!m.fitness){ wrap.innerHTML = '<div style="color:var(--muted);padding:14px;text-align:center">체력 데이터 미입력 (Theia+GRF 회차에만)</div>'; return; }
 
-  // 5 체력 변수 + 본인 측정값 + Velo Group 4그룹별 평균
+  // 5 체력 변수 (5 테스트 대표 1개씩) + 본인 측정값 + Velo Group 4그룹별 평균
   const vars = [
-    { key: 'cmj_jh_cm',  label: 'CMJ Jump Height',     unit: 'cm',   value: m.fitness.cmj?.jump_height_cm },
-    { key: 'cmj_pp_bm',  label: 'CMJ Peak Power / BM', unit: 'W/kg', value: m.fitness.cmj?.peak_power_bm_w_kg },
-    { key: 'imtp_pf_bm', label: 'IMTP Peak Force / BM',unit: 'N/kg', value: m.fitness.imtp?.peak_force_bm_n_kg },
-    { key: 'hop_rsi',    label: 'Hop Test RSI',        unit: '',     value: m.fitness.pogo?.rsi_ms },
-    { key: 'grip_kg',    label: 'Grip Strength',       unit: 'kg',   value: 50 + Math.random()*20 },  // 추정 (실측 시 m.fitness.grip 사용)
+    { key: 'cmj_jh_cm',         label: 'CMJ Jump Height',      unit: 'cm',   value: m.fitness.cmj?.jump_height_cm },
+    { key: 'cmj_pp_bm',         label: 'CMJ Peak Power / BM',  unit: 'W/kg', value: m.fitness.cmj?.peak_power_bm_w_kg },
+    { key: 'imtp_pf_bm',        label: 'IMTP Peak Force / BM', unit: 'N/kg', value: m.fitness.imtp?.peak_force_bm_n_kg },
+    { key: 'hop_rsi',           label: 'Hop Test RSI',         unit: '',     value: m.fitness.pogo?.rsi_ms },
+    { key: 'pp_peak_takeoff_bm',label: 'Plyo Push Up Takeoff', unit: 'N/kg', value: m.fitness.pp?.peak_takeoff_force_bm_n_kg },
   ];
 
   const groups = ['미달', '평균', '우수', 'Elite'];

@@ -289,6 +289,12 @@ function genMeasurements(){
             rfd_0_100ms_n_s: Math.round(5500 + ff*4500),
             force_at_100ms_bm_n_kg: r1(15 + ff*12),
             asymmetry_pct: r1(1 + rng()*7)
+          },
+          // v5.0: Plyo Push Up — Driveline HP Assessment 6축 호환 (NEW)
+          pp: {
+            peak_takeoff_force_bm_n_kg:  r1(7.0 + ff*5.5),    // 7.0~12.5
+            peak_eccentric_force_bm_n_kg: r1(9.0 + ff*5.0),   // 9.0~14.0
+            asymmetry_pct: r1(2 + rng()*8)
           }
         };
         // 체력 종합점수 — v3.2 VALD College Baseball percentile 기반 + 학년 percentile 병행
