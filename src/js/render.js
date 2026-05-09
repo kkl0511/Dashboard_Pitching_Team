@@ -306,8 +306,30 @@ function renderPlayerSelect(){
     const ni = (i+1)%PLAYERS.length;
     sel.value = PLAYERS[ni].id; renderPlayerView(sel.value);
   });
+  // v3.8: 현재 선수 정보 query string 전달 + 명확한 안내
   document.getElementById('btn-open-theia').addEventListener('click',()=>{
-    window.open('https://kkl0511.github.io/Theia_GRF_Pitching_Report/','_blank');
+    const sel = document.getElementById('player-select');
+    const pid = sel?.value || PLAYERS[0].id;
+    const p = PLAYERS.find(x => x.id === pid);
+    const m = DATA[pid][1];
+    if(!p) { window.open('https://kkl0511.github.io/Theia_GRF_Pitching_Report/','_blank'); return; }
+    // query string 전달 (Theia repo가 지원하면 prefill, 안 하면 무해)
+    const params = new URLSearchParams({
+      name: p.name,
+      weight: p.weight,
+      height: p.height,
+      arm: p.arm,
+      grade: p.grade || '',
+      level: p.grade ? 'HS' : '',
+      velocity: m?.velocity?.measured_kmh || '',
+    });
+    const url = `https://kkl0511.github.io/Theia_GRF_Pitching_Report/?${params.toString()}`;
+    // 클립보드에 선수 정보 복사 (suggest 입력)
+    const info = `${p.name} · ${p.height}cm · ${p.weight}kg · ${p.arm==='R'?'우완':'좌완'} · 평균 구속 ${m?.velocity?.measured_kmh || '—'} km/h`;
+    if(navigator.clipboard) navigator.clipboard.writeText(info).catch(()=>{});
+    if(confirm(`Theia+GRF 원본 리포트를 새 창으로 엽니다.\n\n현재 선수: ${info}\n\n원본 리포트는 매번 c3d.txt 업로드가 필요합니다.\n선수 정보가 클립보드에 복사되어 있어 빠르게 입력 가능.\n\n계속 진행할까요?`)) {
+      window.open(url, '_blank');
+    }
   });
 }
 
