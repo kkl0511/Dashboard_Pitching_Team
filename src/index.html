@@ -98,23 +98,38 @@
     <div style="overflow-x:auto">
       <table class="data" id="m1-table">
         <thead>
+          <!-- 그룹 헤더 (카테고리: 식별·구속·체력·메카닉·제구·부상·종합) -->
+          <tr class="group-header" style="background:#f6f8fa;font-size:10.5px;color:var(--muted)">
+            <th colspan="3" style="text-align:left;padding-left:10px">식별</th>
+            <th colspan="2" class="right" style="background:#f0f6ff;color:#0969da">구속</th>
+            <th colspan="1" class="right" style="background:#fff3e7;color:#bc4c00">체력</th>
+            <th colspan="5" class="right" style="background:#dafbe1;color:#1a7f37">메카닉</th>
+            <th colspan="1" class="right" style="background:#fff8c5;color:#9a6700">제구</th>
+            <th colspan="1" class="right" style="background:#ffebe9;color:#cf222e">부상</th>
+            <th colspan="1" class="right" style="background:#eaeef2">종합</th>
+          </tr>
           <tr>
+            <!-- 식별 (3) -->
             <th data-key="name">선수</th>
             <th data-key="grade" class="right">학년</th>
             <th data-key="arm" class="right">투구</th>
-            <th data-key="velo" class="right">FB Max(km/h)</th>
-            <th data-key="velo_avg" class="right">FB Avg</th>
-            <th data-key="spin" class="right" style="background:#ddf4ff">Spin</th>
-            <th data-key="spin_eff" class="right" style="background:#ddf4ff">Eff%</th>
-            <th data-key="ivb" class="right" style="background:#ddf4ff">IVB(cm)</th>
-            <th data-key="bauer" class="right" style="background:#ddf4ff">Bauer</th>
-            <th data-key="stuff" class="right" style="background:#fff8c5">Stuff</th>
-            <th data-key="command" class="right" style="background:#fff8c5">Cmd</th>
-            <th data-key="score" class="right">종합</th>
+            <!-- 구속 (2) -->
+            <th data-key="velo" class="right" style="background:#f0f6ff">FB Max(km/h)</th>
+            <th data-key="velo_avg" class="right" style="background:#f0f6ff">FB Avg</th>
+            <!-- 체력 (1) -->
+            <th data-key="fitness" class="right" style="background:#fff3e7">체력 점수</th>
+            <!-- 메카닉 (5) -->
             <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
-            <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
-            <th data-key="grf" class="right">LHEI</th>
-            <th data-key="risk" class="right">부상</th>
+            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
+            <th data-key="eli" class="right" style="background:#dafbe1">누수↑</th>
+            <th data-key="grf" class="right" style="background:#dafbe1">LHEI</th>
+            <th data-key="stuff" class="right" style="background:#dafbe1">Stuff</th>
+            <!-- 제구 (1) -->
+            <th data-key="command" class="right" style="background:#fff8c5">Cmd 통합</th>
+            <!-- 부상 (1) -->
+            <th data-key="risk" class="right" style="background:#ffebe9">부상위험</th>
+            <!-- 종합 (1) -->
+            <th data-key="score" class="right" style="background:#eaeef2"><b>종합</b></th>
           </tr>
         </thead>
         <tbody></tbody>

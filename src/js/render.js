@@ -72,21 +72,25 @@ function buildM1Table(){
     const m = DATA[p.id][1];
     const fb = m.rapsodo?.fb;
     return {
+      // 식별
       pid:p.id, name:p.name, arm:p.arm, grade:p.grade,
+      // 구속
       velo:     fb?.velocity?.max ?? m.velocity.measured_kmh,
       velo_avg: fb?.velocity?.avg ?? null,
-      spin:     fb?.spin?.avg ?? null,
-      spin_eff: fb?.spin_eff?.avg ?? null,
-      ivb:      fb?.ivb?.avg ?? null,
-      bauer:    fb?.bauer_units ?? null,
-      stuff:    fb?.stuff_score ?? null,
-      command:  fb?.command_score ?? null,
-      score:    m.velocity.score,
+      // 체력
+      fitness:  m.fitness?.score ?? null,
+      // 메카닉
       gen:      m.energy?.generation?.score ?? null,
       trf:      m.energy?.transfer?.score ?? null,
       eli:      m.energy?.leakage?.eli_score ?? null,
       grf:      m.grf ? m.grf.lhei : null,
+      stuff:    fb?.stuff_score ?? null,
+      // 제구 (통합 점수: command_composite 우선, 없으면 Rapsodo command_score)
+      command:  m.faults.command_composite ?? fb?.command_score ?? null,
+      // 부상
       risk:     m.faults.injury_risk,
+      // 종합
+      score:    m.velocity.score,
     };
   });
   const k=m1Sort.key, dir=m1Sort.dir==='asc'?1:-1;
@@ -105,22 +109,27 @@ function buildM1Table(){
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
+      <!-- 식별 -->
       <td><b>${r.name}</b>${realDot}</td>
       <td class="right">${r.grade?`<span style="background:#ddf4ff;color:#0969da;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">고${r.grade}</span>`:'—'}</td>
       <td class="right">${r.arm}</td>
-      <td class="right"><b>${fmt(r.velo,1)}</b></td>
-      <td class="right">${fmt(r.velo_avg,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt0(r.spin)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.spin_eff,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.ivb,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.bauer,1)}</td>
-      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
-      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
-      <td class="right"><b style="color:${scoreColor(r.score)}">${fmt0(r.score)}</b></td>
-      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
-      <td class="right" style="background:#ffebe920"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
-      <td class="right">${fmt0(r.grf)}</td>
-      <td class="right">${riskPill(r.risk)}</td>
+      <!-- 구속 -->
+      <td class="right" style="background:#f0f6ff"><b>${fmt(r.velo,1)}</b></td>
+      <td class="right" style="background:#f0f6ff">${fmt(r.velo_avg,1)}</td>
+      <!-- 체력 -->
+      <td class="right" style="background:#fff3e7"><b style="color:${scoreColor(r.fitness)}">${fmt0(r.fitness)}</b></td>
+      <!-- 메카닉 -->
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.trf)}">${fmt0(r.trf)}</b></td>
+      <td class="right" style="background:#dafbe130"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
+      <td class="right" style="background:#dafbe130">${fmt0(r.grf)}</td>
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
+      <!-- 제구 -->
+      <td class="right" style="background:#fff8c530"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
+      <!-- 부상 -->
+      <td class="right" style="background:#ffebe930">${riskPill(r.risk)}</td>
+      <!-- 종합 -->
+      <td class="right" style="background:#eaeef2"><b style="color:${scoreColor(r.score)};font-size:14px">${fmt0(r.score)}</b></td>
     </tr>`;
   }).join('');
   document.querySelectorAll('#m1-table thead th').forEach(th=>{

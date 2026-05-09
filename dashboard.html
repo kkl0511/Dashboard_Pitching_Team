@@ -477,23 +477,38 @@
     <div style="overflow-x:auto">
       <table class="data" id="m1-table">
         <thead>
+          <!-- 그룹 헤더 (카테고리: 식별·구속·체력·메카닉·제구·부상·종합) -->
+          <tr class="group-header" style="background:#f6f8fa;font-size:10.5px;color:var(--muted)">
+            <th colspan="3" style="text-align:left;padding-left:10px">식별</th>
+            <th colspan="2" class="right" style="background:#f0f6ff;color:#0969da">구속</th>
+            <th colspan="1" class="right" style="background:#fff3e7;color:#bc4c00">체력</th>
+            <th colspan="5" class="right" style="background:#dafbe1;color:#1a7f37">메카닉</th>
+            <th colspan="1" class="right" style="background:#fff8c5;color:#9a6700">제구</th>
+            <th colspan="1" class="right" style="background:#ffebe9;color:#cf222e">부상</th>
+            <th colspan="1" class="right" style="background:#eaeef2">종합</th>
+          </tr>
           <tr>
+            <!-- 식별 (3) -->
             <th data-key="name">선수</th>
             <th data-key="grade" class="right">학년</th>
             <th data-key="arm" class="right">투구</th>
-            <th data-key="velo" class="right">FB Max(km/h)</th>
-            <th data-key="velo_avg" class="right">FB Avg</th>
-            <th data-key="spin" class="right" style="background:#ddf4ff">Spin</th>
-            <th data-key="spin_eff" class="right" style="background:#ddf4ff">Eff%</th>
-            <th data-key="ivb" class="right" style="background:#ddf4ff">IVB(cm)</th>
-            <th data-key="bauer" class="right" style="background:#ddf4ff">Bauer</th>
-            <th data-key="stuff" class="right" style="background:#fff8c5">Stuff</th>
-            <th data-key="command" class="right" style="background:#fff8c5">Cmd</th>
-            <th data-key="score" class="right">종합</th>
+            <!-- 구속 (2) -->
+            <th data-key="velo" class="right" style="background:#f0f6ff">FB Max(km/h)</th>
+            <th data-key="velo_avg" class="right" style="background:#f0f6ff">FB Avg</th>
+            <!-- 체력 (1) -->
+            <th data-key="fitness" class="right" style="background:#fff3e7">체력 점수</th>
+            <!-- 메카닉 (5) -->
             <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
-            <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
-            <th data-key="grf" class="right">LHEI</th>
-            <th data-key="risk" class="right">부상</th>
+            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
+            <th data-key="eli" class="right" style="background:#dafbe1">누수↑</th>
+            <th data-key="grf" class="right" style="background:#dafbe1">LHEI</th>
+            <th data-key="stuff" class="right" style="background:#dafbe1">Stuff</th>
+            <!-- 제구 (1) -->
+            <th data-key="command" class="right" style="background:#fff8c5">Cmd 통합</th>
+            <!-- 부상 (1) -->
+            <th data-key="risk" class="right" style="background:#ffebe9">부상위험</th>
+            <!-- 종합 (1) -->
+            <th data-key="score" class="right" style="background:#eaeef2"><b>종합</b></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -2223,21 +2238,25 @@ function buildM1Table(){
     const m = DATA[p.id][1];
     const fb = m.rapsodo?.fb;
     return {
+      // 식별
       pid:p.id, name:p.name, arm:p.arm, grade:p.grade,
+      // 구속
       velo:     fb?.velocity?.max ?? m.velocity.measured_kmh,
       velo_avg: fb?.velocity?.avg ?? null,
-      spin:     fb?.spin?.avg ?? null,
-      spin_eff: fb?.spin_eff?.avg ?? null,
-      ivb:      fb?.ivb?.avg ?? null,
-      bauer:    fb?.bauer_units ?? null,
-      stuff:    fb?.stuff_score ?? null,
-      command:  fb?.command_score ?? null,
-      score:    m.velocity.score,
+      // 체력
+      fitness:  m.fitness?.score ?? null,
+      // 메카닉
       gen:      m.energy?.generation?.score ?? null,
       trf:      m.energy?.transfer?.score ?? null,
       eli:      m.energy?.leakage?.eli_score ?? null,
       grf:      m.grf ? m.grf.lhei : null,
+      stuff:    fb?.stuff_score ?? null,
+      // 제구 (통합 점수: command_composite 우선, 없으면 Rapsodo command_score)
+      command:  m.faults.command_composite ?? fb?.command_score ?? null,
+      // 부상
       risk:     m.faults.injury_risk,
+      // 종합
+      score:    m.velocity.score,
     };
   });
   const k=m1Sort.key, dir=m1Sort.dir==='asc'?1:-1;
@@ -2256,22 +2275,27 @@ function buildM1Table(){
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
+      <!-- 식별 -->
       <td><b>${r.name}</b>${realDot}</td>
       <td class="right">${r.grade?`<span style="background:#ddf4ff;color:#0969da;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">고${r.grade}</span>`:'—'}</td>
       <td class="right">${r.arm}</td>
-      <td class="right"><b>${fmt(r.velo,1)}</b></td>
-      <td class="right">${fmt(r.velo_avg,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt0(r.spin)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.spin_eff,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.ivb,1)}</td>
-      <td class="right" style="background:#ddf4ff20">${fmt(r.bauer,1)}</td>
-      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
-      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
-      <td class="right"><b style="color:${scoreColor(r.score)}">${fmt0(r.score)}</b></td>
-      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
-      <td class="right" style="background:#ffebe920"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
-      <td class="right">${fmt0(r.grf)}</td>
-      <td class="right">${riskPill(r.risk)}</td>
+      <!-- 구속 -->
+      <td class="right" style="background:#f0f6ff"><b>${fmt(r.velo,1)}</b></td>
+      <td class="right" style="background:#f0f6ff">${fmt(r.velo_avg,1)}</td>
+      <!-- 체력 -->
+      <td class="right" style="background:#fff3e7"><b style="color:${scoreColor(r.fitness)}">${fmt0(r.fitness)}</b></td>
+      <!-- 메카닉 -->
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.trf)}">${fmt0(r.trf)}</b></td>
+      <td class="right" style="background:#dafbe130"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
+      <td class="right" style="background:#dafbe130">${fmt0(r.grf)}</td>
+      <td class="right" style="background:#dafbe130"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
+      <!-- 제구 -->
+      <td class="right" style="background:#fff8c530"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
+      <!-- 부상 -->
+      <td class="right" style="background:#ffebe930">${riskPill(r.risk)}</td>
+      <!-- 종합 -->
+      <td class="right" style="background:#eaeef2"><b style="color:${scoreColor(r.score)};font-size:14px">${fmt0(r.score)}</b></td>
     </tr>`;
   }).join('');
   document.querySelectorAll('#m1-table thead th').forEach(th=>{
@@ -4539,19 +4563,34 @@ function printSelectedPlayers(){
   const area = document.getElementById('batch-print-area');
   area.innerHTML = pids.map(pid => compactPlayerCard(pid, sid)).join('');
   document.body.classList.add('printing-batch');
-  setTimeout(()=>{ window.print(); }, 80);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  });
 }
 // 인쇄 종료 후 클래스 제거
 window.addEventListener('afterprint', ()=>{
   document.body.classList.remove('printing-batch','printing-coach');
 });
 
-// 코치 리포트 인쇄
+// 코치 리포트 인쇄 — DOM 갱신 + 차트 렌더 시간 확보 후 print
 function printCoachReport(){
   const sid = parseInt(document.getElementById('rep-session-co').value, 10);
-  document.getElementById('coach-print-area').innerHTML = coachReport(sid);
+  const html = coachReport(sid);
+  if(!html || html.trim().length < 50){
+    alert('코치 리포트 생성 실패 — 데이터를 확인하세요.');
+    return;
+  }
+  const area = document.getElementById('coach-print-area');
+  area.innerHTML = html;
   document.body.classList.add('printing-coach');
-  setTimeout(()=>{ window.print(); }, 80);
+  // 2 RAF + 500ms = 약 530ms 기다린 후 print (DOM reflow + 차트 렌더 보장)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  });
 }
 
 /* ╔══════════════════════════════════════════════════════════╗

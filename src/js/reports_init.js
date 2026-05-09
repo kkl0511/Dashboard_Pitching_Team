@@ -351,19 +351,34 @@ function printSelectedPlayers(){
   const area = document.getElementById('batch-print-area');
   area.innerHTML = pids.map(pid => compactPlayerCard(pid, sid)).join('');
   document.body.classList.add('printing-batch');
-  setTimeout(()=>{ window.print(); }, 80);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  });
 }
 // 인쇄 종료 후 클래스 제거
 window.addEventListener('afterprint', ()=>{
   document.body.classList.remove('printing-batch','printing-coach');
 });
 
-// 코치 리포트 인쇄
+// 코치 리포트 인쇄 — DOM 갱신 + 차트 렌더 시간 확보 후 print
 function printCoachReport(){
   const sid = parseInt(document.getElementById('rep-session-co').value, 10);
-  document.getElementById('coach-print-area').innerHTML = coachReport(sid);
+  const html = coachReport(sid);
+  if(!html || html.trim().length < 50){
+    alert('코치 리포트 생성 실패 — 데이터를 확인하세요.');
+    return;
+  }
+  const area = document.getElementById('coach-print-area');
+  area.innerHTML = html;
   document.body.classList.add('printing-coach');
-  setTimeout(()=>{ window.print(); }, 80);
+  // 2 RAF + 500ms = 약 530ms 기다린 후 print (DOM reflow + 차트 렌더 보장)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  });
 }
 
 /* ╔══════════════════════════════════════════════════════════╗
