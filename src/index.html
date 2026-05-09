@@ -193,28 +193,42 @@
     </div>
     <div id="player-meta-line" class="player-meta"></div>
 
-    <!-- 4개 헤더 카드 (구속·잠재·종합·부상) -->
-    <div class="grid grid-4">
-      <div class="kpi">
-        <div class="label">측정 구속 (평균)</div>
+    <!-- v4.0: 5 KPI (측정·체력·출력·전달·누수) + 부상위험 옆 배지 -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px">
+      <div class="kpi" style="border-left:3px solid #0969da">
+        <div class="label">측정 구속</div>
         <div class="value" id="p-velo">—</div>
-        <div class="delta">최고 <b id="p-velo-max">—</b></div>
+        <div class="delta">최고 <b id="p-velo-max">—</b> · <span id="p-velo-group">—</span></div>
       </div>
-      <div class="kpi">
-        <div class="label">잠재 구속</div>
+      <div class="kpi" style="border-left:3px solid #bc4c00;background:#fff8f0">
+        <div class="label">체력 Ceiling</div>
         <div class="value" id="p-velo-pot">—</div>
-        <div class="delta" id="p-velo-pot-delta">잔차 —</div>
+        <div class="delta" id="p-velo-pot-delta">Predicted Velo</div>
       </div>
-      <div class="kpi">
-        <div class="label">종합점수</div>
-        <div class="value" id="p-score">—</div>
-        <div class="delta" id="p-score-delta">메카닉 — · 체력 — · GRF —</div>
+      <div class="kpi" style="border-left:3px solid #1a7f37">
+        <div class="label">⚡ 출력 (Generation)</div>
+        <div class="value" id="p-out-score">—</div>
+        <div class="delta" id="p-out-detail">Pelvis · Trunk · Power</div>
       </div>
-      <div class="kpi">
-        <div class="label">부상 위험</div>
-        <div class="value" id="p-risk">—</div>
-        <div class="delta" id="p-risk-detail">—</div>
+      <div class="kpi" style="border-left:3px solid #8250df">
+        <div class="label">🔗 전달 (Transfer)</div>
+        <div class="value" id="p-trf-score">—</div>
+        <div class="delta" id="p-trf-detail">ETE · Speed Gain · Lag</div>
       </div>
+      <div class="kpi" style="border-left:3px solid #cf222e">
+        <div class="label">💧 누수 관리 (역 ELI)</div>
+        <div class="value" id="p-leak-score">—</div>
+        <div class="delta" id="p-leak-detail">6 zone · 인과 chain</div>
+      </div>
+    </div>
+    <!-- 보조 정보: 부상위험 배지 + 메카닉 효율 (AE) 인라인 -->
+    <div style="display:flex;gap:14px;align-items:center;margin-top:8px;padding:6px 10px;background:#f6f8fa;border-radius:6px;font-size:12px">
+      <span><b>부상 위험:</b> <span id="p-risk">—</span> <span id="p-risk-detail" style="color:var(--muted);font-size:11px">—</span></span>
+      <span style="color:#d0d7de">|</span>
+      <span><b>메카닉 효율 (AE):</b> <span id="p-ae-label">—</span> <span id="p-ae-desc" style="color:var(--muted);font-size:11px">—</span></span>
+      <span style="color:#d0d7de">|</span>
+      <span style="font-size:11px;color:var(--muted)" id="p-score-delta">종합 — / 메카닉 — · 체력 — · GRF —</span>
+      <span id="p-score" style="display:none">—</span>
     </div>
   </div>
 
@@ -306,6 +320,9 @@
       </div>
       <div id="p-causal-chains"></div>
     </div>
+
+    <!-- v4.0 [5] 자동 진단 카드 (Outcome diagnosis) -->
+    <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
   </div>
 
   <!-- 지면반력 (NewtForce) 단독 패널 -->

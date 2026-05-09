@@ -11,92 +11,247 @@
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '3.8';
+const ANALYTICS_VERSION = '4.0';
 
 /* ────────────────────────────────────────────────────────────
-   v3.8-2: BBL VELO_REGRESSION_v33_22 — 외부 reference 회귀 모델
-   출처: kkl0511/Uplift_Pitching_Report (BBL n=169 sessions, OLS)
-   - 학습 R²    = 0.377
-   - LOO-CV R² = 0.268 (cross-validation 검증 통과)
-   - 한국 고교 + 고2~고3 mixed cohort
-   우리 LATENT_VELOCITY_WEIGHTS 와 cross-check reference
+   v4.0: Velo Group Stratification + Predicted Velo + AE
+
+   Driveline 의 핵심 발견 — 동질 cohort 도 4-group stratification 으로
+   분산을 의도적으로 만들면 R² 자연스럽게 ↑
    ──────────────────────────────────────────────────────────── */
 
-const BBL_VELO_MODEL = {
-  intercept: 15.6232,
-  // 비표준화 계수 (km/h per unit)
-  coefs: {
-    max_x_factor_mean:                   0.177448,
-    lead_knee_ext_change_fc_to_br_mean:  0.022827,
-    proper_sequence_binary_mean:         8.733000,   // ★ β=0.276 (1순위)
-    pelvis_to_trunk_lag_ms_sd:           0.000924,
-    elbow_ext_vel_max_mean:              0.001245,
-    height_m:                            40.227000,  // ★ β=0.235
-    weight_kg:                           0.007000,
-    cmj_pp_bm:                           0.051000,
-    imtp_pp_bm:                          0.309000,
-    grip_strength:                       0.280420,   // ★ β=0.266 (2순위)
-    cog_decel:                           3.282000,   // v33.22 신규 (Driveline 검증)
+// 한국 elite cohort 4-group stratification (구속 기준)
+const VELO_GROUPS = {
+  '미달':   { range: [0, 128],     label: '미달',   color: '#7e57c2', mph_equiv: '<80' },
+  '평균':   { range: [128, 133],   label: '평균',   color: '#e91e63', mph_equiv: '80-82' },
+  '우수':   { range: [133, 138],   label: '우수',   color: '#ff9800', mph_equiv: '82-86' },
+  'Elite':  { range: [138, 999],   label: 'Elite',  color: '#ff6f00', mph_equiv: '86+' }
+};
+
+function veloGroup(velocity_kmh){
+  for(const [k, v] of Object.entries(VELO_GROUPS)){
+    if(velocity_kmh >= v.range[0] && velocity_kmh < v.range[1]) return k;
+  }
+  return null;
+}
+
+// 4-group 별 체력·메카닉 변수 평균 (59명 통합 기반 추정)
+// 추후 측정 누적 시 자동 갱신
+const VELO_GROUP_NORMS = {
+  '미달': {
+    cmj_pp_bm: 22, cmj_jh_cm: 30, imtp_pf_bm: 22, hop_rsi: 1.8, grip_kg: 50,
+    pelvis_dps: 560, trunk_dps: 820, x_factor: 22, lead_grf_bw: 1.7, rear_grf_bw: 1.4
   },
-  // 비어있을 때 사용할 코호트 평균 (BBL imputation)
-  defaults: {
-    max_x_factor_mean:                   31.0,
-    lead_knee_ext_change_fc_to_br_mean:  3.0,
-    proper_sequence_binary_mean:         0.92,
-    pelvis_to_trunk_lag_ms_sd:           14.0,
-    elbow_ext_vel_max_mean:              1450.0,
-    height_m:                            1.78,
-    weight_kg:                           76.0,
-    cmj_pp_bm:                           45.0,
-    imtp_pp_bm:                          27.0,
-    grip_strength:                       55.0,
-    cog_decel:                           1.5,
+  '평균': {
+    cmj_pp_bm: 25, cmj_jh_cm: 33, imtp_pf_bm: 25, hop_rsi: 2.1, grip_kg: 55,
+    pelvis_dps: 600, trunk_dps: 870, x_factor: 28, lead_grf_bw: 1.95, rear_grf_bw: 1.55
   },
-  R2: 0.377, R2_loo: 0.268, n: 169,
-  source: 'BBL Uplift Pitching Report v33.22 (kkl0511)',
-  // 표준화 β 1~5순위 (UI 인용)
-  top5_beta: ['proper_sequence (+0.276)', 'grip_strength (+0.266)',
-              'height (+0.235)', 'max_x_factor (+0.214)', 'cog_decel (+0.183)'],
-  // v3.8-4 외부 검증 (master_fitness.xlsx H2_2025 vs 41명 c3d 매칭 13명)
-  external_validation: {
-    n_matched: 13,
-    pearson_r: 0.379,
-    rmse_kmh: 7.17,
-    mae_kmh: 5.61,
-    actual_mean_h2: 140.8,
-    predicted_mean: 135.3,
-    residual_mean: +5.5,    // BBL fit는 H1 시점 → H2 와 비교 시 발달분만큼 underestimate
-    note: 'H1→H2 13명 평균 +5.3 km/h 발달 — 모델 underestimate 가 발달분과 일치 (자연스러움). Pearson r=0.38 = ranking 능력 확보.'
+  '우수': {
+    cmj_pp_bm: 28, cmj_jh_cm: 36, imtp_pf_bm: 28, hop_rsi: 2.4, grip_kg: 60,
+    pelvis_dps: 645, trunk_dps: 910, x_factor: 33, lead_grf_bw: 2.15, rear_grf_bw: 1.65
+  },
+  'Elite': {
+    cmj_pp_bm: 32, cmj_jh_cm: 40, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65,
+    pelvis_dps: 690, trunk_dps: 950, x_factor: 38, lead_grf_bw: 2.35, rear_grf_bw: 1.75
   }
 };
 
+/* ────────────────────────────────────────────────────────────
+   Predicted Velo (체력만 예측) — Driveline HP Assessment 모방
+
+   회귀: velocity ~ height + weight + cmj_pp_bm + imtp_pf_bm + hop_rsi + grip
+   이건 실측 누적 시 자체 fit 권장. 현재는 변수별 baseline + 가중치
+   ──────────────────────────────────────────────────────────── */
+
+const PHYSICAL_VELO_MODEL = {
+  intercept: 100.0,    // 한국 elite p10 베이스라인 (대략)
+  coefs: {
+    height_cm:    0.10,    // 1cm = +0.1 km/h
+    weight_kg:    0.08,    // 1kg = +0.08 km/h
+    cmj_pp_bm:    0.40,    // CMJ PP/BM 1 W/kg = +0.4 km/h
+    imtp_pf_bm:   0.30,    // IMTP PF/BM 1 N/kg = +0.3 km/h
+    hop_rsi:      4.0,     // RSI 1 = +4 km/h
+    grip_kg:      0.15     // grip 1 kg = +0.15 km/h
+  },
+  defaults: {  // 59명 cohort mean
+    height_cm: 183, weight_kg: 86,
+    cmj_pp_bm: 27, imtp_pf_bm: 27, hop_rsi: 2.4, grip_kg: 58
+  },
+  note: 'Driveline HP Assessment 스타일 — 체력+신체만으로 구속 baseline 산출'
+};
+
 /**
- * BBL 외부 회귀모델로 max velocity 예측
- * @param {object} input  10~11 변수 (없으면 코호트 mean으로 imputation)
- * @returns {{predicted_kmh, used_imputation, contributors}}
+ * 체력+신체만으로 구속 예측 (Predicted Velo)
+ * @returns {{predicted_kmh, group, contributors}}
  */
-function predictMaxVelocityBBL(input = {}){
-  const m = BBL_VELO_MODEL;
+function predictedVelocity(input = {}){
+  const m = PHYSICAL_VELO_MODEL;
   let pred = m.intercept;
-  const used_imputation = [];
   const contributors = [];
   for(const [k, c] of Object.entries(m.coefs)){
-    let v = input[k];
-    if(v == null || isNaN(v)){
-      v = m.defaults[k]; used_imputation.push(k);
-    }
+    const v = input[k] != null && !isNaN(input[k]) ? input[k] : m.defaults[k];
+    const contribution = c * v;
+    pred += contribution;
+    contributors.push({ var: k, value: v, contribution: Math.round(contribution*10)/10 });
+  }
+  return {
+    predicted_kmh: Math.round(pred*10)/10,
+    group: veloGroup(pred),
+    contributors: contributors.sort((a,b)=>b.contribution-a.contribution),
+    source: m.note
+  };
+}
+
+/**
+ * AE (Above Expected) — 메카닉 효율 점수
+ * @param {number} measured_kmh  실측 구속
+ * @param {number} predicted_kmh  체력 baseline
+ * @returns {{ae_kmh, label, description}}
+ */
+function aboveExpected(measured_kmh, predicted_kmh){
+  if(measured_kmh == null || predicted_kmh == null) return null;
+  const ae = Math.round((measured_kmh - predicted_kmh) * 10) / 10;
+  let label, description;
+  if(ae >= 3){
+    label = '★ 메카닉 우수';
+    description = `체력 ${predicted_kmh} → 실측 ${measured_kmh} (메카닉으로 +${ae} 추가)`;
+  } else if(ae >= -3){
+    label = '● 적정';
+    description = `체력만큼 발현 (${ae >= 0 ? '+' : ''}${ae} km/h)`;
+  } else {
+    label = '⚠ 메카닉 발달 여지';
+    description = `체력 ${predicted_kmh} 잠재력 대비 실측 ${measured_kmh} (${ae} km/h 미발현)`;
+  }
+  return { ae_kmh: ae, label, description, measured_kmh, predicted_kmh };
+}
+
+/* ────────────────────────────────────────────────────────────
+   Per 1 km/h Effect Size (Driveline 스타일)
+
+   각 변수의 1 km/h 향상에 필요한 변화량 — 실용적 importance
+   ──────────────────────────────────────────────────────────── */
+
+const PER_1KMH_TARGETS = {
+  // 메카닉 변수
+  pelvis_peak_dps:  { unit: 'deg/s', per_1kmh: 100, label: 'Pelvis peak velocity' },
+  trunk_peak_dps:   { unit: 'deg/s', per_1kmh: 70,  label: 'Trunk peak velocity' },
+  x_factor_max_deg: { unit: '°',     per_1kmh: 5,   label: 'X-factor (분리각)' },
+  lead_knee_ext:    { unit: '°',     per_1kmh: 5,   label: 'Lead knee extension' },
+  stride_pct:       { unit: '%',     per_1kmh: 3,   label: 'Stride / 신장' },
+  // 체력 변수 (실용적 단위)
+  cmj_jh_cm:        { unit: 'cm',    per_1kmh: 2.5, label: 'CMJ Jump Height' },
+  cmj_pp_bm:        { unit: 'W/kg',  per_1kmh: 2.5, label: 'CMJ Peak Power/BM' },
+  imtp_pf_bm:       { unit: 'N/kg',  per_1kmh: 3.3, label: 'IMTP Force/BM' },
+  hop_rsi:          { unit: '',      per_1kmh: 0.25,label: 'Hop RSI' },
+  grip_kg:          { unit: 'kg',    per_1kmh: 6.7, label: 'Grip Strength' },
+  // 자세
+  trunk_lateral_tilt:{ unit: '°',    per_1kmh: 7,   label: 'Trunk lateral tilt (역방향)' },
+};
+
+function per1kmhRecommendation(varKey, currentValue, targetGroup = 'Elite'){
+  const t = PER_1KMH_TARGETS[varKey];
+  if(!t) return null;
+  const target = VELO_GROUP_NORMS[targetGroup]?.[varKey];
+  if(target == null) return null;
+  const gap = target - currentValue;
+  const km_h_potential = gap / t.per_1kmh;
+  return {
+    var: varKey, label: t.label, current: currentValue,
+    target_value: target, target_group: targetGroup,
+    gap, per_1kmh: t.per_1kmh,
+    km_h_potential: Math.round(km_h_potential * 10) / 10,
+    description: `${currentValue}${t.unit} → ${target}${t.unit} (${targetGroup}) = ${km_h_potential>=0?'+':''}${km_h_potential.toFixed(1)} km/h`
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   Combined Diagnosis — "체력 한계 vs 메카닉 비효율" 자동 진단
+   ──────────────────────────────────────────────────────────── */
+
+function combinedDiagnosis(measured_kmh, predicted_velo_obj, ae_obj){
+  if(!measured_kmh || !predicted_velo_obj || !ae_obj) return null;
+  const physical_pct = veloGroup(predicted_velo_obj.predicted_kmh);
+  const measured_pct = veloGroup(measured_kmh);
+  const ae = ae_obj.ae_kmh;
+
+  let primary_finding, recommendation;
+  if(physical_pct === '미달' && ae >= 3){
+    primary_finding = '체력이 가장 큰 ceiling — 체력 발달이 가장 큰 효과';
+    recommendation = 'CMJ 파워, IMTP 힘, Hop RSI 향상 우선. 메카닉은 이미 효율 우수.';
+  } else if(ae < -3){
+    primary_finding = '메카닉 비효율로 체력 잠재력 미발현';
+    recommendation = `${Math.abs(ae)} km/h 만큼 메카닉 교정 잠재력. ELI 인과 chain Top 3 즉시 적용.`;
+  } else if(ae >= 3 && physical_pct !== 'Elite'){
+    primary_finding = '메카닉 효율 우수 — 다음 ceiling 은 체력';
+    recommendation = '체력 발달 (CMJ·IMTP·Hop) 시 추가 구속 발현 가능.';
+  } else if(physical_pct === 'Elite' && measured_pct === 'Elite'){
+    primary_finding = '체력 + 메카닉 모두 Elite — 미세 조정만 남음';
+    recommendation = '인과 chain 최약점 1~2개 zone 미세 교정.';
+  } else {
+    primary_finding = '균형 — 체력·메카닉 동시 발달 권장';
+    recommendation = '두 영역 병행 훈련.';
+  }
+  return {
+    measured_kmh, measured_group: measured_pct,
+    predicted_kmh: predicted_velo_obj.predicted_kmh, predicted_group: physical_pct,
+    ae_kmh: ae, ae_label: ae_obj.label,
+    primary_finding, recommendation
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   v3.9: KR_VELO_MODEL — 한국 고교 elite 자체 회귀 모델
+   출처: 41명 (raw data) + 18명 (Accurate_Data) = 59명 통합 OLS
+   - 학습 R² = 0.073
+   - LOO-CV R² = -0.159 (음수 — range restriction)
+
+   ⚠ 한계: 신체+메카닉만으로 elite cohort 안의 ranking 어려움
+       (모든 선수가 비슷한 신체·메카닉 — 변동이 작음)
+       Pearson r=0.27 은 약한 신호. 추가 변수 (timing, technique)
+       또는 더 큰 cohort 필요.
+   사용 의도: 측정 표준값 reference 만, ranking 보조 X
+   ──────────────────────────────────────────────────────────── */
+
+const KR_VELO_MODEL = {
+  intercept: 97.60,
+  coefs: {
+    pelvis_peak_dps:    0.00206,    // 0.206 km/h per +100 deg/s
+    trunk_peak_dps:    -0.00063,    // 매우 작음 (effectively 0)
+    x_factor_max_deg:  -0.09199,    // ★ 음수 (elite cohort range restriction artifact)
+    height_cm:          0.20959,    // 0.21 km/h per +1cm
+    weight_kg:          0.00533     // 매우 작음
+  },
+  defaults: {  // 59명 cohort mean
+    pelvis_peak_dps:    621.2,
+    trunk_peak_dps:     884.2,
+    x_factor_max_deg:   31.2,
+    height_cm:          183.1,
+    weight_kg:          86.1
+  },
+  R2: 0.073, R2_loo: -0.159, n: 57,
+  source: '한국 고1 elite 통합 (41명 raw_data + 18명 Accurate_Data, 2025-2026)',
+  warning: 'elite cohort range restriction — ranking 능력 약함 (Pearson r=0.27). reference 용도로만 사용.'
+};
+
+/**
+ * 한국 cohort 자체 회귀로 max velocity 예측 (참고용)
+ * @returns {{predicted_kmh, contributors, R2, warning}}
+ */
+function predictMaxVelocityKR(input = {}){
+  const m = KR_VELO_MODEL;
+  let pred = m.intercept;
+  const contributors = [];
+  for(const [k, c] of Object.entries(m.coefs)){
+    const v = input[k] != null && !isNaN(input[k]) ? input[k] : m.defaults[k];
     const contribution = c * v;
     pred += contribution;
     contributors.push({ var: k, value: v, coef: c, contribution: Math.round(contribution*10)/10 });
   }
   return {
     predicted_kmh: Math.round(pred*10)/10,
-    used_imputation,
-    contributors: contributors.sort((a,b)=>b.contribution-a.contribution),
-    source: m.source,
-    R2: m.R2,
-    R2_loo: m.R2_loo,
-    n: m.n
+    contributors: contributors.sort((a,b)=>Math.abs(b.contribution)-Math.abs(a.contribution)),
+    source: m.source, R2: m.R2, R2_loo: m.R2_loo, n: m.n,
+    warning: m.warning
   };
 }
 
@@ -277,30 +432,41 @@ const VALD_NORMS = {
       bw_kg:             { unit: 'kg',   p: [63.9, 77.7, 84.7, 91.6, 105.4], n: 15 }
     },
     // ────────────────────────────────────────────────────
-    //   v3.6 갱신 — parser 정확화 (헤더 자동 매핑) 후 재산출
-    //   N=41, 선수당 median (IQR clipped). c3d.txt 컬럼 라벨 기반.
+    //   v3.9 갱신 — 41명 + 18명 = 59명 통합 cohort
+    //   - 41명: raw data (Theia + 우리 parser, Humerus -490 보정 적용)
+    //   - 18명: Accurate_Data (xlsx 처리값, CoG_Decel·GRF BW 단위 추가)
+    //   IQR-clipped 선수별 median 의 percentile [p10/p25/p50/p75/p90]
     // ────────────────────────────────────────────────────
     pitching: {
-      // 구속 (xlsx 별도 데이터 — 변경 없음)
-      velocity_mean_kmh: { unit: 'km/h', p: [117.0, 130.8, 133.3, 137.8, 145.4], n: 41 },
-      velocity_max_kmh:  { unit: 'km/h', p: [128.8, 132.4, 135.0, 138.9, 146.3], n: 41 },
-      // v3.6 정확한 메카닉 변수 (이전 잘못된 magnitude 계산 → Z 컴포넌트 single-axis)
-      pelvis_peak_dps:   { unit: 'deg/s', p: [523, 572, 632, 657, 695],  n: 41 },
-      trunk_peak_dps:    { unit: 'deg/s', p: [785, 826, 870, 908, 966],  n: 41 },
-      humerus_peak_dps:  { unit: 'deg/s', p: [4419, 4496, 4777, 5160, 5418], n: 41, note: 'Theia v3d processing artifact 가능성 — 단위 검증 필요' },
-      hand_peak_dps:     { unit: 'deg/s', p: [2547, 2778, 2987, 3208, 3325], n: 41 },
-      shoulder_peak_dps: { unit: 'deg/s', p: [3813, 3953, 4223, 4543, 4641], n: 41, note: 'Theia v3d processing artifact 가능성' },
-      elbow_peak_dps:    { unit: 'deg/s', p: [392, 468, 561, 737, 777],   n: 41 },
-      x_factor_max_deg:  { unit: 'deg',   p: [25.8, 30.9, 33.7, 39.4, 43.5], n: 41 },
-      // GRF — v3.7 자동 분류 (peak Z 큰 쪽=lead, 작은 쪽=rear)
-      // 측정 환경마다 FP1/FP2 매핑 다름 (좌투/우투, 셋업) → 자동 분류로 robust
-      lead_z_peak_n:     { unit: 'N',     p: [1395, 1538, 1641, 1812, 2245], n: 41,
-                           note: '착지발 (앞발 block). 41명 N=41, 자동 분류 후' },
-      rear_z_peak_n:     { unit: 'N',     p: [1103, 1268, 1352, 1444, 1563], n: 41,
-                           note: '축발 (뒷발 push-off). 자동 분류 후' },
-      // 호환성 (이전 fp1/fp2 라벨 — 사용 권장 안 함, 자동 분류 결과 사용)
+      // 구속 — 41+16 = 57명 (18명 중 ball_speed 누락 2명)
+      velocity_mean_kmh: { unit: 'km/h', p: [129.1, 131.9, 134.0, 137.7, 139.2], n: 57 },
+      velocity_max_kmh:  { unit: 'km/h', p: [128.8, 132.4, 135.0, 138.9, 146.3], n: 41,
+                           note: '41명만 (max 분리)' },
+      // 메카닉 (59명 통합)
+      pelvis_peak_dps:   { unit: 'deg/s', p: [523, 578, 631, 658, 706],  n: 59 },
+      trunk_peak_dps:    { unit: 'deg/s', p: [785, 831, 885, 933, 990],  n: 59 },
+      humerus_peak_dps:  { unit: 'deg/s', p: [3744, 3993, 4263, 4596, 4865], n: 59,
+                           note: 'parser Humerus -490 보정 적용 (xlsx 처리값과 align)' },
+      hand_peak_dps:     { unit: 'deg/s', p: [2547, 2778, 2987, 3208, 3325], n: 41,
+                           note: '41명만 (Hand 변수 18명 데이터에 없음)' },
+      x_factor_max_deg:  { unit: 'deg',   p: [20.8, 25.2, 32.2, 36.1, 42.2], n: 59 },
+      // v3.9 신규 — 18명 Accurate_Data 에서만 (BBL v33.22 검증 변수)
+      cog_decel:         { unit: 'm/s',   p: [1.08, 1.20, 1.32, 1.36, 1.49], n: 18,
+                           note: 'BBL v33.22 검증된 핵심 변수 (Driveline 채택). 18명만' },
+      knee_ext_change:   { unit: 'deg',   p: [-35.1, -20.8, -8.1, -1.4, 5.0], n: 18,
+                           note: '음수=collapse, 양수=신전. fc→br 변화량' },
+      er_max:            { unit: 'deg',   p: [171, 173, 175, 182, 184], n: 18 },
+      stride_cm:         { unit: 'cm',    p: [132, 141, 146, 147, 158], n: 18 },
+      // GRF — BW 단위 통일 (59명, 41명 N단위 → BW 환산 + 18명 BW)
+      lead_grf_bw:       { unit: 'BW',    p: [1.72, 1.83, 2.02, 2.23, 2.56], n: 59,
+                           note: '착지발 vertical peak / BW. 41명 N단위 환산 + 18명 처리값' },
+      rear_grf_bw:       { unit: 'BW',    p: [1.40, 1.48, 1.62, 1.75, 1.86], n: 59,
+                           note: '축발 vertical peak / BW' },
+      // 호환성: 41명 N 단위 (deprecated, 신규 사용 X)
+      lead_z_peak_n:     { unit: 'N',     p: [1395, 1538, 1641, 1812, 2245], n: 41 },
+      rear_z_peak_n:     { unit: 'N',     p: [1103, 1268, 1352, 1444, 1563], n: 41 },
       fp1_z_peak_n:      { unit: 'N',     p: [1445, 1533, 1616, 1812, 1969], n: 41,
-                           note: 'raw FP1 — 측정 환경 따라 lead 또는 rear. lead_z_peak_n 사용 권장' },
+                           note: 'raw FP1 — lead_grf_bw 사용 권장' },
       fp2_z_peak_n:      { unit: 'N',     p: [1163, 1268, 1377, 1444, 1557], n: 41 }
     },
     // 41명 신체 통계
@@ -1256,8 +1422,13 @@ const ANALYTICS = {
   valdPercentile, injuryRisk,
   // v3.3 — 3-tier cohort 비교
   valdMultiTier,
-  // v3.8 — BBL 외부 회귀 모델
-  predictMaxVelocityBBL, BBL_VELO_MODEL,
+  // v3.9 — 한국 자체 회귀 모델
+  predictMaxVelocityKR, KR_VELO_MODEL,
+  // v4.0 — Velo Group, Predicted Velo, AE, Per 1 km/h, Combined Diagnosis
+  veloGroup, VELO_GROUPS, VELO_GROUP_NORMS,
+  predictedVelocity, PHYSICAL_VELO_MODEL,
+  aboveExpected, per1kmhRecommendation, PER_1KMH_TARGETS,
+  combinedDiagnosis,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
   COMPOSITE_WEIGHTS,

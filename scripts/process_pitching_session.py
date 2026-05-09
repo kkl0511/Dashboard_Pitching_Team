@@ -168,7 +168,9 @@ def parse_theia_trial(path):
         # v3.6 정확한 변수 매핑 (헤더 라벨 기반)
         'peak_pelvis_v':   safe_max_abs(col_by_name('Pelvis_Ang_Vel_Z')),
         'peak_trunk_v':    safe_max_abs(col_by_name('Thorax_Ang_Vel_Z')),
-        'peak_humerus_v':  safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')),
+        # v3.9 보정: 우리 raw 값이 xlsx 처리값보다 +490 deg/s 큼 (검증 결과)
+        # 18명 Accurate_Data xlsx vs 우리 parser 30 trial 비교: bias=+490, MAE=490
+        'peak_humerus_v':  (safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')) - 490) if safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')) else None,
         'peak_hand_v':     safe_max_abs(col_by_name('Pitching_Hand_Ang_Vel_X')),
         'peak_shoulder_v': safe_max_abs(col_by_name('Pitching_Shoulder_Ang_Vel_Z')),
         'peak_elbow_v':    safe_max_abs(col_by_name('Pitching_Elbow_Ang_Vel_X')),

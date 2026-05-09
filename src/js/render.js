@@ -350,40 +350,61 @@ function renderPlayerView(pid){
     `<span>BMI: <b>${(p.weight/(p.height/100)**2).toFixed(1)}</b></span>` +
     `<span>측정일: <b>${m.date}</b> <span class="protocol-tag theia">${m.protocol}</span></span>`;
 
-  // 4 헤더 카드
+  // v4.0: 5 KPI 헤더 (측정·체력·출력·전달·누수)
+  // [1] 측정 구속
   document.getElementById('p-velo').textContent = `${m.velocity.measured_kmh} km/h`;
   document.getElementById('p-velo-max').textContent = `${(m.velocity.measured_kmh+1.5).toFixed(1)} km/h`;
-  document.getElementById('p-velo-pot').textContent = `${m.velocity.potential_kmh} km/h`;
-  const resid = m.velocity.measured_kmh - m.velocity.potential_kmh;
-  // 잠재구속 회귀 — 기여도 상위 2개 표시 (analytics.js v2.1+)
-  const contribTop = (m.velocity.contributions || []).slice(0, 2).map(c => {
-    const labelMap = {
-      trunk_peak_dps:'몸통 회전속도', pelvis_peak_dps:'골반 회전속도',
-      cmj_pp_bm:'CMJ 파워', imtp_pf_bm:'IMTP 힘',
-      front_grf_bm:'앞발 GRF', shoulder_er_deg:'어깨 ER',
-      stride_pct_height:'스트라이드/신장'
-    };
-    return `${labelMap[c.var]||c.var} +${c.gain_kmh}`;
-  }).join(' · ');
-  // v3.8-2: BBL 외부 회귀 모델 cross-check (작은 inline)
-  const bblNote = m.velocity.bbl_predicted_kmh != null
-    ? ` <span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 5px;border-radius:3px"
-         title="BBL Uplift n=169 회귀 (LOO-CV R²=${m.velocity.bbl_R2_loo})">BBL ${m.velocity.bbl_predicted_kmh}</span>`
-    : '';
-  document.getElementById('p-velo-pot-delta').innerHTML =
-    `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b>` +
-    (contribTop ? ` <span style="color:var(--muted);font-size:11px">| ${contribTop}</span>` : '') +
-    bblNote +
-    ` <span style="font-size:10px;color:#999" title="회귀모델 v${m.velocity.model||'?'}">${m.velocity.model?'·v'+m.velocity.model:''}</span>`;
-  const elsc = document.getElementById('p-score');
-  elsc.textContent = m.velocity.score;
-  elsc.style.color = scoreColor(m.velocity.score);
-  document.getElementById('p-score-delta').textContent =
-    `메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
+  const veloGroupEl = document.getElementById('p-velo-group');
+  if(veloGroupEl) veloGroupEl.textContent = m.velocity.velo_group ? `${m.velocity.velo_group} 그룹` : '—';
+
+  // [2] 체력 Ceiling (Predicted Velo)
+  const ceilingEl = document.getElementById('p-velo-pot');
+  if(ceilingEl){
+    ceilingEl.textContent = m.velocity.predicted_kmh != null ? `${m.velocity.predicted_kmh} km/h` : `${m.velocity.potential_kmh} km/h`;
+    document.getElementById('p-velo-pot-delta').textContent =
+      m.velocity.predicted_kmh != null ? `Predicted ${m.velocity.predicted_group} 그룹` : '잔차 —';
+  }
+
+  // [3] 출력 (Generation)
+  const out = m.energy?.generation;
+  if(document.getElementById('p-out-score')){
+    const s = out?.score ?? null;
+    document.getElementById('p-out-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
+    document.getElementById('p-out-detail').textContent =
+      `Pelvis ${m.sequence.pelvis_dps}° · Trunk ${m.sequence.trunk_dps}° · Power ${out?.total_W ?? '—'}W`;
+  }
+  // [4] 전달 (Transfer)
+  const trf = m.energy?.transfer;
+  if(document.getElementById('p-trf-score')){
+    const s = trf?.score ?? null;
+    document.getElementById('p-trf-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
+    document.getElementById('p-trf-detail').textContent =
+      `ETE ${trf?.ete_pct ?? '—'}% · Speed Gain ${trf?.speed_gain_pt ?? '—'}× · Lag ${trf?.pelvis_to_trunk_lag_ms ?? '—'}ms`;
+  }
+  // [5] 누수 관리 (역 ELI)
+  const leak = m.energy?.leakage;
+  if(document.getElementById('p-leak-score')){
+    const s = leak?.eli_score ?? null;
+    document.getElementById('p-leak-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
+    document.getElementById('p-leak-detail').textContent =
+      leak?.causal_chains?.length ? `Top: ${leak.causal_chains[0].defect}` : '6 zone · 인과 chain';
+  }
+
+  // 보조 정보: 부상위험 + 메카닉 효율 (AE) + 종합 점수 (숨김 ID)
   const elrk = document.getElementById('p-risk');
   elrk.innerHTML = riskPill(m.faults.injury_risk);
   document.getElementById('p-risk-detail').textContent =
-    `결함 ${m.faults.fault_count}개 검출 · IMTP 비대칭 ${m.fitness?.imtp.asymmetry_pct ?? '—'}%`;
+    `결함 ${m.faults.fault_count}개 · IMTP 비대칭 ${m.fitness?.imtp.asymmetry_pct ?? '—'}%`;
+  // AE 인라인
+  const aeLabelEl = document.getElementById('p-ae-label');
+  if(aeLabelEl && m.velocity.ae_label){
+    aeLabelEl.innerHTML = `<b>${m.velocity.ae_label}</b> (${m.velocity.ae_kmh >= 0 ? '+' : ''}${m.velocity.ae_kmh} km/h)`;
+    document.getElementById('p-ae-desc').textContent = m.velocity.ae_description || '';
+  }
+  // 종합 (인라인)
+  document.getElementById('p-score').textContent = m.velocity.score;
+  document.getElementById('p-score-delta').textContent =
+    `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
   // 5축 에너지 라디아 — 출력 / 전달 / 누수관리 / GRF·LHEI / 제구·결함
   if(chartsP.r) chartsP.r.destroy();
@@ -505,10 +526,22 @@ function renderPlayerView(pid){
         </div>`;
       }).join('');
 
-      // 인과 분석 — top 3 (v3.8-3: BBL fault_images 시각 통합)
+      // 인과 분석 — top 3 (v3.8-3 fault_images + v4.0 Per 1 km/h)
       const cw = document.getElementById('p-causal-chains');
       if(leak.causal_chains && leak.causal_chains.length){
-        cw.innerHTML = leak.causal_chains.map((c,i)=>`
+        // v4.0: zone → 변수 매핑 + Per 1 km/h 자동 산출
+        const zoneToVar = {
+          zone1:{key:'pelvis_to_trunk', cur:m.energy?.transfer?.pelvis_to_trunk_lag_ms, target:40, unit:'ms', per:'15ms'},
+          zone2:{key:'x_factor', cur:m.faults.x_factor_deg, target:38, unit:'°', per:'5°'},
+          zone3:{key:'lead_knee', cur:m.faults.lead_knee_change, target:5, unit:'°', per:'5°'},
+          zone4:{key:'trunk_lat', cur:m.faults.trunk_tilt_sd_deg, target:15, unit:'°', per:'7°'},
+          zone5:{key:'shoulder_er', cur:175, target:175, unit:'°', per:'10°'},
+          zone6:{key:'pelvis_brake', cur:'—', target:'—', unit:'', per:'—'}
+        };
+        cw.innerHTML = leak.causal_chains.map((c,i)=>{
+          const z = zoneToVar[c.zone];
+          const per1 = z ? `<span style="font-size:10px;color:var(--muted)" title="이 변수 ${z.per} 변화 = +1 km/h">| Per 1 km/h: ${z.per} 변화</span>` : '';
+          return `
           <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
                       background:#fff;border:1px solid var(--line-soft);border-radius:5px;margin-bottom:6px">
             <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'#0969da'};
@@ -519,10 +552,12 @@ function renderPlayerView(pid){
                         border:1px solid var(--line-soft);background:#fafbfc"
                  title="결함 시각 — ${c.defect}">` : ''}
             <span style="flex:1;font-size:12.5px"><b>${c.defect}</b>
-              <span style="color:var(--muted);font-size:11px"> → ${c.zone_label || c.zone}</span></span>
-            <span class="pill bad" style="flex:0 0 auto">추정 ${c.impact_kmh} km/h</span>
-          </div>
-        `).join('');
+              <span style="color:var(--muted);font-size:11px"> → ${c.zone_label || c.zone}</span>
+              ${per1 ? '<br>'+per1 : ''}
+            </span>
+            <span class="pill bad" style="flex:0 0 auto">손실 ${c.impact_kmh} km/h</span>
+          </div>`;
+        }).join('');
       } else {
         cw.innerHTML = '<div style="color:var(--muted);font-size:12px">인과 분석 데이터 없음</div>';
       }
@@ -578,6 +613,8 @@ function renderPlayerView(pid){
   renderRapsodoFB(m.rapsodo, p);
 
   // 체력 4 카드 (보조)
+  // v4.0 [5]: 자동 진단 카드 (체력 한계 vs 메카닉 비효율)
+  renderOutcomeDiagnosis(m, p);
   // v3.5-4: 3-tier 코호트 overlay (한국 elite + College + MLB)
   renderTierOverlay(m, p);
   renderFitnessCards(m.fitness);
@@ -770,6 +807,53 @@ function renderRapsodoFB(rap, player){
       }
     }
   });
+}
+
+/* v4.0 [5]: Outcome Diagnosis — 체력 한계 vs 메카닉 비효율 자동 진단 */
+function renderOutcomeDiagnosis(m, p){
+  const wrap = document.getElementById('p-outcome-diagnosis');
+  if(!wrap) return;
+  const d = m.velocity.diagnosis;
+  if(!d){ wrap.innerHTML = ''; return; }
+
+  const aeColor = d.ae_kmh >= 3 ? '#1a7f37' : d.ae_kmh >= -3 ? '#0969da' : '#cf222e';
+  const aeBg    = d.ae_kmh >= 3 ? '#dafbe1' : d.ae_kmh >= -3 ? '#ddf4ff' : '#ffebe9';
+  const groupColor = (g) => ({미달:'#7e57c2',평균:'#e91e63',우수:'#ff9800',Elite:'#ff6f00'})[g] || '#656d76';
+
+  wrap.innerHTML = `
+    <div style="background:linear-gradient(135deg,#fafbfc,#fff);border:2px solid ${aeColor};
+                border-radius:8px;padding:14px 16px">
+      <h3 style="margin:0 0 10px;font-size:13px;color:${aeColor}">
+        📊 [5] 자동 진단 — 체력 ceiling vs 메카닉 효율
+      </h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:#fff;border:1px solid var(--line-soft);border-radius:6px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--muted)">실측 구속</div>
+          <div style="font-size:18px;font-weight:700">${d.measured_kmh}<span style="font-size:11px;color:var(--muted);font-weight:400"> km/h</span></div>
+          <div style="font-size:10px"><span style="background:${groupColor(d.measured_group)};color:#fff;padding:1px 6px;border-radius:3px">${d.measured_group}</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--line-soft);border-radius:6px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--muted)">체력 Predicted</div>
+          <div style="font-size:18px;font-weight:700">${d.predicted_kmh}<span style="font-size:11px;color:var(--muted);font-weight:400"> km/h</span></div>
+          <div style="font-size:10px"><span style="background:${groupColor(d.predicted_group)};color:#fff;padding:1px 6px;border-radius:3px">${d.predicted_group}</span></div>
+        </div>
+        <div style="background:${aeBg};border:1px solid ${aeColor};border-radius:6px;padding:8px 10px">
+          <div style="font-size:10px;color:${aeColor}">메카닉 효율 (AE)</div>
+          <div style="font-size:18px;font-weight:700;color:${aeColor}">${d.ae_kmh >= 0 ? '+' : ''}${d.ae_kmh}<span style="font-size:11px;font-weight:400"> km/h</span></div>
+          <div style="font-size:10px;color:${aeColor};font-weight:600">${d.ae_label}</div>
+        </div>
+      </div>
+      <div style="background:#fff;border-left:4px solid ${aeColor};padding:10px 12px;border-radius:4px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">핵심 진단</div>
+        <div style="font-size:13px;font-weight:600;color:${aeColor}">${d.primary_finding}</div>
+      </div>
+      <div style="background:#f6f8fa;padding:10px 12px;border-radius:4px;font-size:12px;color:var(--text)">
+        <b>권장:</b> ${d.recommendation}
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:right">
+        Predicted Velo = 체력+신체 회귀 baseline / AE = 실측 − Predicted (Driveline HP Assessment 모방)
+      </div>
+    </div>`;
 }
 
 /* v3.5-4: 3-tier 코호트 overlay — 한국 elite vs College vs MLB percentile */

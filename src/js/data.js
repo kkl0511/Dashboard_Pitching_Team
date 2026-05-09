@@ -95,19 +95,34 @@ function genMeasurements(){
         ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit, p.grade)
         : { potential_kmh: r1(velo + 6), gap_kmh: 6, contributions: [], model: 'fallback' };
 
-      // v3.8-2: BBL 외부 회귀 모델 cross-check
-      const bblPred = (typeof ANALYTICS !== 'undefined' && typeof ANALYTICS.predictMaxVelocityBBL === 'function')
-        ? ANALYTICS.predictMaxVelocityBBL({
-            max_x_factor_mean:                  x_factor,
-            lead_knee_ext_change_fc_to_br_mean: lead_knee,
-            proper_sequence_binary_mean:        rng() > 0.15 ? 1.0 : 0.0,
-            elbow_ext_vel_max_mean:             1100 + rng()*800,
-            height_m:                           p.height/100,
-            weight_kg:                          p.weight,
-            cmj_pp_bm:                          tmpFit.cmj_pp_bm,
-            imtp_pp_bm:                         tmpFit.imtp_pf_bm,
-            grip_strength:                      40 + rng()*30
+      // v3.9: 한국 cohort 자체 회귀 모델
+      const krPred = (typeof ANALYTICS !== 'undefined' && typeof ANALYTICS.predictMaxVelocityKR === 'function')
+        ? ANALYTICS.predictMaxVelocityKR({
+            pelvis_peak_dps:    pelvis_dps,
+            trunk_peak_dps:     trunk_dps,
+            x_factor_max_deg:   x_factor,
+            height_cm:          p.height,
+            weight_kg:          p.weight
           })
+        : null;
+
+      // v4.0: Predicted Velo (체력만) + AE (Above Expected) + Combined Diagnosis
+      const physicalPred = (typeof ANALYTICS !== 'undefined' && typeof ANALYTICS.predictedVelocity === 'function')
+        ? ANALYTICS.predictedVelocity({
+            height_cm:  p.height,
+            weight_kg:  p.weight,
+            cmj_pp_bm:  tmpFit.cmj_pp_bm || 27,
+            imtp_pf_bm: tmpFit.imtp_pf_bm || 27,
+            hop_rsi:    s.hasFitness ? r2(1.5 + rng()*1.0) : 2.4,
+            grip_kg:    50 + rng()*20
+          })
+        : null;
+      const ae = (typeof ANALYTICS !== 'undefined' && physicalPred)
+        ? ANALYTICS.aboveExpected(velo, physicalPred.predicted_kmh)
+        : null;
+      const veloGrp = (typeof ANALYTICS !== 'undefined') ? ANALYTICS.veloGroup(velo) : null;
+      const diag = (typeof ANALYTICS !== 'undefined' && physicalPred && ae)
+        ? ANALYTICS.combinedDiagnosis(velo, physicalPred, ae)
         : null;
 
       const m = {
@@ -119,10 +134,17 @@ function genMeasurements(){
           contributions: latent.contributions,
           model:         latent.model,
           score:         Math.round(score),
-          // v3.8-2 BBL 외부 회귀 모델 cross-check
-          bbl_predicted_kmh: bblPred?.predicted_kmh ?? null,
-          bbl_R2_loo:        bblPred?.R2_loo ?? null,
-          bbl_top_contrib:   bblPred?.contributors?.slice(0,3) ?? null,
+          // v3.9 한국 cohort 자체 회귀 모델
+          kr_predicted_kmh: krPred?.predicted_kmh ?? null,
+          // v4.0: Predicted Velo (체력만) + AE + Velo Group + Diagnosis
+          predicted_kmh:        physicalPred?.predicted_kmh ?? null,
+          predicted_group:      physicalPred?.group ?? null,
+          predicted_contributors: physicalPred?.contributors ?? null,
+          ae_kmh:               ae?.ae_kmh ?? null,
+          ae_label:             ae?.label ?? null,
+          ae_description:       ae?.description ?? null,
+          velo_group:           veloGrp,
+          diagnosis:            diag,
         },
         sequence: {
           pelvis_dps: pelvis_dps,
