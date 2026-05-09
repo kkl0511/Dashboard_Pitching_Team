@@ -1,0 +1,378 @@
+:root{
+    --bg:#fafbfc; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de;
+    --line-soft:#eaeef2;
+    --text:#1f2328; --text-soft:#424a53; --muted:#656d76;
+    --accent:#0969da; --accent-bg:#ddf4ff; --accent2:#8250df;
+    --good:#1a7f37; --good-bg:#dafbe1;
+    --warn:#9a6700; --warn-bg:#fff8c5;
+    --bad:#cf222e; --bad-bg:#ffebe9;
+    --neutral:#6e7781;
+    --theia:#0969da; --uplift:#8250df;
+    --shadow:0 1px 3px rgba(31,35,40,.06), 0 1px 2px rgba(31,35,40,.04);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo",
+       "Pretendard","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:1px solid var(--line);padding:18px 28px}
+  header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  header h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px;font-weight:600}
+  header .ver{color:var(--muted);font-size:13px;font-weight:400;margin-left:6px}
+  header .sub{color:var(--muted);font-size:12.5px}
+  header .meta{font-size:12px;color:var(--muted);text-align:right}
+  header .meta b{color:var(--text);font-weight:600}
+
+  nav.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);
+           background:#fff;padding:0 28px;position:sticky;top:0;z-index:10}
+  nav.tabs button{background:transparent;border:none;color:var(--muted);
+                  padding:13px 18px;font-size:13.5px;cursor:pointer;
+                  border-bottom:2px solid transparent;font-weight:500;font-family:inherit;
+                  display:flex;gap:6px;align-items:center}
+  nav.tabs button:hover{color:var(--text)}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  nav.tabs button .num{background:var(--accent-bg);color:var(--accent);font-size:11px;
+                       padding:1px 6px;border-radius:10px;font-weight:600}
+  main{padding:22px 28px;max-width:1500px;margin:0 auto}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+         padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .panel h2{margin:0 0 14px;font-size:15px;font-weight:600;
+            display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .panel h2 .badge{font-size:10.5px;background:var(--panel2);color:var(--muted);
+                   padding:3px 8px;border-radius:4px;font-weight:500;
+                   border:1px solid var(--line)}
+  .panel h3{margin:0 0 10px;font-size:13.5px;font-weight:600;color:var(--text-soft)}
+  .grid{display:grid;gap:14px}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+
+  .kpi{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
+       padding:14px 16px}
+  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;
+              letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+  .kpi .value{font-size:24px;font-weight:600;color:var(--text)}
+  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .kpi .delta.up{color:var(--good)}
+  .kpi .delta.down{color:var(--bad)}
+
+  .protocol-tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:3px;
+                font-weight:600;letter-spacing:.2px;border:1px solid}
+  .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#aacaf0}
+  .protocol-tag.uplift{background:#fbefff;color:var(--uplift);border-color:#d8b9f0}
+  .protocol-tag.empty{background:#f6f8fa;color:#959da5;border-color:var(--line-soft)}
+  .protocol-tag.fitness{background:#fff3e7;color:#bc4c00;border-color:#fbc996}
+
+  /* 진행 현황 그리드 — 선수 수에 따라 --pc 가 JS로 설정됨 */
+  .progress-grid{display:grid;grid-template-columns:160px repeat(var(--pc,20),minmax(28px,1fr));
+                 gap:3px;font-size:11px}
+  .progress-grid .row-h{font-weight:600;color:var(--muted);padding:6px 4px;
+                        text-align:left;font-size:12px}
+  .progress-grid .col-h{font-weight:600;color:var(--text);padding:6px 0;
+                        text-align:center;font-size:11px;background:var(--panel2);
+                        border-radius:3px}
+  .progress-grid .cell{padding:6px 0;text-align:center;border-radius:3px;cursor:pointer;
+                       border:1px solid transparent}
+  .progress-grid .cell.done{background:var(--good-bg);color:var(--good);font-weight:600}
+  .progress-grid .cell.partial{background:var(--warn-bg);color:var(--warn);font-weight:600}
+  .progress-grid .cell.empty{background:#f6f8fa;color:#bbb;border:1px dashed var(--line-soft)}
+  .progress-grid .cell:hover{outline:2px solid var(--accent)}
+
+  /* Heatmap 테이블 */
+  table.heatmap{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}
+  table.heatmap th{background:var(--panel2);color:var(--text-soft);font-weight:600;
+                   padding:8px 6px;text-align:center;border-radius:4px}
+  table.heatmap td{padding:7px 4px;text-align:center;border-radius:4px;
+                   font-variant-numeric:tabular-nums;font-weight:500}
+  table.heatmap td.name{background:var(--panel2);text-align:left;
+                        padding-left:10px;font-weight:500;cursor:pointer;color:var(--text)}
+  table.heatmap td.name:hover{background:var(--accent-bg);color:var(--accent)}
+  table.heatmap td.empty{background:#f6f8fa;color:#bbb;font-size:11px;border:1px dashed var(--line-soft)}
+
+  .cell-score{color:#fff;font-weight:600}
+  .s5{background:#1a7f37}
+  .s4{background:#56a64b}
+  .s3{background:#bf8700;color:#fff}
+  .s2{background:#d1452a;color:#fff}
+  .s1{background:#a40e26}
+
+  table.data{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.data thead th{background:var(--panel2);padding:9px 10px;text-align:left;
+                      border-bottom:1px solid var(--line);font-weight:600;color:var(--text-soft);
+                      cursor:pointer;user-select:none;font-size:11.5px;
+                      text-transform:uppercase;letter-spacing:.3px}
+  table.data thead th:hover{color:var(--accent)}
+  table.data thead th.sort-asc::after{content:" ▲";color:var(--accent);font-size:10px}
+  table.data thead th.sort-desc::after{content:" ▼";color:var(--accent);font-size:10px}
+  table.data tbody td{padding:9px 10px;border-bottom:1px solid var(--line-soft);
+                      font-variant-numeric:tabular-nums}
+  table.data tbody tr{cursor:pointer}
+  table.data tbody tr:hover{background:var(--panel2)}
+  table.data .num,.right{text-align:right}
+
+  /* 컨트롤 */
+  .controls{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  select, input[type=text], input[type=number]{
+    background:#fff;border:1px solid var(--line);color:var(--text);
+    padding:7px 11px;border-radius:6px;font-size:13px;font-family:inherit}
+  select:focus,input:focus{outline:none;border-color:var(--accent);
+                            box-shadow:0 0 0 3px rgba(9,105,218,.15)}
+  button.btn{background:#fff;border:1px solid var(--line);color:var(--text);
+             padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;
+             font-size:13px;font-weight:500}
+  button.btn:hover{background:var(--panel2);border-color:var(--accent)}
+  button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.btn.primary:hover{background:#0860c4}
+  button.btn.ghost{background:transparent;border-color:transparent;color:var(--accent)}
+
+  .legend{font-size:11.5px;color:var(--muted);display:flex;gap:14px;align-items:center;
+          flex-wrap:wrap}
+  .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;
+                  vertical-align:middle;margin-right:5px;border:1px solid rgba(0,0,0,.05)}
+
+  /* 선수 리포트 섹션 */
+  .player-meta{display:flex;gap:16px;color:var(--muted);font-size:12.5px;
+               margin:8px 0 16px;flex-wrap:wrap}
+  .player-meta b{color:var(--text);font-weight:600}
+
+  .scard{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
+         padding:14px}
+  .scard h3{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;
+            align-items:center;color:var(--text)}
+  .scard .row{display:flex;justify-content:space-between;font-size:12.5px;
+              padding:5px 0;border-bottom:1px dashed var(--line-soft)}
+  .scard .row:last-child{border-bottom:none}
+  .scard .row .v{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  .scard .row .v.empty{color:#aaa;font-weight:400}
+  .scard .grp-title{font-size:11px;color:var(--muted);margin:10px 0 4px;
+                    text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+
+  /* 체력 4테스트 카드 */
+  .fit-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px}
+  .fit-card .test-name{font-size:13px;font-weight:700;color:var(--text);
+                       margin-bottom:2px;display:flex;justify-content:space-between;
+                       align-items:center}
+  .fit-card .test-sub{font-size:11px;color:var(--muted);margin-bottom:10px;
+                      padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+  .fit-card .var-row{display:flex;justify-content:space-between;font-size:12px;
+                     padding:4px 0}
+  .fit-card .var-row .lbl{color:var(--text-soft)}
+  .fit-card .var-row .val{font-weight:600;font-variant-numeric:tabular-nums}
+  .fit-card .star{color:#bf8700;font-size:10px;margin-left:4px}
+  .fit-card .pct-bar{height:4px;background:var(--line-soft);border-radius:2px;
+                     margin-top:3px;overflow:hidden}
+  .fit-card .pct-bar > div{height:100%;background:var(--accent);border-radius:2px}
+
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.sm{height:220px}
+  .chart-wrap.lg{height:340px}
+  .chart-wrap.xl{height:400px}
+
+  /* 데이터 관리 탭 */
+  .upload-zone{border:2px dashed var(--line);background:var(--panel2);
+               border-radius:8px;padding:24px;text-align:center;color:var(--muted);
+               cursor:pointer;transition:all .2s}
+  .upload-zone:hover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+  .upload-zone .ico{font-size:24px;margin-bottom:8px;opacity:.6}
+  .upload-zone .hint{font-size:11.5px;margin-top:6px;color:var(--muted)}
+
+  .step-list{counter-reset:step;padding-left:0;list-style:none}
+  .step-list li{counter-increment:step;padding:10px 0 10px 36px;position:relative;
+                border-bottom:1px solid var(--line-soft)}
+  .step-list li:last-child{border-bottom:none}
+  .step-list li::before{content:counter(step);position:absolute;left:0;top:9px;
+                         width:24px;height:24px;background:var(--accent);
+                         color:#fff;border-radius:50%;text-align:center;
+                         font-weight:600;font-size:12px;line-height:24px}
+  .step-list li b{color:var(--text)}
+
+  .footnote{font-size:11.5px;color:var(--muted);margin-top:14px;padding:12px 14px;
+            background:#f6f8fa;border-radius:6px;border-left:3px solid var(--accent)}
+  .footnote b{color:var(--text)}
+  .hidden{display:none !important}
+
+  /* 향후 활성화 안내 */
+  .placeholder-box{padding:40px 20px;text-align:center;color:var(--muted);
+                   background:var(--panel2);border-radius:8px;border:1px dashed var(--line)}
+  .placeholder-box .big{font-size:28px;color:var(--neutral);margin-bottom:8px}
+  .placeholder-box .ttl{font-size:14px;font-weight:600;color:var(--text-soft);margin-bottom:4px}
+
+  details{margin-top:8px}
+  details summary{cursor:pointer;color:var(--accent);font-size:12.5px;padding:6px 0;font-weight:500}
+  details summary:hover{text-decoration:underline}
+  pre.code{background:#f6f8fa;border:1px solid var(--line);border-radius:6px;
+           padding:10px;font-size:11.5px;overflow-x:auto;font-family:"SF Mono",Consolas,monospace}
+
+  .pill{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:10px;
+        font-weight:600}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+
+  /* 실측 데이터 마커 — 셀 우상단에 작은 점 */
+  .real-marker{position:relative}
+  .real-marker::after{
+    content:''; position:absolute; top:3px; right:3px;
+    width:6px; height:6px; border-radius:50%;
+    background:#0969da; box-shadow:0 0 0 1.5px #fff;
+    pointer-events:none;
+  }
+  /* 진행 그리드의 done 셀에서는 다른 색(이미 초록 배경) */
+  .progress-grid .real-marker::after{background:#0969da}
+  /* 히트맵 cell-score(짙은 배경)에서는 흰 점 + 진한 테두리 */
+  table.heatmap .cell-score.real-marker::after{background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.4)}
+
+  .real-legend{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+  .real-legend .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+                    background:#0969da;box-shadow:0 0 0 1.5px #fff;border:1px solid var(--line-soft)}
+
+  /* 평소: 인쇄 전용 영역 숨김 */
+  .batch-print-only, .coach-print-only{display:none}
+
+  /* 콤팩트 선수 카드 (인쇄용 1페이지 1선수) */
+  .pcard{padding:14px 16px;font-size:11.5px;page-break-after:always;break-after:page}
+  .pcard:last-child{page-break-after:auto}
+  .pcard .ph{display:flex;justify-content:space-between;align-items:flex-end;
+             padding-bottom:8px;border-bottom:2px solid #1f2328;margin-bottom:10px}
+  .pcard .ph .nm{font-size:18px;font-weight:700}
+  .pcard .ph .meta{font-size:11px;color:#444;text-align:right}
+  .pcard .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  .pcard .kpi-row > div{background:#f6f8fa;border:1px solid #d0d7de;
+                         border-radius:5px;padding:7px 9px}
+  .pcard .kpi-row .lbl{font-size:9.5px;color:#656d76;text-transform:uppercase;letter-spacing:.4px}
+  .pcard .kpi-row .val{font-size:16px;font-weight:700;margin-top:2px}
+  .pcard .sec-title{font-size:11.5px;font-weight:700;background:#0969da;color:#fff;
+                    padding:4px 8px;border-radius:3px;margin:10px 0 6px;display:inline-block}
+  .pcard .sec-title.tr{background:#1a7f37}
+  .pcard .sec-title.lk{background:#cf222e}
+  .pcard .sec-title.gr{background:#bc4c00}
+  .pcard .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+  .pcard .mini-card{background:#f6f8fa;border:1px solid #d0d7de;border-radius:5px;padding:7px 9px}
+  .pcard .mini-card .ttl{font-weight:700;font-size:11px;margin-bottom:4px}
+  .pcard .mini-card .kv{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0}
+  .pcard .mini-card .kv b{font-variant-numeric:tabular-nums}
+  .pcard .zonebar{display:flex;align-items:center;gap:5px;font-size:10px;margin:3px 0}
+  .pcard .zonebar .zlbl{flex:0 0 75px;color:#444}
+  .pcard .zonebar .zbar{flex:1;height:6px;background:#e1e4e8;border-radius:3px;overflow:hidden}
+  .pcard .zonebar .zbar > div{height:100%}
+  .pcard .zonebar .zval{flex:0 0 22px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .pcard .causal{display:flex;gap:6px;align-items:center;padding:4px 6px;
+                 background:#fff;border:1px solid #d0d7de;border-radius:4px;
+                 font-size:10.5px;margin:3px 0}
+  .pcard .causal .num{flex:0 0 18px;height:18px;border-radius:50%;color:#fff;
+                       text-align:center;line-height:18px;font-weight:700;font-size:10px}
+  .pcard .footer-line{font-size:10px;color:#666;margin-top:8px;padding-top:6px;
+                       border-top:1px dashed #d0d7de;display:flex;justify-content:space-between}
+  /* 미니 라디아 SVG 컨테이너 */
+  .pcard .mini-radar{width:100%;height:140px}
+
+  /* 코치 리포트 인쇄 카드 */
+  .coach-rep{padding:18px 20px;font-size:12px;line-height:1.55}
+  .coach-rep h1{margin:0 0 4px;font-size:20px;font-weight:700}
+  .coach-rep .doc-meta{color:#444;font-size:11px;margin-bottom:12px;
+                       padding-bottom:8px;border-bottom:2px solid #1f2328}
+  .coach-rep h2{font-size:13px;font-weight:700;background:#0969da;color:#fff;
+                padding:5px 10px;border-radius:3px;margin:14px 0 8px;display:inline-block}
+  .coach-rep h2.warn{background:#cf222e}
+  .coach-rep h2.ok{background:#1a7f37}
+  .coach-rep .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .coach-rep .gr-kpi{background:#f6f8fa;border:1px solid #d0d7de;padding:8px 10px;border-radius:5px}
+  .coach-rep .gr-kpi .lbl{font-size:10px;color:#656d76;text-transform:uppercase;letter-spacing:.3px}
+  .coach-rep .gr-kpi .val{font-size:18px;font-weight:700;margin-top:2px}
+  .coach-rep .gr-kpi .sub{font-size:10px;color:#666;margin-top:2px}
+  .coach-rep .group-row{display:flex;align-items:center;gap:8px;padding:6px 10px;
+                         background:#f6f8fa;border-left:4px solid #ccc;border-radius:4px;
+                         margin:4px 0;font-size:11.5px}
+  .coach-rep .group-row .name{font-weight:700;flex:0 0 100px}
+  .coach-rep .group-row .count{flex:0 0 50px;font-weight:700}
+  .coach-rep .group-row .members{flex:1;font-size:11px;color:#444}
+  .coach-rep table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}
+  .coach-rep table th{background:#1f2328;color:#fff;padding:5px 7px;text-align:left}
+  .coach-rep table td{padding:5px 7px;border-bottom:1px solid #d0d7de;font-variant-numeric:tabular-nums}
+  .coach-rep .pattern{padding:8px 10px;background:#fff8f0;border:1px solid #ffd1b3;
+                       border-radius:5px;margin:5px 0;font-size:11.5px}
+  .coach-rep .pattern b{color:#bc4c00}
+  .coach-rep .action{padding:8px 10px;background:#fff;border:1px solid #d0d7de;
+                      border-radius:5px;margin:5px 0;font-size:11.5px}
+  .coach-rep .action.warn{background:#ffebe9;border-color:#ffaaa3}
+  .coach-rep .action.ok{background:#dafbe1;border-color:#74dba1}
+
+  /* ─── 인쇄 / PDF (v1.7) ─────────────────────────────────────
+     기본 동작:
+     - "선수 리포트" 탭에서 인쇄 → 해당 선수 1장만 출력
+     - 다른 탭에서 인쇄 → 해당 탭 보이는 내용 출력
+     - 모든 탭의 숨김 영역은 인쇄에서도 숨김 (탭 전환 안 보임)
+     ────────────────────────────────────────────────────────── */
+  @media print{
+    @page{ size: A4 portrait; margin: 12mm; }
+    /* 색상·배경 보존 (Chrome/Edge/Safari) */
+    *, *::before, *::after{
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    body{background:#fff;font-size:11px}
+    main{padding:0;max-width:none}
+    header{padding:8px 0;border-bottom:1px solid #999}
+    header .top{align-items:flex-start}
+    header h1{font-size:14px}
+    header .ver, header .sub, header .meta{font-size:10px}
+    /* 네비/컨트롤 숨김 */
+    nav.tabs, .controls, .upload-zone, button.btn,
+    #theia-json-result, .footnote details, details > summary{display:none !important}
+    /* details 펼친 내용은 인쇄에 노출 */
+    details[open] > *{display:block !important}
+    details[open] > summary{display:none !important}
+    /* 패널 기본 */
+    .panel{box-shadow:none;border:1px solid #bbb;padding:10px 12px;margin-bottom:10px;
+           page-break-inside:avoid;break-inside:avoid}
+    .panel h2{font-size:12px;margin-bottom:8px}
+    .panel h3{font-size:11px}
+    .kpi{padding:8px 10px}
+    .kpi .value{font-size:18px}
+    .kpi .label, .kpi .delta{font-size:10px}
+    /* 차트는 작게 고정 */
+    .chart-wrap{height:200px !important}
+    .chart-wrap.lg, .chart-wrap.xl{height:240px !important}
+    /* 테이블 */
+    table.data, table.heatmap{font-size:10px}
+    table.data thead th{padding:5px 6px;font-size:10px}
+    table.data tbody td{padding:5px 6px}
+    /* 진행 그리드는 인쇄에서 너무 좁아지므로 컬럼 크기 조정 */
+    .progress-grid{font-size:9px}
+    .progress-grid .col-h{padding:3px 0;font-size:9px}
+    .progress-grid .cell{padding:3px 0}
+    /* 새 페이지 시작 — 큰 섹션 사이 */
+    .panel.print-break{page-break-before:always;break-before:page}
+    /* 카드 4개 그리드는 인쇄에서도 4개 유지하되 좁게 */
+    .grid-4{gap:6px}
+    .grid-3, .grid-2{gap:8px}
+    /* 체력 카드 4개는 한 줄 유지 */
+    .fit-card{padding:8px 10px;page-break-inside:avoid}
+    .fit-card .test-name{font-size:11px}
+    .fit-card .test-sub{font-size:9px;margin-bottom:6px}
+    .fit-card .var-row{font-size:10px;padding:2px 0}
+    /* 선수 리포트의 회차 카드 */
+    .scard{padding:8px 10px;page-break-inside:avoid}
+    .scard h3{font-size:10.5px}
+    .scard .row{font-size:10px;padding:2px 0}
+    /* hidden 탭은 인쇄에서도 숨김 */
+    .hidden{display:none !important}
+
+    /* ─── 일괄 인쇄 모드 (선수 PDF 일괄 출력) ─── */
+    body.printing-batch header,
+    body.printing-batch nav.tabs,
+    body.printing-batch main{ display:none !important; }
+    body.printing-batch .batch-print-only{
+      display:block !important; padding:0; margin:0;
+      background:#fff; color:#000;
+    }
+    /* ─── 코치 리포트 인쇄 모드 ─── */
+    body.printing-coach header,
+    body.printing-coach nav.tabs,
+    body.printing-coach main{ display:none !important; }
+    body.printing-coach .coach-print-only{
+      display:block !important; padding:0; margin:0;
+      background:#fff; color:#000;
+    }
+  }

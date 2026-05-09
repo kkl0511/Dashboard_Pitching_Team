@@ -1,0 +1,26 @@
+{
+  "name": "dashboard_pitching_team",
+  "version": "1.0.0",
+  "description": "상동고등학교 야구부 투수 ~20명 통합 대시보드. 바이오모션 베이스볼 랩 (BBL) — 1차/2차 (상반기) + 3차/4차 (하반기) 4회 측정 통합 분석.",
+  "main": "theia_grf_dashboard_export.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkl0511/Dashboard_Pitching_Team.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kkl0511/Dashboard_Pitching_Team/issues"
+  },
+  "homepage": "https://github.com/kkl0511/Dashboard_Pitching_Team#readme",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

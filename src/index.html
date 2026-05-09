@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>상동고 투구 리포트 통합 대시보드 (v1.1 · 상반기 1차 측정)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v1.1 · 상반기 1차 측정 중심</span></h1>
+      <div class="sub">
+        바이오모션 ↔ 상동고등학교 야구부 · 투수 <b id="hdr-pcount">—</b>명
+        × 측정 4회 &nbsp;
+        <span style="color:var(--text-soft)">상반기</span> Theia+GRF → Uplift &nbsp;·&nbsp;
+        <span style="color:var(--text-soft)">하반기</span> Theia+GRF → Uplift
+      </div>
+    </div>
+    <div class="meta">
+      <div>1차 측정 예정일: <b id="hdr-d1">—</b> (Theia+GRF + ForceDecks + Rapsodo)</div>
+      <div style="margin:4px 0">
+        <label style="font-size:11px;color:var(--muted)">랩소도 코호트:</label>
+        <select id="rap-cohort-select" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid var(--line);background:#fff;font-family:inherit">
+          <option value="KBO">KBO 프로 기준</option>
+          <option value="HS">고교 (HS) 기준</option>
+        </select>
+      </div>
+      <div>현재 데이터: <b id="data-status">샘플 데이터 (실측 데이터 미입력)</b>
+        &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span>
+        &nbsp;<span class="pill" style="font-size:10px;background:#ddf4ff;color:#0969da" id="analytics-badge"
+          title="잠재구속·ELI는 analytics.js 통계 모듈로 산출 (Stodden 2001/MacWilliams 1998/Werner 2008/Lehman 2013/Aguinaldo 2009 근거)">
+          analytics v2.1
+        </span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="m1">1차 측정 결과 <span class="num">팀</span></button>
+  <button class="tab-btn" data-tab="player">선수별 1차 리포트</button>
+  <button class="tab-btn" data-tab="data">데이터 관리</button>
+  <button class="tab-btn" data-tab="report">📋 리포트 출력 <span class="num">PDF</span></button>
+  <button class="tab-btn" data-tab="long">장기 추적 <span class="num" style="background:#f6f8fa;color:var(--muted)">상·하반기</span></button>
+</nav>
+
+<main>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 1: 1차 측정 결과 (팀 전체)                           ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-m1">
+
+  <div class="grid grid-4">
+    <div class="kpi">
+      <div class="label">측정 진행 (1차)</div>
+      <div class="value" id="kpi-progress">—</div>
+      <div class="delta" id="kpi-progress-sub">선수 × {Theia+GRF, ForceDecks, Rapsodo}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 평균 측정 구속</div>
+      <div class="value" id="kpi-velo">— km/h</div>
+      <div class="delta" id="kpi-velo-delta">최고 — / 최저 —</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 평균 종합점수</div>
+      <div class="value" id="kpi-score">—</div>
+      <div class="delta" id="kpi-score-delta">출력 — · 전달 — · 누수관리 — · GRF —</div>
+    </div>
+    <div class="kpi">
+      <div class="label">집중 관리 대상</div>
+      <div class="value" id="kpi-risk">—</div>
+      <div class="delta">부상위험 high·mid 또는 종합 &lt; 50</div>
+    </div>
+  </div>
+
+  <div style="text-align:right;margin-bottom:8px">
+    <button class="btn" onclick="window.print()" title="현재 탭 내용을 PDF로 저장">🖨 팀 개요 인쇄 / PDF</button>
+  </div>
+
+  <div class="panel">
+    <h2>1차 측정 진행 현황 <span class="badge">셀 클릭 → 데이터 관리 탭 이동</span></h2>
+    <div style="overflow-x:auto;padding-bottom:6px">
+      <div class="progress-grid" id="progress-grid"></div>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><span class="swatch" style="background:var(--good-bg);border-color:var(--good)"></span>입력 완료</span>
+      <span><span class="swatch" style="background:var(--warn-bg);border-color:var(--warn)"></span>일부만 입력</span>
+      <span><span class="swatch" style="background:#f6f8fa;border-style:dashed"></span>미입력</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>1차 측정 결과 종합 테이블 <span class="badge">컬럼 클릭 → 정렬 · 행 클릭 → 선수 리포트</span></h2>
+    <div style="overflow-x:auto">
+      <table class="data" id="m1-table">
+        <thead>
+          <tr>
+            <th data-key="name">선수</th>
+            <th data-key="arm" class="right">투구</th>
+            <th data-key="velo" class="right">FB Max(km/h)</th>
+            <th data-key="velo_avg" class="right">FB Avg</th>
+            <th data-key="spin" class="right" style="background:#ddf4ff">Spin</th>
+            <th data-key="spin_eff" class="right" style="background:#ddf4ff">Eff%</th>
+            <th data-key="ivb" class="right" style="background:#ddf4ff">IVB(cm)</th>
+            <th data-key="bauer" class="right" style="background:#ddf4ff">Bauer</th>
+            <th data-key="stuff" class="right" style="background:#fff8c5">Stuff</th>
+            <th data-key="command" class="right" style="background:#fff8c5">Cmd</th>
+            <th data-key="score" class="right">종합</th>
+            <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
+            <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
+            <th data-key="grf" class="right">LHEI</th>
+            <th data-key="risk" class="right">부상</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="panel">
+      <h2>에너지 4분면 — 출력 × 전달</h2>
+      <div class="chart-wrap"><canvas id="chart-quadrant"></canvas></div>
+      <div class="footnote">
+        X축: 에너지 <b>출력</b> · Y축: 에너지 <b>전달</b> · 점 크기: <b>누수</b> (클수록 누수 큼)<br>
+        <b>우상</b>=잘 만들고 잘 전달(elite) · <b>우하</b>=만들지만 전달 안 됨 · <b>좌상</b>=전달은 좋은데 출력 부족 · <b>좌하</b>=집중 관리
+      </div>
+    </div>
+    <div class="panel">
+      <h2>구속 vs 잠재구속</h2>
+      <div class="chart-wrap"><canvas id="chart-velo-potential"></canvas></div>
+      <div class="footnote">
+        대각선 위쪽 = 잠재 미발현(메카닉/체력 발달 여지) · 대각선 아래쪽 = 측정구속이 잠재보다 높음(효율 우수)
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수별 종합점수 히트맵 <span class="badge">선수 클릭 → 상세 리포트</span></h2>
+    <div class="legend">
+      <span><span class="swatch" style="background:#1a7f37"></span>85+ 매우 우수</span>
+      <span><span class="swatch" style="background:#56a64b"></span>70–84 우수</span>
+      <span><span class="swatch" style="background:#bf8700"></span>55–69 보통</span>
+      <span><span class="swatch" style="background:#d1452a"></span>40–54 발달 필요</span>
+      <span><span class="swatch" style="background:#a40e26"></span>&lt;40 집중 관리</span>
+      <span style="margin-left:auto" class="real-legend"><span class="dot"></span>● 표시 = 실측 데이터 (점 없음 = 샘플)</span>
+    </div>
+    <div style="overflow-x:auto;margin-top:12px">
+      <table class="heatmap" id="m1-heatmap"></table>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 2: 선수별 1차 리포트 (메카닉 + 체력 통합)             ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-player" class="hidden">
+
+  <div class="panel">
+    <div class="controls">
+      <label style="color:var(--muted);font-size:12.5px;font-weight:500">선수</label>
+      <select id="player-select"></select>
+      <button class="btn ghost" id="btn-prev-player">← 이전</button>
+      <button class="btn ghost" id="btn-next-player">다음 →</button>
+      <span style="margin-left:auto">
+        <button class="btn" onclick="window.print()" title="이 선수 리포트만 PDF로 저장 (인쇄 다이얼로그에서 'PDF로 저장' 선택)">🖨 인쇄 / PDF</button>
+        <button class="btn primary" id="btn-open-theia">Theia+GRF 원본 리포트 열기 ↗</button>
+      </span>
+    </div>
+    <div id="player-meta-line" class="player-meta"></div>
+
+    <!-- 4개 헤더 카드 (구속·잠재·종합·부상) -->
+    <div class="grid grid-4">
+      <div class="kpi">
+        <div class="label">측정 구속 (평균)</div>
+        <div class="value" id="p-velo">—</div>
+        <div class="delta">최고 <b id="p-velo-max">—</b></div>
+      </div>
+      <div class="kpi">
+        <div class="label">잠재 구속</div>
+        <div class="value" id="p-velo-pot">—</div>
+        <div class="delta" id="p-velo-pot-delta">잔차 —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">종합점수</div>
+        <div class="value" id="p-score">—</div>
+        <div class="delta" id="p-score-delta">메카닉 — · 체력 — · GRF —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">부상 위험</div>
+        <div class="value" id="p-risk">—</div>
+        <div class="delta" id="p-risk-detail">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 라디아 + 4분면 -->
+  <div class="grid grid-2">
+    <div class="panel">
+      <h2>5축 에너지 라디아</h2>
+      <div class="chart-wrap lg"><canvas id="p-radar"></canvas></div>
+      <div class="footnote">
+        축: <b>출력 (Output)</b> / <b>전달 (Transfer)</b> / <b>누수관리 (역 ELI)</b> / <b>GRF·LHEI</b> / <b>제구·결함</b> (모두 0~100, 클수록 우수)
+      </div>
+    </div>
+    <div class="panel">
+      <h2>키네틱 시퀀스 (피크 회전속도)</h2>
+      <div class="chart-wrap lg"><canvas id="p-sequence"></canvas></div>
+      <div class="footnote">
+        Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
+        ETE = 분절 간 에너지 전달 효율(%).
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚡ 에너지 분석 — 1차 측정의 헤드라인 (출력·전달·누수) -->
+  <div class="panel">
+    <h2>⚡ 에너지 분석 — 출력 · 전달 · 누수
+        <span class="protocol-tag theia">Theia+GRF</span>
+        <span class="badge">Theia+GRF 리포트의 핵심 프레임워크</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      회전 power가 어떻게 만들어지고(<b>생성</b>) → 분절 간에 얼마나 잘 넘어가고(<b>전달</b>) → 어디서 새는지(<b>누수</b>)를 한눈에.
+    </div>
+    <div class="grid grid-3">
+      <!-- ① 에너지 생성 (Output) -->
+      <div class="scard" style="border-top:3px solid #0969da">
+        <h3>① 에너지 생성 (Output)
+          <span style="font-size:18px;font-weight:700" id="p-en-gen-score">—</span>
+        </h3>
+        <div class="grp-title">피크 회전속도 (°/s)</div>
+        <div class="row"><span>골반 / 몸통 / 팔</span><span class="v" id="p-en-omega" style="font-size:11.5px">—</span></div>
+        <div class="grp-title">관절 파워 — Joint Power Scalar (W)</div>
+        <div class="row"><span>투구 어깨 / 팔꿈치</span><span class="v" id="p-en-arm-power">—</span></div>
+        <div class="row"><span>힙 (R / L)</span><span class="v" id="p-en-hip">—</span></div>
+        <div class="row"><span>무릎 (R / L)</span><span class="v" id="p-en-knee">—</span></div>
+        <div class="row"><span>합계 (Total)</span><span class="v" id="p-en-total-w">—</span></div>
+        <div class="grp-title">분절 운동에너지 (J)</div>
+        <div class="row"><span>골반 / 몸통 / 상완</span><span class="v" id="p-en-mech" style="font-size:11.5px">—</span></div>
+      </div>
+
+      <!-- ② 에너지 전달 (Transfer) -->
+      <div class="scard" style="border-top:3px solid #1a7f37">
+        <h3>② 에너지 전달 (Transfer)
+          <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
+        </h3>
+        <div class="grp-title">전달 효율</div>
+        <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
+        <div class="grp-title">Speed Gain (분절 간 가속비)</div>
+        <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>
+        <div class="row"><span>몸통 → 팔</span><span class="v" id="p-en-sg-ta">—</span></div>
+        <div class="grp-title">시퀀스 정확성</div>
+        <div class="row"><span>Proper Sequence</span><span class="v" id="p-en-proper">—</span></div>
+        <div class="row"><span>Pelvis→Trunk lag</span><span class="v" id="p-en-lag-pt">—</span></div>
+        <div class="row"><span>Trunk→Arm lag</span><span class="v" id="p-en-lag-ta">—</span></div>
+      </div>
+
+      <!-- ③ 에너지 누수 (Leak / ELI) -->
+      <div class="scard" style="border-top:3px solid #cf222e">
+        <h3>③ 에너지 누수 (ELI 6 zones)
+          <span style="font-size:18px;font-weight:700" id="p-en-eli-score">—</span>
+        </h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">100=완벽 / 50=중간 / 0=완전누수</div>
+        <div id="p-eli-zones"></div>
+      </div>
+    </div>
+
+    <!-- 결함 인과 분석 (causal chains, top 3) -->
+    <div style="margin-top:14px;padding:14px;background:var(--panel2);
+                border:1px solid var(--line-soft);border-radius:6px">
+      <h3 style="margin:0 0 10px;font-size:13px">🔗 결함 → 힘 손실 인과 분석 (우선순위 Top 3)</h3>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. 훈련 처방 1순위.
+      </div>
+      <div id="p-causal-chains"></div>
+    </div>
+  </div>
+
+  <!-- 지면반력 (NewtForce) 단독 패널 -->
+  <div class="panel">
+    <h2>🦵 지면반력 (NewtForce 통합 분석) <span class="protocol-tag theia">Theia+GRF</span></h2>
+    <div class="grid grid-3">
+      <div class="scard">
+        <h3>하체 종합 효율 (LHEI)</h3>
+        <div class="row"><span>LHEI 점수</span><span class="v" id="p-lhei" style="font-size:18px;font-weight:700">—</span></div>
+        <div class="row"><span>투수 유형 자동 진단</span><span class="v" id="p-grf-type" style="font-size:11.5px">—</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
+          LHEI = 8개 지표 가중 평균 (NewtForce 표준)
+        </div>
+      </div>
+      <div class="scard">
+        <h3>발별 누적 힘 (% BW·s)</h3>
+        <div class="row"><span>축발(뒷발) FP1</span><span class="v" id="p-rear">—</span></div>
+        <div class="row"><span>디딤발(앞발) FP2</span><span class="v" id="p-lead">—</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
+          축발: 시작부터 정적 weight + 차고 나가기<br>디딤발: 앞발 착지 후 받쳐주기
+        </div>
+      </div>
+      <div class="scard">
+        <h3>부상위험 · 제구일관성</h3>
+        <div class="grp-title">정렬 · 분리</div>
+        <div class="row"><span>X-factor (분리각)</span><span class="v" id="p-xf">—</span></div>
+        <div class="row"><span>Lead knee (FC→BR)</span><span class="v" id="p-lk">—</span></div>
+        <div class="grp-title">제구 일관성 (trial SD)</div>
+        <div class="row"><span>Release height SD</span><span class="v" id="p-rh-sd">—</span></div>
+        <div class="row"><span>Wrist position SD</span><span class="v" id="p-wp-sd">—</span></div>
+        <div class="row"><span>Trunk tilt SD</span><span class="v" id="p-tt-sd">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기존 호환용 숨겨진 필드 (renderPlayerView가 채우는 ID, 다른 곳에서 참조 시 안전) -->
+  <span id="p-pelvis" style="display:none"></span>
+  <span id="p-trunk" style="display:none"></span>
+  <span id="p-arm" style="display:none"></span>
+  <span id="p-ete" style="display:none"></span>
+  <span id="p-sg" style="display:none"></span>
+  <span id="p-seq-binary" style="display:none"></span>
+
+  <!-- 🎯 랩소도 패스트볼 분석 (Rapsodo 2.0) -->
+  <div class="panel print-break">
+    <h2>🎯 랩소도 패스트볼 분석 <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo 2.0</span>
+        <span class="badge" id="rap-cohort-badge">코호트: KBO 기준</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      릴리스 → 플레이트까지의 변화, 회전 효율·축, IVB/HB 무브먼트, 진입각, 릴리스 일관성을 코호트 평균과 함께 평가.
+    </div>
+    <div id="p-rapsodo-area">
+      <div style="text-align:center;color:var(--muted);padding:20px;background:var(--panel2);border-radius:6px">
+        Rapsodo CSV 인입 후 자동 표시 — <a href="#" onclick="switchTab('data');return false;" style="color:var(--accent)">데이터 관리 탭으로 이동</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <div class="panel">
+    <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
+        <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      <b>주의</b>: 1차 측정의 헤드라인은 위 ⚡ 에너지 분석(Theia+GRF). 체력은 capacity ceiling을 보조 설명하는 용도.
+    </div>
+    <div class="grid grid-4" id="fitness-cards"></div>
+    <div class="footnote">
+      <b>SSC 스펙트럼:</b> SJ (SSC 없음) → CMJ (Slow SSC) → Pogo (Fast SSC) → IMTP (Isometric).
+      투수 메커니즘 매칭: Drive leg push-off ≈ CMJ · FC reactive ≈ Pogo · Max strength ≈ IMTP Peak · Release explosive ≈ IMTP RFD.
+      <details><summary>EUR (CMJ JH / SJ JH) 해석 — McGuigan 2018</summary>
+        EUR &gt; 1.10 우수 SSC 활용 · 1.00~1.10 정상 · &lt; 1.00 SSC 미활용 (감속 후 즉시 추진력 못 살림)
+      </details>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 3: 데이터 관리 (1차 입력 워크플로우)                   ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-data" class="hidden">
+
+  <div class="panel">
+    <h2>1차 측정 데이터 입력 워크플로우</h2>
+    <ol class="step-list">
+      <li><b>측정 직후</b> (현장): Theia+GRF 측정 → c3d → Visual3D pipeline → c3d.txt export · ForceDecks 측정 → VALD Hub 업로드 · Rapsodo 구속 export</li>
+      <li><b>VALD Hub 정리</b>: 29 컬럼 wide CSV 다운로드 (vald_hub_template.csv) — 또는 API 직접 동기화 (Phase 2)</li>
+      <li><b>이 대시보드에 로드</b>: 아래 3개 영역에 각각 파일을 끌어넣으면 자동 검증·통합 (현재 v1.0은 양식 안내만, 실제 파싱은 v1.1에서 활성화)</li>
+      <li><b>리포트 생성</b>: 선수별 통합 리포트(이 대시보드) + Theia+GRF 원본 리포트 HTML(GitHub repo의 index.html에 업로드) 두 가지를 코치·선수에게 전달</li>
+    </ol>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="panel">
+      <h2>① Theia + GRF 결과 JSON <span class="protocol-tag theia">Theia+GRF</span>
+          <span class="badge">v1.2 · 인입 활성</span></h2>
+      <input type="file" id="theia-json-input" accept=".json,application/json" multiple style="display:none">
+      <div class="upload-zone" id="theia-json-zone">
+        <div class="ico">📥</div>
+        <div><b>Theia+GRF 결과 JSON 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">단일 선수 또는 배치(여러 선수 묶음) 모두 가능 · 여러 파일 동시 가능</div>
+      </div>
+      <div id="theia-json-result" style="margin-top:10px;font-size:12px"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="dl-theia-template-single">📄 단일 템플릿 다운로드</button>
+        <button class="btn" id="dl-theia-template-batch">📦 배치 템플릿 다운로드</button>
+        <button class="btn ghost" id="reset-data" style="margin-left:auto">샘플 데이터로 복원</button>
+      </div>
+      <div class="footnote" style="margin-top:12px">
+        <b>워크플로우</b>:
+        <ol style="margin:6px 0 6px 18px;padding:0;font-size:11.5px">
+          <li>Theia+GRF 리포트(GitHub repo의 index.html)에서 c3d.txt 분석</li>
+          <li>리포트 우상단 "💾 대시보드 JSON 저장" 버튼으로 파일 다운로드
+            <span class="pill good">v1.5 추가</span></li>
+          <li>이 영역에 끌어놓으면 해당 선수·회차 데이터 자동 반영</li>
+        </ol>
+        <details>
+          <summary>"💾 대시보드 JSON 저장" 버튼 추가하는 방법 (Theia+GRF repo 1회 적용)</summary>
+          <div style="font-size:11.5px;margin-top:6px;line-height:1.7">
+            <b>① 작업 폴더에서 <code>theia_grf_dashboard_export.js</code> 파일을 엽니다</b>
+            (대시보드와 같은 폴더에 자동 생성됨).<br>
+            <b>② 전체 내용을 복사</b>한 뒤,
+            <a href="https://github.com/kkl0511/Theia_GRF_Pitching_Report/blob/main/index.html" target="_blank" style="color:var(--accent)">Theia+GRF repo의 index.html</a>
+            맨 아래 <code>&lt;/body&gt;</code> 바로 위에
+            <code style="background:var(--panel2);padding:1px 5px;border-radius:3px">&lt;script&gt;…&lt;/script&gt;</code> 태그 안에 붙여넣습니다.<br>
+            <b>③</b> 분석을 1회 실행한 뒤 우상단 버튼 클릭 → JSON 파일 다운로드 → 이 영역에 끌어놓기.<br>
+            <span style="color:var(--muted)">※ 스니펫 안 GETTERS 함수의 변수명은 추정값. 실제 결과가 비어 있으면 변수명만 수정하면 됩니다.</span>
+          </div>
+        </details>
+        <details>
+          <summary>스키마 요약 (단일 선수 1회 측정)</summary>
+          <pre class="code">{
+  "athlete_external_id": "P01",   // 필수 — PLAYERS의 id와 일치
+  "session_id": 1,                 // 필수 — 1·2·3·4 중 하나
+  "test_date": "2026-05-15",
+  "protocol": "Theia+GRF",
+  "velocity": {
+    "measured_kmh": 132.5,
+    "potential_kmh": 138.0,
+    "score": 75
+  },
+  "sequence": {
+    "pelvis_dps": 510, "trunk_dps": 850, "arm_dps": 1380,
+    "ete_pct": 78, "speed_gain": 1.65,
+    "proper_seq": true, "score": 80
+  },
+  "energy": {                      // ⚡ 1차 측정 헤드라인 — 출력·전달·누수
+    "generation": {                // 에너지 생성 (출력)
+      "hip_R_W": 280, "hip_L_W": 260, "knee_R_W": 360, "knee_L_W": 340,
+      "shoulder_W": 420, "elbow_W": 240, "total_W": 1900,
+      "mech_energy_pelvis_J": 460, "mech_energy_trunk_J": 720, "mech_energy_humerus_J": 290,
+      "score": 78
+    },
+    "transfer": {                  // 에너지 전달
+      "ete_pct": 78, "speed_gain_pt": 1.65, "speed_gain_ta": 1.45,
+      "proper_seq": true, "pelvis_to_trunk_lag_ms": 65, "trunk_to_arm_lag_ms": 50,
+      "score": 80
+    },
+    "leakage": {                   // 에너지 누수 (ELI 6 zones)
+      "zone1_sequence": 85, "zone2_x_factor": 70, "zone3_lead_block": 65,
+      "zone4_trunk_at_fc": 78, "zone5_shoulder_align": 82, "zone6_pelvis_brake": 68,
+      "eli_score": 75,             // 6 zone 가중 평균
+      "causal_chains": [           // 결함 → 손실 인과 (top 3, 우선순위)
+        { "zone":"zone3", "zone_label":"앞발 받쳐주기 약함", "defect":"Lead knee collapse",  "impact_kmh": -2.9 },
+        { "zone":"zone6", "zone_label":"골반 감속 부족",     "defect":"Pelvis braking 부족", "impact_kmh": -2.7 },
+        { "zone":"zone2", "zone_label":"X-팩터 분리 부족",   "defect":"X-factor 미달",       "impact_kmh": -2.5 }
+      ]
+    }
+  },
+  "grf": {                         // Theia+GRF 회차에만
+    "lhei": 72, "rear_force_pct": 88, "lead_force_pct": 92,
+    "type": "균형형"               // 균형형/뒤에 처지는/앞으로 쏟아지는/잠깐만 미는/좌우로 새는
+  },
+  "faults": {
+    "x_factor_deg": 38, "lead_knee_change": -8,
+    "release_height_sd_cm": 4.2, "wrist_pos_sd_cm": 5.1,
+    "trunk_tilt_sd_deg": 1.8,
+    "consistency_score": 82, "fault_score": 75,
+    "injury_risk": "low",          // low | mid | high
+    "fault_count": 2
+  },
+  "fitness": {                     // 선택 — ForceDecks 결과 함께 (Theia+GRF 회차 + 체력측정 회차)
+    "cmj":  { "jump_height_cm": 41, "peak_power_w": 3460, "peak_power_bm_w_kg": 42, "rsi_modified_ms": 0.50, "conc_peak_force_bm_n_kg": 40.5, "ecc_conc_force_ratio": 1.05 },
+    "sj":   { "jump_height_cm": 39.3, "peak_power_bm_w_kg": 32.7, "conc_peak_force_bm_n_kg": 35.2 },
+    "eur": 1.04,
+    "pogo": { "rsi_ms": 1.85, "mean_contact_time_ms": 148, "mean_jump_height_cm": 26.5 },
+    "imtp": { "peak_force_n": 2117, "peak_force_bm_n_kg": 25.71, "rfd_0_100ms_n_s": 8240, "force_at_100ms_bm_n_kg": 21.8, "asymmetry_pct": 3.2 }
+  }
+}</pre>
+        </details>
+        <details>
+          <summary>배치 형식 (한 회차에 여러 선수)</summary>
+          <pre class="code">{
+  "session": { "id": 1, "date": "2026-05-15", "protocol": "Theia+GRF" },
+  "results": [
+    { "athlete_external_id": "P01", "velocity": {...}, "sequence": {...}, "grf": {...}, "faults": {...} },
+    { "athlete_external_id": "P02", ... },
+    ...
+  ]
+}</pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>② ForceDecks (VALD Hub CSV) <span class="protocol-tag fitness">체력 16변인</span>
+          <span class="badge">v1.16 · 자동 파싱 활성</span></h2>
+      <input type="file" id="vald-csv-input" accept=".csv,text/csv" multiple style="display:none">
+      <div class="upload-zone" id="vald-csv-zone" data-kind="vald">
+        <div class="ico">📊</div>
+        <div><b>ForceDecks CSV 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">28 컬럼 wide format · 1행 = 1선수/1세션 · 헤더로 자동 인식</div>
+      </div>
+      <div id="vald-csv-result" style="margin-top:10px;font-size:12px"></div>
+      <div class="footnote" style="margin-top:12px">
+        <b>표준 컬럼 (29개)</b> — 식별 8 + 세션 2 + CMJ 5 + SJ 3 + EUR 1 + Pogo 3 + IMTP 5
+        <details>
+          <summary>1행 샘플 (정예준 가상 데이터)</summary>
+          <pre class="code">athlete_external_id,athlete_name,date_of_birth,sex,height_cm,weight_kg,bmi,handedness,
+test_date,session_id,
+cmj_jump_height_cm,cmj_peak_power_w,cmj_peak_power_bm_w_kg,cmj_rsi_modified_ms,cmj_concentric_peak_force_bm_n_kg,cmj_eccentric_concentric_force_ratio,
+sj_jump_height_cm,sj_peak_power_bm_w_kg,sj_concentric_peak_force_bm_n_kg,eur,
+pogo_rsi_ms,pogo_mean_contact_time_ms,pogo_mean_jump_height_cm,
+imtp_peak_vertical_force_n,imtp_peak_vertical_force_bm_n_kg,imtp_rfd_0_100ms_n_s,imtp_force_at_100ms_bm_n_kg,imtp_asymmetry_pct
+
+P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
+2026-05-15,SES_20260515_001,
+41.0,3460,42.0,0.50,40.5,1.05,
+39.3,32.7,35.2,1.04,
+1.85,148,26.5,
+2117,25.71,8240,21.8,3.2</pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>③ Rapsodo 구속 (CSV) <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo</span>
+          <span class="badge">v1.16 · 자동 파싱 활성</span></h2>
+      <input type="file" id="rapsodo-csv-input" accept=".csv,text/csv" multiple style="display:none">
+      <div class="upload-zone" id="rapsodo-csv-zone" data-kind="rapsodo">
+        <div class="ico">⚾</div>
+        <div><b>Rapsodo CSV 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">선수당 여러 throw 가능 · FB(Fastball)의 max·avg를 측정 구속으로 사용</div>
+      </div>
+      <div id="rapsodo-csv-result" style="margin-top:10px;font-size:12px"></div>
+      <div class="footnote" style="margin-top:12px">
+        <b>최소 컬럼</b>: <code>athlete_external_id</code>, <code>pitch_type</code> (FB/SL/CB/CH), <code>velocity_kmh</code>, <code>spin_rpm</code>, <code>release_height_m</code><br>
+        <b>인입 결과</b>: 선수별 FB 최고/평균 구속 → <code>velocity.measured_kmh</code>, 첫 release height SD → <code>faults.release_height_sd_cm</code>로 자동 매핑
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수 명단 관리 <span class="badge">총 <span id="roster-count">—</span>명</span></h2>
+    <div class="controls">
+      <input type="text" id="roster-search" placeholder="선수 검색..." style="min-width:200px">
+      <button class="btn" id="roster-add">+ 선수 추가</button>
+      <button class="btn" id="roster-export">CSV 다운로드</button>
+      <span style="color:var(--muted);font-size:11.5px;margin-left:auto">
+        ※ 명단을 영구 저장하려면 dashboard.html의 <code>PLAYERS</code> 배열을 직접 수정하세요.
+      </span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data" id="roster-table">
+        <thead>
+          <tr>
+            <th>외부ID</th><th>이름</th><th>투구</th><th>신장</th><th>체중</th>
+            <th>1차 메카닉</th><th>1차 체력</th><th>1차 구속</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 5: 리포트 출력 (선수 개별 + 코치 종합)                   ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-report" class="hidden">
+
+  <div class="panel">
+    <h2>📋 리포트 출력 메뉴</h2>
+    <div style="font-size:13px;color:var(--text-soft);line-height:1.7">
+      두 종류의 리포트를 PDF로 생성합니다 — <b>① 선수별 개별 리포트</b>(선수에게 배포)와
+      <b>② 코치 종합 리포트</b>(코치·감독 미팅 자료).<br>
+      <span style="color:var(--muted);font-size:12px">※ 브라우저 인쇄 다이얼로그에서 "PDF로 저장" 선택. Chrome/Edge 권장. 여백·머리글 모두 자동 처리.</span>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- ① 선수별 개별 리포트 -->
+    <div class="panel">
+      <h2>👤 선수별 개별 리포트</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+        각 선수당 1페이지. 선택한 선수만 일괄 PDF로 출력 → 한 번에 인쇄·저장 후 코치/선수에게 배포.
+      </div>
+      <div class="controls">
+        <label style="font-size:12.5px">측정 회차</label>
+        <select id="rep-session-pl">
+          <option value="1">1차 (Theia+GRF · 상반기)</option>
+        </select>
+        <button class="btn ghost" id="rep-pl-all">전체 선택</button>
+        <button class="btn ghost" id="rep-pl-none">전체 해제</button>
+      </div>
+
+      <div id="rep-player-checks" style="max-height:340px;overflow-y:auto;
+           border:1px solid var(--line-soft);border-radius:6px;padding:8px;
+           background:var(--panel2);margin-bottom:12px"></div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn primary" id="rep-pl-print">🖨 선택 선수 일괄 PDF 출력</button>
+        <span style="font-size:12px;color:var(--muted)">선택 <b id="rep-pl-count">0</b>명</span>
+      </div>
+
+      <div class="footnote" style="margin-top:14px">
+        <b>출력 항목</b> (1페이지/선수): 헤더 + 4 KPI · 5축 라디아 · 키네틱 시퀀스 막대 ·
+        에너지 분석(생성·전달·누수) · 결함 인과 Top 3 · GRF · 부상위험·제구 · 체력 보조
+      </div>
+    </div>
+
+    <!-- ② 코치 종합 리포트 -->
+    <div class="panel">
+      <h2>📊 코치 종합 리포트</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+        팀 전체 결과를 코치 시각으로 정리 — 우선순위 행동, 부상위험 알림, 결함 패턴, 그룹 훈련 추천까지.
+      </div>
+      <div class="controls">
+        <label style="font-size:12.5px">측정 회차</label>
+        <select id="rep-session-co">
+          <option value="1">1차 (Theia+GRF · 상반기)</option>
+        </select>
+        <button class="btn primary" id="rep-co-print" style="margin-left:auto">🖨 코치 리포트 PDF 출력</button>
+      </div>
+
+      <div class="footnote" style="margin-top:14px">
+        <b>리포트 구성</b>: 측정 진행 요약 · 팀 평균 KPI · 선수 그룹 분포 (Elite/Solid/Developing/Focus/Critical 5단계)
+        · ⚠ 부상 위험 알림 · 팀 결함 패턴 (취약 ELI zone Top 3 + 그룹 훈련 추천) · 우선순위 행동 (잠재력·향상도·즉시 관리) · 부록 표
+      </div>
+    </div>
+  </div>
+
+  <!-- 코치 리포트 미리보기 -->
+  <div class="panel">
+    <h2>👀 코치 리포트 미리보기 <span class="badge">실시간 데이터 기반 자동 생성</span></h2>
+    <div id="coach-report-preview" style="background:#fff;padding:0;border:none"></div>
+  </div>
+
+</section>
+
+<!-- 인쇄 전용 영역: 일괄 선수 인쇄 모드에서만 노출 -->
+<div id="batch-print-area" class="batch-print-only"></div>
+<!-- 인쇄 전용 영역: 코치 리포트 인쇄 모드 -->
+<div id="coach-print-area" class="coach-print-only"></div>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 4: 장기 추적 (4회 측정)                                ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-long" class="hidden">
+
+  <div class="panel">
+    <h2>연간 측정 일정 (상반기 · 하반기 각 2회)</h2>
+    <div id="schedule-halves"></div>
+  </div>
+
+  <div class="panel">
+    <h2>상·하반기 비교 분석 <span class="badge">상반기(1·2차) ↔ 하반기(3·4차)</span></h2>
+    <div class="controls">
+      <label style="color:var(--muted);font-size:12.5px;font-weight:500">비교 지표</label>
+      <select id="hc-metric">
+        <option value="score">종합점수 (0~100, 시스템 차이 보정)</option>
+        <option value="velo">측정 구속 (km/h)</option>
+        <option value="velo_pot">잠재 구속 (km/h)</option>
+        <option value="sequence">시퀀스 점수 (0~100)</option>
+        <option value="consistency">제구 일관성 점수 (0~100)</option>
+        <option value="fault">결함 관리 점수 (0~100)</option>
+      </select>
+      <span style="color:var(--muted);font-size:11.5px;margin-left:auto">
+        ※ 골반·몸통·팔 절대 회전속도는 Theia↔Uplift 시스템 차이가 커서 비교에서 제외 — 0~100 정규화 점수계 위주.
+      </span>
+    </div>
+
+    <!-- 팀 평균 KPI 4개 -->
+    <div class="grid grid-4" id="hc-team-kpi" style="margin-top:6px"></div>
+
+    <!-- 향상도 막대 차트 -->
+    <div style="margin-top:18px">
+      <h3 id="hc-bar-title" style="margin:0 0 8px">선수별 향상도 (Δ = 하반기 − 상반기)</h3>
+      <div class="chart-wrap lg"><canvas id="hc-bar"></canvas></div>
+    </div>
+
+    <!-- 향상도 테이블 -->
+    <div style="margin-top:18px">
+      <h3 style="margin:0 0 8px">선수별 향상도 정렬 테이블 <span class="badge" style="font-weight:400">컬럼 클릭 → 정렬 · 행 클릭 → 선수 리포트</span></h3>
+      <div style="overflow-x:auto">
+        <table class="data" id="hc-table">
+          <thead>
+            <tr>
+              <th data-key="name">선수</th>
+              <th data-key="arm" class="right">투구</th>
+              <th data-key="h1" class="right">상반기 평균</th>
+              <th data-key="h2" class="right">하반기 평균</th>
+              <th data-key="delta" class="right">Δ (향상도)</th>
+              <th data-key="grade" class="right">등급</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <b>등급 기준</b> (점수계 지표): Δ &ge; +5 매우 향상 / +2~+5 향상 / -2~+2 유지 / &lt; -2 정체·하락.
+      구속 지표(km/h)는 Δ &ge; +3 / +1~+3 / -1~+1 / &lt; -1 기준 적용.
+      <br>※ 한 회차라도 데이터 누락 시 해당 선수는 — 처리.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>회차별 팀 평균 변화</h2>
+    <div class="chart-wrap lg"><canvas id="long-trend"></canvas></div>
+    <div class="footnote">
+      두 프로토콜이 교차로 진행되므로 시스템 차이 감안 — 특히 골반 회전속도 절대값은 시스템 간 직접 비교 부적절
+      (Uplift는 카메라 markerless 특성상 골반 약 2× 과대측정 경향. <b>참조</b>: BBL v33.14 cross-system calibration).
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수별 4회 추적 (선수 클릭 시 활성)</h2>
+    <div class="placeholder-box">
+      <div class="big">📈</div>
+      <div class="ttl">2~4차 측정 후 활성화</div>
+      <div>현재는 1차 측정 중심 운영 단계입니다. 2차(Uplift) 측정이 들어오면 자동으로 시계열 비교 차트가 활성화됩니다.</div>
+      <div style="margin-top:14px;font-size:12px">
+        <button class="btn primary" onclick="switchTab('m1')">1차 결과 탭으로 이동</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<!-- MAIN_SCRIPTS -->
+
+
+
+</body>
+</html>

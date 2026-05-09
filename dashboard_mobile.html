@@ -3,170 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>상동고 투구 리포트 — 모바일 데모 (v1.12 SVG)</title>
-<script>
-/* v1.12 모바일 — Chart.js 대신 SVG로 직접 렌더링.
-   200KB 라이브러리 없이도 라디아·산점도·막대·라인 차트를 보여줌. */
-(function(){
-  function _q(canvas){return canvas && canvas.getContext;}
-  function _esc(s){return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
-  function _replace(canvas, svgHtml){
-    if(!canvas || !canvas.parentElement) return;
-    canvas.style.display='none';
-    var prev = canvas.parentElement.querySelector('.svg-chart-out');
-    if(prev) prev.remove();
-    var d = document.createElement('div');
-    d.className='svg-chart-out';
-    d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center';
-    d.innerHTML = svgHtml;
-    canvas.parentElement.appendChild(d);
-  }
-  // ───── Scatter (4분면 / 분포 / 구속vs잠재) ─────
-  function svgScatter(data, opts){
-    var W=420,H=240,M={l:42,r:14,t:12,b:36};
-    var xs=opts.scales&&opts.scales.x||{}, ys=opts.scales&&opts.scales.y||{};
-    var allPts=[]; (data.datasets||[]).forEach(function(ds){(ds.data||[]).forEach(function(p){if(p&&typeof p.x==='number')allPts.push(p);});});
-    var xMin=xs.min!=null?xs.min:Math.min.apply(null,allPts.map(function(p){return p.x;}).concat([0]));
-    var xMax=xs.max!=null?xs.max:Math.max.apply(null,allPts.map(function(p){return p.x;}).concat([100]));
-    var yMin=ys.min!=null?ys.min:Math.min.apply(null,allPts.map(function(p){return p.y;}).concat([0]));
-    var yMax=ys.max!=null?ys.max:Math.max.apply(null,allPts.map(function(p){return p.y;}).concat([100]));
-    if(xMax===xMin)xMax=xMin+1; if(yMax===yMin)yMax=yMin+1;
-    function xPx(x){return M.l+(x-xMin)/(xMax-xMin)*(W-M.l-M.r);}
-    function yPx(y){return H-M.b-(y-yMin)/(yMax-yMin)*(H-M.t-M.b);}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=Math.round(yMax-(yMax-yMin)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
-    for(var j=0;j<=4;j++){var gx=M.l+j*(W-M.l-M.r)/4;svg+='<line x1="'+gx+'" y1="'+M.t+'" x2="'+gx+'" y2="'+(H-M.b)+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv2=Math.round(xMin+(xMax-xMin)*j/4); svg+='<text x="'+gx+'" y="'+(H-M.b+12)+'" font-size="9" fill="#888" text-anchor="middle">'+gv2+'</text>';}
-    // axes
-    svg+='<line x1="'+M.l+'" y1="'+(H-M.b)+'" x2="'+(W-M.r)+'" y2="'+(H-M.b)+'" stroke="#999"/>';
-    svg+='<line x1="'+M.l+'" y1="'+M.t+'" x2="'+M.l+'" y2="'+(H-M.b)+'" stroke="#999"/>';
-    // datasets
-    (data.datasets||[]).forEach(function(ds,di){
-      var bg=ds.backgroundColor, br=ds.borderColor;
-      // line dataset (e.g. diagonal)
-      if(ds.type==='line' && ds.data && ds.data.length>1){
-        var pts=ds.data.map(function(p){return xPx(p.x)+','+yPx(p.y);}).join(' ');
-        svg+='<polyline points="'+pts+'" fill="none" stroke="'+(br||'#cf222e')+'" stroke-width="1.5" stroke-dasharray="4,3"/>';
-        return;
-      }
-      (ds.data||[]).forEach(function(p,i){
-        if(!p||typeof p.x!=='number') return;
-        var c=Array.isArray(bg)?bg[i]:(bg||'#0969da80');
-        var r=Array.isArray(ds.pointRadius)?ds.pointRadius[i]:(ds.pointRadius||4);
-        svg+='<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="'+r+'" fill="'+c+'" stroke="'+(Array.isArray(br)?br[i]:br||'#0969da')+'" stroke-width="1"/>';
-      });
-    });
-    var xt=opts.scales&&opts.scales.x&&opts.scales.x.title&&opts.scales.x.title.text||'';
-    var yt=opts.scales&&opts.scales.y&&opts.scales.y.title&&opts.scales.y.title.text||'';
-    if(xt) svg+='<text x="'+(W/2)+'" y="'+(H-2)+'" font-size="10" fill="#555" text-anchor="middle">'+_esc(xt)+'</text>';
-    if(yt) svg+='<text x="10" y="'+(H/2)+'" font-size="10" fill="#555" text-anchor="middle" transform="rotate(-90 10 '+(H/2)+')">'+_esc(yt)+'</text>';
-    svg+='</svg>'; return svg;
-  }
-  // ───── Bar (시퀀스, 향상도) ─────
-  function svgBar(data, opts){
-    var W=420,H=240,M={l:42,r:14,t:14,b:48};
-    var labels=data.labels||[];
-    var dss=data.datasets||[];
-    var allVals=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
-    var maxV=Math.max.apply(null,allVals.concat([1]));
-    var minV=Math.min.apply(null,allVals.concat([0]));
-    if(minV>0)minV=0;
-    function yPx(v){return H-M.b-(v-minV)/(maxV-minV)*(H-M.t-M.b);}
-    var groupW=(W-M.l-M.r)/Math.max(1,labels.length);
-    var barW=Math.max(4,(groupW-4)/Math.max(1,dss.length));
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=Math.round(maxV-(maxV-minV)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
-    // zero line if minV<0
-    if(minV<0){var z=yPx(0);svg+='<line x1="'+M.l+'" y1="'+z+'" x2="'+(W-M.r)+'" y2="'+z+'" stroke="#999" stroke-width="0.8"/>';}
-    // bars
-    labels.forEach(function(lbl,li){
-      var groupX=M.l+li*groupW+2;
-      dss.forEach(function(ds,di){
-        var v=ds.data[li]; if(typeof v!=='number') return;
-        var c=Array.isArray(ds.backgroundColor)?ds.backgroundColor[li]:(ds.backgroundColor||'#0969da');
-        var x=groupX+di*barW;
-        var y=yPx(Math.max(0,v)), h=Math.abs(yPx(v)-yPx(0));
-        svg+='<rect x="'+x+'" y="'+y+'" width="'+(barW-1)+'" height="'+h+'" fill="'+c+'" rx="1"/>';
-      });
-      var lx=groupX+groupW/2-2;
-      svg+='<text x="'+lx+'" y="'+(H-M.b+12)+'" font-size="8.5" fill="#666" text-anchor="middle">'+_esc(String(lbl).slice(0,6))+'</text>';
-    });
-    svg+='</svg>'; return svg;
-  }
-  // ───── Radar (5축) ─────
-  function svgRadar(data, opts){
-    var W=300,H=240,cx=W/2,cy=H/2-8,R=Math.min(cx,cy)-30;
-    var labels=data.labels||[]; var n=labels.length||5;
-    function ang(i){return -Math.PI/2+i*2*Math.PI/n;}
-    function pt(i,v){var r=R*Math.max(0,Math.min(1,v/100));return [cx+r*Math.cos(ang(i)),cy+r*Math.sin(ang(i))];}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // rings
-    [0.2,0.4,0.6,0.8,1.0].forEach(function(f){
-      var pts=[];for(var i=0;i<n;i++){var x=cx+R*f*Math.cos(ang(i)),y=cy+R*f*Math.sin(ang(i));pts.push(x+','+y);}
-      svg+='<polygon points="'+pts.join(' ')+'" fill="none" stroke="#ddd" stroke-width="0.5"/>';
-    });
-    // spokes
-    for(var i=0;i<n;i++){var p=pt(i,100);svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#ddd" stroke-width="0.5"/>';}
-    // datasets
-    (data.datasets||[]).forEach(function(ds,di){
-      var pts=(ds.data||[]).map(function(v,i){return pt(i,v||0).join(',');}).join(' ');
-      var fill=ds.backgroundColor||'rgba(9,105,218,0.18)', stk=ds.borderColor||'#0969da';
-      var dash=ds.borderDash?' stroke-dasharray="4,3"':'';
-      svg+='<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="1.5"'+dash+'/>';
-    });
-    // labels
-    for(var i=0;i<n;i++){var p2=pt(i,118);svg+='<text x="'+p2[0]+'" y="'+p2[1]+'" font-size="10" fill="#333" text-anchor="middle">'+_esc(labels[i]||'')+'</text>';}
-    svg+='</svg>'; return svg;
-  }
-  // ───── Line (시계열) ─────
-  function svgLine(data, opts){
-    var W=420,H=240,M={l:42,r:42,t:12,b:36};
-    var labels=data.labels||[];
-    var dss=data.datasets||[];
-    var allY=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
-    var maxY=Math.max.apply(null,allY.concat([1]));
-    var minY=Math.min.apply(null,allY.concat([0]));
-    if(maxY===minY)maxY=minY+1;
-    function xPx(i){return M.l+(labels.length>1?i/(labels.length-1):0.5)*(W-M.l-M.r);}
-    function yPx(v){return H-M.b-(v-minY)/(maxY-minY)*(H-M.t-M.b);}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=(maxY-(maxY-minY)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv.toFixed(0)+'</text>';}
-    // x labels
-    labels.forEach(function(l,i){svg+='<text x="'+xPx(i)+'" y="'+(H-M.b+14)+'" font-size="9" fill="#666" text-anchor="middle">'+_esc(String(l).split('\n')[0])+'</text>';});
-    // lines
-    dss.forEach(function(ds,di){
-      var pts=(ds.data||[]).map(function(v,i){return typeof v==='number'?(xPx(i)+','+yPx(v)):null;}).filter(Boolean).join(' ');
-      svg+='<polyline points="'+pts+'" fill="none" stroke="'+(ds.borderColor||'#0969da')+'" stroke-width="2"/>';
-      (ds.data||[]).forEach(function(v,i){if(typeof v==='number')svg+='<circle cx="'+xPx(i)+'" cy="'+yPx(v)+'" r="3" fill="'+(ds.borderColor||'#0969da')+'"/>';});
-    });
-    return svg+'</svg>';
-  }
-  function StubChart(canvas, config){
-    if(!_q(canvas)){return {destroy:function(){},update:function(){},resize:function(){}};}
-    try{
-      var t=config.type, svg='';
-      if(t==='scatter') svg=svgScatter(config.data, config.options||{});
-      else if(t==='bar') svg=svgBar(config.data, config.options||{});
-      else if(t==='radar') svg=svgRadar(config.data, config.options||{});
-      else if(t==='line') svg=svgLine(config.data, config.options||{});
-      else svg='<div style="color:#999;font-size:11px;padding:20px">📊 차트 ('+t+')</div>';
-      _replace(canvas, svg);
-    }catch(e){console.warn('SVG chart error:',e);}
-    return {destroy:function(){var p=canvas&&canvas.parentElement&&canvas.parentElement.querySelector('.svg-chart-out');if(p)p.remove();},
-            update:function(){},resize:function(){}};
-  }
-  StubChart.register=function(){};StubChart.defaults={};StubChart.helpers={};
-  window.Chart=StubChart;
-})();
-</script>
+<title>상동고 투구 리포트 통합 대시보드 (v1.1 · 상반기 1차 측정)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root{
+:root{
     --bg:#fafbfc; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de;
     --line-soft:#eaeef2;
     --text:#1f2328; --text-soft:#424a53; --muted:#656d76;
@@ -544,72 +384,6 @@
       background:#fff; color:#000;
     }
   }
-
-  @media (max-width: 820px){
-    body{font-size:13px}
-    header{padding:12px 14px}
-    header .top{flex-direction:column;align-items:flex-start;gap:6px}
-    header h1{font-size:17px;line-height:1.3}
-    header .ver{display:inline-block;margin-left:6px;font-size:11px}
-    header .sub{font-size:11.5px;line-height:1.5}
-    header .meta{text-align:left;font-size:11px;width:100%}
-    nav.tabs{padding:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
-             white-space:nowrap;flex-wrap:nowrap}
-    nav.tabs button{padding:11px 14px;font-size:12.5px;flex:0 0 auto;min-height:44px}
-    nav.tabs button .num{font-size:10px;padding:1px 5px}
-    main{padding:12px 12px;max-width:100%}
-    .panel{padding:12px 12px;margin-bottom:12px;border-radius:6px}
-    .panel h2{font-size:13.5px;margin-bottom:10px;flex-wrap:wrap;gap:6px}
-    .panel h3{font-size:12.5px}
-    .panel h2 .badge{font-size:9.5px;padding:2px 6px}
-    .grid-4{grid-template-columns:repeat(2,1fr);gap:8px}
-    .grid-3, .grid-2{grid-template-columns:1fr;gap:10px}
-    .kpi{padding:11px 12px}
-    .kpi .label{font-size:10px}
-    .kpi .value{font-size:18px}
-    .kpi .delta{font-size:10.5px}
-    .controls{flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}
-    .controls label{font-size:12px}
-    select, input[type=text], input[type=number]{font-size:13px;padding:8px 10px;min-height:38px}
-    button.btn{padding:9px 12px;font-size:13px;min-height:38px}
-    .chart-wrap{height:200px}
-    .chart-wrap.sm{height:160px}
-    .chart-wrap.lg, .chart-wrap.xl{height:220px}
-    table.data, table.heatmap{font-size:11.5px}
-    table.data thead th{padding:7px 7px;font-size:10.5px}
-    table.data tbody td{padding:7px 7px}
-    table.heatmap th{font-size:10.5px;padding:5px 4px}
-    table.heatmap td{padding:6px 4px;font-size:11.5px}
-    table.heatmap td.name{padding-left:8px}
-    .progress-grid{font-size:10px;grid-template-columns:120px repeat(var(--pc,20),minmax(28px,1fr));min-width:680px}
-    .progress-grid .col-h{padding:5px 0;font-size:10px}
-    .progress-grid .cell{padding:5px 0;min-height:24px}
-    .scard{padding:12px}
-    .scard h3{font-size:12.5px}
-    .scard .row{font-size:11.5px;padding:4px 0}
-    .fit-card{padding:11px}
-    .fit-card .test-name{font-size:12.5px}
-    .fit-card .var-row{font-size:11px}
-    #p-causal-chains > div{flex-wrap:wrap;font-size:11.5px;gap:6px}
-    .upload-zone{padding:18px 12px}
-    #rep-player-checks label{font-size:11.5px;padding:6px 9px;margin:2px}
-    #coach-report-preview{overflow-x:auto;-webkit-overflow-scrolling:touch}
-    #coach-report-preview .coach-rep{min-width:560px;padding:12px}
-    .footnote{font-size:10.5px;padding:9px 11px}
-    .player-meta{flex-direction:column;gap:4px;font-size:11.5px}
-  }
-  @media (max-width: 380px){
-    .grid-4{grid-template-columns:1fr;gap:7px}
-    header h1{font-size:15px}
-    nav.tabs button{padding:10px 11px;font-size:12px}
-    .panel h2{font-size:12.5px}
-  }
-  @media (hover:none){
-    table.data tbody tr:hover, table.heatmap td.name:hover{background:transparent;color:inherit}
-    nav.tabs button:hover{color:var(--muted)}
-    nav.tabs button.active:hover{color:var(--accent)}
-  }
-
 </style>
 </head>
 <body>
@@ -617,9 +391,9 @@
 <header>
   <div class="top">
     <div>
-      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v1.12 · 📱 모바일 데모 (SVG)</span></h1>
+      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v2.0 · 📱 모바일 (SVG 차트)</span></h1>
       <div class="sub">
-        <span style="background:#fff3e7;color:#bc4c00;padding:2px 8px;border-radius:4px;font-weight:600;margin-right:6px">📱 데모 모드</span>바이오모션 ↔ 상동고등학교 야구부 · 가상 투수 <b id="hdr-pcount">—</b>명 (샘플)
+        바이오모션 ↔ 상동고등학교 야구부 · 투수 <b id="hdr-pcount">—</b>명
         × 측정 4회 &nbsp;
         <span style="color:var(--text-soft)">상반기</span> Theia+GRF → Uplift &nbsp;·&nbsp;
         <span style="color:var(--text-soft)">하반기</span> Theia+GRF → Uplift
@@ -627,8 +401,19 @@
     </div>
     <div class="meta">
       <div>1차 측정 예정일: <b id="hdr-d1">—</b> (Theia+GRF + ForceDecks + Rapsodo)</div>
-      <div style="font-size:10.5px;color:var(--accent);font-weight:600;margin-bottom:4px">📡 단일 파일 — Chart.js 없이 SVG 차트로 모바일 안정 동작</div><div>현재 데이터: <b id="data-status">데모용 샘플 데이터 (가상 선수 20명)</b> &nbsp;<span id="js-status" style="font-size:10px;color:var(--good);font-weight:600">JS OK</span>
-        &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span></div>
+      <div style="margin:4px 0">
+        <label style="font-size:11px;color:var(--muted)">랩소도 코호트:</label>
+        <select id="rap-cohort-select" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid var(--line);background:#fff;font-family:inherit">
+          <option value="KBO">KBO 프로 기준</option>
+          <option value="HS">고교 (HS) 기준</option>
+        </select>
+      </div>
+      <div>현재 데이터: <b id="data-status">샘플 데이터 (실측 데이터 미입력)</b>
+        &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span>
+        &nbsp;<span class="pill" style="font-size:10px;background:#ddf4ff;color:#0969da" id="analytics-badge"
+          title="잠재구속·ELI는 analytics.js 통계 모듈로 산출 (Stodden 2001/MacWilliams 1998/Werner 2008/Lehman 2013/Aguinaldo 2009 근거)">
+          analytics v2.1
+        </span></div>
     </div>
   </div>
 </header>
@@ -695,17 +480,19 @@
           <tr>
             <th data-key="name">선수</th>
             <th data-key="arm" class="right">투구</th>
-            <th data-key="velo" class="right">구속(km/h)</th>
-            <th data-key="velo_pot" class="right">잠재</th>
+            <th data-key="velo" class="right">FB Max(km/h)</th>
+            <th data-key="velo_avg" class="right">FB Avg</th>
+            <th data-key="spin" class="right" style="background:#ddf4ff">Spin</th>
+            <th data-key="spin_eff" class="right" style="background:#ddf4ff">Eff%</th>
+            <th data-key="ivb" class="right" style="background:#ddf4ff">IVB(cm)</th>
+            <th data-key="bauer" class="right" style="background:#ddf4ff">Bauer</th>
+            <th data-key="stuff" class="right" style="background:#fff8c5">Stuff</th>
+            <th data-key="command" class="right" style="background:#fff8c5">Cmd</th>
             <th data-key="score" class="right">종합</th>
-            <th data-key="gen" class="right" style="background:#ddf4ff">출력</th>
-            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
+            <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
             <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
-            <th data-key="grf" class="right">GRF·LHEI</th>
+            <th data-key="grf" class="right">LHEI</th>
             <th data-key="risk" class="right">부상</th>
-            <th data-key="cons" class="right">제구SD</th>
-            <th data-key="cmj_jh" class="right" style="color:var(--muted);font-size:10.5px">체력 CMJ</th>
-            <th data-key="imtp_pf" class="right" style="color:var(--muted);font-size:10.5px">체력 IMTP</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -886,8 +673,8 @@
       </div>
       <div class="scard">
         <h3>발별 누적 힘 (% BW·s)</h3>
-        <div class="row"><span>축발(뒷발) FP2</span><span class="v" id="p-rear">—</span></div>
-        <div class="row"><span>디딤발(앞발) FP1</span><span class="v" id="p-lead">—</span></div>
+        <div class="row"><span>축발(뒷발) FP1</span><span class="v" id="p-rear">—</span></div>
+        <div class="row"><span>디딤발(앞발) FP2</span><span class="v" id="p-lead">—</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
           축발: 시작부터 정적 weight + 차고 나가기<br>디딤발: 앞발 착지 후 받쳐주기
         </div>
@@ -913,8 +700,22 @@
   <span id="p-sg" style="display:none"></span>
   <span id="p-seq-binary" style="display:none"></span>
 
-  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <!-- 🎯 랩소도 패스트볼 분석 (Rapsodo 2.0) -->
   <div class="panel print-break">
+    <h2>🎯 랩소도 패스트볼 분석 <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo 2.0</span>
+        <span class="badge" id="rap-cohort-badge">코호트: KBO 기준</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      릴리스 → 플레이트까지의 변화, 회전 효율·축, IVB/HB 무브먼트, 진입각, 릴리스 일관성을 코호트 평균과 함께 평가.
+    </div>
+    <div id="p-rapsodo-area">
+      <div style="text-align:center;color:var(--muted);padding:20px;background:var(--panel2);border-radius:6px">
+        Rapsodo CSV 인입 후 자동 표시 — <a href="#" onclick="switchTab('data');return false;" style="color:var(--accent)">데이터 관리 탭으로 이동</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <div class="panel">
     <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
         <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
@@ -1060,12 +861,15 @@
     </div>
 
     <div class="panel">
-      <h2>② ForceDecks (VALD Hub CSV) <span class="protocol-tag fitness">체력 16변인</span></h2>
-      <div class="upload-zone" data-kind="vald">
+      <h2>② ForceDecks (VALD Hub CSV) <span class="protocol-tag fitness">체력 16변인</span>
+          <span class="badge">v1.16 · 자동 파싱 활성</span></h2>
+      <input type="file" id="vald-csv-input" accept=".csv,text/csv" multiple style="display:none">
+      <div class="upload-zone" id="vald-csv-zone" data-kind="vald">
         <div class="ico">📊</div>
-        <div><b>vald_hub_template.csv 파일을 끌어놓기</b></div>
-        <div class="hint">29 컬럼 wide format · 1행 = 1선수/1세션</div>
+        <div><b>ForceDecks CSV 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">28 컬럼 wide format · 1행 = 1선수/1세션 · 헤더로 자동 인식</div>
       </div>
+      <div id="vald-csv-result" style="margin-top:10px;font-size:12px"></div>
       <div class="footnote" style="margin-top:12px">
         <b>표준 컬럼 (29개)</b> — 식별 8 + 세션 2 + CMJ 5 + SJ 3 + EUR 1 + Pogo 3 + IMTP 5
         <details>
@@ -1088,14 +892,18 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
     </div>
 
     <div class="panel">
-      <h2>③ Rapsodo 구속 (CSV) <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo</span></h2>
-      <div class="upload-zone" data-kind="rapsodo">
+      <h2>③ Rapsodo 구속 (CSV) <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo</span>
+          <span class="badge">v1.16 · 자동 파싱 활성</span></h2>
+      <input type="file" id="rapsodo-csv-input" accept=".csv,text/csv" multiple style="display:none">
+      <div class="upload-zone" id="rapsodo-csv-zone" data-kind="rapsodo">
         <div class="ico">⚾</div>
-        <div><b>rapsodo_velocity.csv 파일을 끌어놓기</b></div>
-        <div class="hint">선수ID, 구속(km/h or mph), 구종, 회전수 등</div>
+        <div><b>Rapsodo CSV 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">선수당 여러 throw 가능 · FB(Fastball)의 max·avg를 측정 구속으로 사용</div>
       </div>
+      <div id="rapsodo-csv-result" style="margin-top:10px;font-size:12px"></div>
       <div class="footnote" style="margin-top:12px">
-        <b>최소 컬럼</b>: athlete_external_id, pitch_type(FB/CB/SL/CH 등), velocity_kmh, spin_rpm, release_height_m
+        <b>최소 컬럼</b>: <code>athlete_external_id</code>, <code>pitch_type</code> (FB/SL/CB/CH), <code>velocity_kmh</code>, <code>spin_rpm</code>, <code>release_height_m</code><br>
+        <b>인입 결과</b>: 선수별 FB 최고/평균 구속 → <code>velocity.measured_kmh</code>, 첫 release height SD → <code>faults.release_height_sd_cm</code>로 자동 매핑
       </div>
     </div>
   </div>
@@ -1293,6 +1101,585 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 </main>
 
 <script>
+/* v1.12 모바일 — Chart.js 대신 SVG로 직접 렌더링.
+   200KB 라이브러리 없이도 라디아·산점도·막대·라인 차트를 보여줌. */
+(function(){
+  function _q(canvas){return canvas && canvas.getContext;}
+  function _esc(s){return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+  function _replace(canvas, svgHtml){
+    if(!canvas || !canvas.parentElement) return;
+    canvas.style.display='none';
+    var prev = canvas.parentElement.querySelector('.svg-chart-out');
+    if(prev) prev.remove();
+    var d = document.createElement('div');
+    d.className='svg-chart-out';
+    d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center';
+    d.innerHTML = svgHtml;
+    canvas.parentElement.appendChild(d);
+  }
+  // ───── Scatter (4분면 / 분포 / 구속vs잠재) ─────
+  function svgScatter(data, opts){
+    var W=420,H=240,M={l:42,r:14,t:12,b:36};
+    var xs=opts.scales&&opts.scales.x||{}, ys=opts.scales&&opts.scales.y||{};
+    var allPts=[]; (data.datasets||[]).forEach(function(ds){(ds.data||[]).forEach(function(p){if(p&&typeof p.x==='number')allPts.push(p);});});
+    var xMin=xs.min!=null?xs.min:Math.min.apply(null,allPts.map(function(p){return p.x;}).concat([0]));
+    var xMax=xs.max!=null?xs.max:Math.max.apply(null,allPts.map(function(p){return p.x;}).concat([100]));
+    var yMin=ys.min!=null?ys.min:Math.min.apply(null,allPts.map(function(p){return p.y;}).concat([0]));
+    var yMax=ys.max!=null?ys.max:Math.max.apply(null,allPts.map(function(p){return p.y;}).concat([100]));
+    if(xMax===xMin)xMax=xMin+1; if(yMax===yMin)yMax=yMin+1;
+    function xPx(x){return M.l+(x-xMin)/(xMax-xMin)*(W-M.l-M.r);}
+    function yPx(y){return H-M.b-(y-yMin)/(yMax-yMin)*(H-M.t-M.b);}
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
+    // grid
+    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
+      var gv=Math.round(yMax-(yMax-yMin)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
+    for(var j=0;j<=4;j++){var gx=M.l+j*(W-M.l-M.r)/4;svg+='<line x1="'+gx+'" y1="'+M.t+'" x2="'+gx+'" y2="'+(H-M.b)+'" stroke="#eee" stroke-width="0.5"/>';
+      var gv2=Math.round(xMin+(xMax-xMin)*j/4); svg+='<text x="'+gx+'" y="'+(H-M.b+12)+'" font-size="9" fill="#888" text-anchor="middle">'+gv2+'</text>';}
+    // axes
+    svg+='<line x1="'+M.l+'" y1="'+(H-M.b)+'" x2="'+(W-M.r)+'" y2="'+(H-M.b)+'" stroke="#999"/>';
+    svg+='<line x1="'+M.l+'" y1="'+M.t+'" x2="'+M.l+'" y2="'+(H-M.b)+'" stroke="#999"/>';
+    // datasets
+    (data.datasets||[]).forEach(function(ds,di){
+      var bg=ds.backgroundColor, br=ds.borderColor;
+      // line dataset (e.g. diagonal)
+      if(ds.type==='line' && ds.data && ds.data.length>1){
+        var pts=ds.data.map(function(p){return xPx(p.x)+','+yPx(p.y);}).join(' ');
+        svg+='<polyline points="'+pts+'" fill="none" stroke="'+(br||'#cf222e')+'" stroke-width="1.5" stroke-dasharray="4,3"/>';
+        return;
+      }
+      (ds.data||[]).forEach(function(p,i){
+        if(!p||typeof p.x!=='number') return;
+        var c=Array.isArray(bg)?bg[i]:(bg||'#0969da80');
+        var r=Array.isArray(ds.pointRadius)?ds.pointRadius[i]:(ds.pointRadius||4);
+        svg+='<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="'+r+'" fill="'+c+'" stroke="'+(Array.isArray(br)?br[i]:br||'#0969da')+'" stroke-width="1"/>';
+      });
+    });
+    var xt=opts.scales&&opts.scales.x&&opts.scales.x.title&&opts.scales.x.title.text||'';
+    var yt=opts.scales&&opts.scales.y&&opts.scales.y.title&&opts.scales.y.title.text||'';
+    if(xt) svg+='<text x="'+(W/2)+'" y="'+(H-2)+'" font-size="10" fill="#555" text-anchor="middle">'+_esc(xt)+'</text>';
+    if(yt) svg+='<text x="10" y="'+(H/2)+'" font-size="10" fill="#555" text-anchor="middle" transform="rotate(-90 10 '+(H/2)+')">'+_esc(yt)+'</text>';
+    svg+='</svg>'; return svg;
+  }
+  // ───── Bar (시퀀스, 향상도) ─────
+  function svgBar(data, opts){
+    var W=420,H=240,M={l:42,r:14,t:14,b:48};
+    var labels=data.labels||[];
+    var dss=data.datasets||[];
+    var allVals=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
+    var maxV=Math.max.apply(null,allVals.concat([1]));
+    var minV=Math.min.apply(null,allVals.concat([0]));
+    if(minV>0)minV=0;
+    function yPx(v){return H-M.b-(v-minV)/(maxV-minV)*(H-M.t-M.b);}
+    var groupW=(W-M.l-M.r)/Math.max(1,labels.length);
+    var barW=Math.max(4,(groupW-4)/Math.max(1,dss.length));
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
+    // grid
+    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
+      var gv=Math.round(maxV-(maxV-minV)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
+    // zero line if minV<0
+    if(minV<0){var z=yPx(0);svg+='<line x1="'+M.l+'" y1="'+z+'" x2="'+(W-M.r)+'" y2="'+z+'" stroke="#999" stroke-width="0.8"/>';}
+    // bars
+    labels.forEach(function(lbl,li){
+      var groupX=M.l+li*groupW+2;
+      dss.forEach(function(ds,di){
+        var v=ds.data[li]; if(typeof v!=='number') return;
+        var c=Array.isArray(ds.backgroundColor)?ds.backgroundColor[li]:(ds.backgroundColor||'#0969da');
+        var x=groupX+di*barW;
+        var y=yPx(Math.max(0,v)), h=Math.abs(yPx(v)-yPx(0));
+        svg+='<rect x="'+x+'" y="'+y+'" width="'+(barW-1)+'" height="'+h+'" fill="'+c+'" rx="1"/>';
+      });
+      var lx=groupX+groupW/2-2;
+      svg+='<text x="'+lx+'" y="'+(H-M.b+12)+'" font-size="8.5" fill="#666" text-anchor="middle">'+_esc(String(lbl).slice(0,6))+'</text>';
+    });
+    svg+='</svg>'; return svg;
+  }
+  // ───── Radar (5축) ─────
+  function svgRadar(data, opts){
+    var W=300,H=240,cx=W/2,cy=H/2-8,R=Math.min(cx,cy)-30;
+    var labels=data.labels||[]; var n=labels.length||5;
+    function ang(i){return -Math.PI/2+i*2*Math.PI/n;}
+    function pt(i,v){var r=R*Math.max(0,Math.min(1,v/100));return [cx+r*Math.cos(ang(i)),cy+r*Math.sin(ang(i))];}
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
+    // rings
+    [0.2,0.4,0.6,0.8,1.0].forEach(function(f){
+      var pts=[];for(var i=0;i<n;i++){var x=cx+R*f*Math.cos(ang(i)),y=cy+R*f*Math.sin(ang(i));pts.push(x+','+y);}
+      svg+='<polygon points="'+pts.join(' ')+'" fill="none" stroke="#ddd" stroke-width="0.5"/>';
+    });
+    // spokes
+    for(var i=0;i<n;i++){var p=pt(i,100);svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#ddd" stroke-width="0.5"/>';}
+    // datasets
+    (data.datasets||[]).forEach(function(ds,di){
+      var pts=(ds.data||[]).map(function(v,i){return pt(i,v||0).join(',');}).join(' ');
+      var fill=ds.backgroundColor||'rgba(9,105,218,0.18)', stk=ds.borderColor||'#0969da';
+      var dash=ds.borderDash?' stroke-dasharray="4,3"':'';
+      svg+='<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="1.5"'+dash+'/>';
+    });
+    // labels
+    for(var i=0;i<n;i++){var p2=pt(i,118);svg+='<text x="'+p2[0]+'" y="'+p2[1]+'" font-size="10" fill="#333" text-anchor="middle">'+_esc(labels[i]||'')+'</text>';}
+    svg+='</svg>'; return svg;
+  }
+  // ───── Line (시계열) ─────
+  function svgLine(data, opts){
+    var W=420,H=240,M={l:42,r:42,t:12,b:36};
+    var labels=data.labels||[];
+    var dss=data.datasets||[];
+    var allY=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
+    var maxY=Math.max.apply(null,allY.concat([1]));
+    var minY=Math.min.apply(null,allY.concat([0]));
+    if(maxY===minY)maxY=minY+1;
+    function xPx(i){return M.l+(labels.length>1?i/(labels.length-1):0.5)*(W-M.l-M.r);}
+    function yPx(v){return H-M.b-(v-minY)/(maxY-minY)*(H-M.t-M.b);}
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
+    // grid
+    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
+      var gv=(maxY-(maxY-minY)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv.toFixed(0)+'</text>';}
+    // x labels
+    labels.forEach(function(l,i){svg+='<text x="'+xPx(i)+'" y="'+(H-M.b+14)+'" font-size="9" fill="#666" text-anchor="middle">'+_esc(String(l).split('\n')[0])+'</text>';});
+    // lines
+    dss.forEach(function(ds,di){
+      var pts=(ds.data||[]).map(function(v,i){return typeof v==='number'?(xPx(i)+','+yPx(v)):null;}).filter(Boolean).join(' ');
+      svg+='<polyline points="'+pts+'" fill="none" stroke="'+(ds.borderColor||'#0969da')+'" stroke-width="2"/>';
+      (ds.data||[]).forEach(function(v,i){if(typeof v==='number')svg+='<circle cx="'+xPx(i)+'" cy="'+yPx(v)+'" r="3" fill="'+(ds.borderColor||'#0969da')+'"/>';});
+    });
+    return svg+'</svg>';
+  }
+  function StubChart(canvas, config){
+    if(!_q(canvas)){return {destroy:function(){},update:function(){},resize:function(){}};}
+    try{
+      var t=config.type, svg='';
+      if(t==='scatter') svg=svgScatter(config.data, config.options||{});
+      else if(t==='bar') svg=svgBar(config.data, config.options||{});
+      else if(t==='radar') svg=svgRadar(config.data, config.options||{});
+      else if(t==='line') svg=svgLine(config.data, config.options||{});
+      else svg='<div style="color:#999;font-size:11px;padding:20px">📊 차트 ('+t+')</div>';
+      _replace(canvas, svg);
+    }catch(e){console.warn('SVG chart error:',e);}
+    return {destroy:function(){var p=canvas&&canvas.parentElement&&canvas.parentElement.querySelector('.svg-chart-out');if(p)p.remove();},
+            update:function(){},resize:function(){}};
+  }
+  StubChart.register=function(){};StubChart.defaults={};StubChart.helpers={};
+  window.Chart=StubChart;
+})();
+</script>
+<script>
+
+/* ===== js/analytics.js ===== */
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  ANALYTICS — 통계 정식화 모듈 (v2.1)                          ║
+   ║                                                              ║
+   ║  잠재구속 회귀 · ELI 6-zone 정식 산출 · 신뢰구간 ·           ║
+   ║  composite score weights — 모두 문헌 근거 + 출처 명시         ║
+   ║                                                              ║
+   ║  핵심 함수:                                                  ║
+   ║    latentVelocity(measured_v, bio, fit) → {potential, gap}   ║
+   ║    eliScoresFromTheia(metrics)         → {z1..z6, eli, cc}   ║
+   ║    confidenceInterval(values, α=0.05)  → {mean, lo, hi, n}   ║
+   ║    compositeScore(weights, components) → {score, breakdown}  ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+const ANALYTICS_VERSION = '2.1';
+
+/* ────────────────────────────────────────────────────────────
+   1. 통계 헬퍼 — 평균·표준편차·신뢰구간
+   ──────────────────────────────────────────────────────────── */
+
+function _mean(arr){
+  const v = arr.filter(x => x != null && !isNaN(x));
+  return v.length ? v.reduce((a,b)=>a+b,0) / v.length : null;
+}
+
+function _sd(arr){
+  const v = arr.filter(x => x != null && !isNaN(x));
+  if(v.length < 2) return null;
+  const m = _mean(v);
+  const sq = v.map(x => (x-m)**2).reduce((a,b)=>a+b,0);
+  return Math.sqrt(sq / (v.length - 1));   // 표본 표준편차 (n-1)
+}
+
+/**
+ * 95% 신뢰구간 (정규근사 + t-분포 근사)
+ * @param {number[]} values  trial별 측정값
+ * @param {number} alpha     유의수준 (기본 0.05 → 95% CI)
+ * @returns {{mean, sd, n, se, ci_half, lo, hi}|null}
+ */
+function confidenceInterval(values, alpha = 0.05){
+  const v = values.filter(x => x != null && !isNaN(x));
+  const n = v.length;
+  if(n < 2) return null;
+  const mean = _mean(v);
+  const sd   = _sd(v);
+  const se   = sd / Math.sqrt(n);
+  // t-critical (df=n-1, two-sided 0.05) 근사 — n≥10 이면 1.96, n=5 면 2.78 등
+  const tCrit = _tCritical(n - 1, alpha);
+  const ci_half = tCrit * se;
+  return {
+    mean: Math.round(mean*100)/100,
+    sd:   Math.round(sd*100)/100,
+    n,
+    se:   Math.round(se*100)/100,
+    ci_half: Math.round(ci_half*100)/100,
+    lo:   Math.round((mean - ci_half)*100)/100,
+    hi:   Math.round((mean + ci_half)*100)/100
+  };
+}
+
+// t-critical 값 (two-sided, alpha=0.05) — 야구 측정 trial N=5~30 범위
+function _tCritical(df, alpha = 0.05){
+  if(alpha !== 0.05) return 1.96; // 0.05 외에는 정규근사
+  // df 1~30 t-table (two-sided 0.05)
+  const T = {1:12.71, 2:4.30, 3:3.18, 4:2.78, 5:2.57, 6:2.45, 7:2.36, 8:2.31,
+             9:2.26, 10:2.23, 11:2.20, 12:2.18, 13:2.16, 14:2.14, 15:2.13,
+             16:2.12, 17:2.11, 18:2.10, 19:2.09, 20:2.09, 25:2.06, 30:2.04};
+  if(df >= 30) return 1.96;
+  if(T[df] != null) return T[df];
+  // 보간
+  const keys = Object.keys(T).map(Number).sort((a,b)=>a-b);
+  for(let i = 0; i < keys.length-1; i++){
+    if(df > keys[i] && df < keys[i+1]){
+      const a = keys[i], b = keys[i+1];
+      return T[a] + (T[b]-T[a]) * (df-a)/(b-a);
+    }
+  }
+  return 2.0;
+}
+
+/**
+ * 두 그룹 평균 차이의 paired t-test (전·후 비교)
+ * @returns {{diff, t, df, p_approx, significant}}
+ */
+function pairedTTest(before, after, alpha = 0.05){
+  const pairs = [];
+  for(let i = 0; i < Math.min(before.length, after.length); i++){
+    if(before[i] != null && after[i] != null){
+      pairs.push(after[i] - before[i]);
+    }
+  }
+  if(pairs.length < 2) return null;
+  const m = _mean(pairs);
+  const sd = _sd(pairs);
+  const se = sd / Math.sqrt(pairs.length);
+  const t = m / se;
+  const df = pairs.length - 1;
+  const tCrit = _tCritical(df, alpha);
+  return {
+    diff: Math.round(m*100)/100,
+    t: Math.round(t*100)/100,
+    df,
+    significant: Math.abs(t) > tCrit,
+    p_approx: Math.abs(t) > tCrit ? '< 0.05' : '≥ 0.05'
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   2. 잠재 구속 회귀 (Latent Velocity Regression)
+
+   문헌 근거:
+   - Stodden DF et al. (2001) "Relationship of biomechanical
+     factors to baseball pitching velocity" — pelvis & trunk
+     angular velocity, stride length, lead knee extension.
+   - MacWilliams et al. (1998) "Characteristic GRF in baseball
+     pitching" — 앞발 vertical GRF/BW vs ball velocity (r=0.39).
+   - Lehman G et al. (2013) "Effects of strength training on
+     pitching velocity" — CMJ peak power/BW 와 구속 r=0.32~0.45.
+   - Werner et al. (2008) "Relationships between throwing mech
+     and elbow varus torque" — shoulder ER max 와 velocity.
+
+   모델 (간이 가법):
+     v_potential = v_measured + Σ ΔV_i
+     ΔV_i = w_i × max(0, x_i − x_threshold_i)
+   각 w_i 는 위 문헌의 회귀계수 보수적 추정값.
+   ──────────────────────────────────────────────────────────── */
+
+const LATENT_VELOCITY_WEIGHTS = {
+  // 단위: km/h gain per (단위 above threshold)
+  // weight, threshold, max_contribution (km/h)
+  trunk_peak_dps:   { w: 0.0050, th:  900, max: 4.0, src: 'Stodden 2001' },
+  pelvis_peak_dps:  { w: 0.0040, th:  500, max: 3.0, src: 'Stodden 2001' },
+  cmj_pp_bm:        { w: 0.20,   th:   38, max: 4.0, src: 'Lehman 2013'  },
+  imtp_pf_bm:       { w: 0.15,   th:   28, max: 3.0, src: 'Lehman 2013'  },
+  front_grf_bm:     { w: 1.20,   th:  1.5, max: 3.0, src: 'MacWilliams 1998' },
+  shoulder_er_deg:  { w: 0.05,   th:  165, max: 2.5, src: 'Werner 2008'  },
+  stride_pct_height:{ w: 0.30,   th:   85, max: 3.0, src: 'Stodden 2001' }
+};
+
+/**
+ * 잠재 구속 추정 — 측정 구속에 기여 가능한 추가량 합산
+ * @param {number} measured_kmh  실측 구속 (km/h)
+ * @param {object} bio  Theia 변수 — {trunk_peak_dps, pelvis_peak_dps, shoulder_er_deg, stride_pct_height, front_grf_bm}
+ * @param {object} fit  ForceDecks 변수 — {cmj_pp_bm, imtp_pf_bm}
+ * @returns {{potential_kmh, gap_kmh, contributions, model}}
+ */
+function latentVelocity(measured_kmh, bio = {}, fit = {}){
+  if(measured_kmh == null || isNaN(measured_kmh)){
+    return { potential_kmh: null, gap_kmh: null, contributions: [], model: ANALYTICS_VERSION };
+  }
+  const inputs = { ...bio, ...fit };
+  const contributions = [];
+  let totalGain = 0;
+  for(const [key, spec] of Object.entries(LATENT_VELOCITY_WEIGHTS)){
+    const x = inputs[key];
+    if(x == null || isNaN(x)) continue;
+    const above = Math.max(0, x - spec.th);
+    const gain  = Math.min(spec.max, spec.w * above);
+    if(gain > 0.05){  // 0.05 km/h 미만은 무시
+      contributions.push({
+        var: key, value: x, threshold: spec.th, gain_kmh: Math.round(gain*10)/10,
+        source: spec.src
+      });
+      totalGain += gain;
+    }
+  }
+  // 보수적 제한: 잠재구속은 측정 + 8 km/h 이내
+  totalGain = Math.min(totalGain, 8.0);
+  const potential = measured_kmh + totalGain;
+  return {
+    potential_kmh: Math.round(potential*10)/10,
+    gap_kmh:       Math.round(totalGain*10)/10,
+    contributions: contributions.sort((a,b)=>b.gain_kmh - a.gain_kmh),
+    model:         ANALYTICS_VERSION
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   3. ELI 6-zone 정식 산출 (Energy Leakage Index)
+
+   문헌 근거:
+   - Aguinaldo & Chambers (2009) "Correlation of throwing mechanics
+     with elbow valgus load" — sequential timing.
+   - Stodden et al. (2005) "Influence of pelvis-upper torso
+     separation" — X-factor.
+   - MacWilliams et al. (1998) — lead leg block.
+   - Matsuo et al. (2001) "Comparison of kinematic and temporal
+     parameters between different pitch velocity groups" —
+     trunk tilt at FC.
+   - Werner et al. (2008) — shoulder ER.
+   - Aguinaldo & Chambers (2009) — pelvis braking.
+
+   각 zone 점수 100 = 이상적 · 0 = 완전 누수
+   ──────────────────────────────────────────────────────────── */
+
+function _clamp01(x){ return Math.max(0, Math.min(100, x)); }
+
+/**
+ * ELI 6 zone 산출
+ * @param {object} m  Theia 핵심 변수
+ *   - pelvis_to_trunk_lag_ms, trunk_to_arm_lag_ms
+ *   - x_factor_max_deg
+ *   - lead_knee_change_deg  (FC→release; 양수=신전, 음수=collapse)
+ *   - trunk_tilt_at_fc_deg  (전방 기울기, 이상 25~35)
+ *   - trunk_lat_tilt_deg    (좌우 기울기, 이상 <15)
+ *   - shoulder_er_max_deg
+ *   - pelvis_brake_ratio    (pelvis_AV at trunk_max / pelvis_peak_AV; 이상 <0.5)
+ * @returns {{zone1..6, eli_score, causal_chains}}
+ */
+function eliScoresFromTheia(m){
+  // Zone 1: Sequential timing (이상 pelvis→trunk 30-50ms, trunk→arm 25-45ms)
+  const z1 = (function(){
+    const ptIdeal = 40, taIdeal = 35;
+    const pt = m.pelvis_to_trunk_lag_ms;
+    const ta = m.trunk_to_arm_lag_ms;
+    let pen = 0;
+    if(pt != null) pen += Math.abs(pt - ptIdeal) * 1.2;
+    if(ta != null) pen += Math.abs(ta - taIdeal) * 1.2;
+    return _clamp01(100 - pen);
+  })();
+
+  // Zone 2: X-factor (이상 ≥40°)
+  const z2 = (function(){
+    const x = m.x_factor_max_deg;
+    if(x == null) return null;
+    if(x >= 40) return 100;
+    if(x <= 15) return 0;
+    return _clamp01((x - 15) / 25 * 100);
+  })();
+
+  // Zone 3: Lead block — knee 신전 (양수=좋음, 음수=collapse)
+  const z3 = (function(){
+    const k = m.lead_knee_change_deg;
+    if(k == null) return null;
+    // 이상: +5° 이상 신전.  collapse(-5° 이하)는 큰 감점.
+    if(k >= 5) return 100;
+    if(k >= 0) return 70 + (k * 6);                    // 0~5° → 70~100
+    if(k >= -10) return _clamp01(70 + k * 7);          // 0~-10° → 70~0
+    return 0;
+  })();
+
+  // Zone 4: Trunk at FC (이상 전방 25-35°, 측방 <15°)
+  const z4 = (function(){
+    const fwd = m.trunk_tilt_at_fc_deg;
+    const lat = m.trunk_lat_tilt_deg;
+    if(fwd == null) return null;
+    let pen = 0;
+    // 전방 기울기 30°가 이상점, ±15° 마다 100점 감점
+    pen += Math.abs(fwd - 30) * 2;
+    if(lat != null) pen += Math.max(0, lat - 15) * 3;
+    return _clamp01(100 - pen);
+  })();
+
+  // Zone 5: Shoulder ER max (이상 165-185°)
+  const z5 = (function(){
+    const er = m.shoulder_er_max_deg;
+    if(er == null) return null;
+    if(er >= 165 && er <= 185) return 100;
+    if(er > 185) return _clamp01(100 - (er - 185) * 2);   // 과도한 ER 감점
+    return _clamp01(100 - (165 - er) * 2);                 // 부족 감점
+  })();
+
+  // Zone 6: Pelvis braking — pelvis_AV at trunk_max / pelvis_peak_AV
+  const z6 = (function(){
+    const r = m.pelvis_brake_ratio;
+    if(r == null) return null;
+    if(r <= 0.3) return 100;
+    if(r >= 0.8) return 0;
+    return _clamp01(100 - (r - 0.3) * 200);   // 0.3→100, 0.8→0
+  })();
+
+  // ELI 종합 (null 제외 평균)
+  const zones = [z1, z2, z3, z4, z5, z6];
+  const valid = zones.filter(z => z != null);
+  const eli = valid.length ? Math.round(valid.reduce((a,b)=>a+b,0) / valid.length) : null;
+
+  // 인과 chain — 점수 낮은 zone 3개 + 추정 손실 km/h
+  const labels = [
+    {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함', impact_w: 0.18},
+    {key:'zone2', label:'X-factor 부족',                defect:'골반-상체 분리 미달',  impact_w: 0.15},
+    {key:'zone3', label:'앞발 받쳐주기 약함',           defect:'Lead knee collapse',   impact_w: 0.18},
+    {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',   defect:'FC 시 트렁크 기울기 부적절', impact_w: 0.14},
+    {key:'zone5', label:'어깨 ER 부족 / 과도',          defect:'Shoulder ER 부적절',    impact_w: 0.12},
+    {key:'zone6', label:'골반 감속 부족',               defect:'Pelvis braking 부족',   impact_w: 0.20}
+  ];
+  const enriched = zones.map((s, i) => ({ ...labels[i], score: s }))
+                        .filter(z => z.score != null);
+  const causal = enriched
+    .sort((a,b) => a.score - b.score)
+    .slice(0, 3)
+    .map(z => ({
+      zone: z.key, zone_label: z.label, defect: z.defect,
+      impact_kmh: Math.round(-((100 - z.score) * z.impact_w / 10) * 10) / 10
+    }));
+
+  return {
+    zone1_sequence:       z1 != null ? Math.round(z1) : null,
+    zone2_x_factor:       z2 != null ? Math.round(z2) : null,
+    zone3_lead_block:     z3 != null ? Math.round(z3) : null,
+    zone4_trunk_at_fc:    z4 != null ? Math.round(z4) : null,
+    zone5_shoulder_align: z5 != null ? Math.round(z5) : null,
+    zone6_pelvis_brake:   z6 != null ? Math.round(z6) : null,
+    eli_score: eli,
+    causal_chains: causal,
+    model: ANALYTICS_VERSION
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   4. Composite Score Weights (정식화)
+
+   각 종합점수의 weight 를 명시 — UI/리포트에서 인용 가능.
+   ──────────────────────────────────────────────────────────── */
+
+const COMPOSITE_WEIGHTS = {
+  velocity: {
+    measured_pct:    0.40,   // 측정 구속 (코호트 percentile)
+    consistency_pct: 0.20,   // trial 간 SD ↓
+    potential_pct:   0.40,   // 잠재 구속과의 gap (작을수록 ↑)
+    note: '0.40·측정+0.20·일관성+0.40·잠재달성률'
+  },
+  sequence: {
+    ete_pct:         0.35,   // Energy Transfer Efficiency
+    speed_gain:      0.25,   // 골반→몸통→팔 가속 비율
+    proper_seq:      0.20,   // 시퀀스 순서 정상 (boolean)
+    timing_lag:      0.20,   // pelvis→trunk, trunk→arm lag 정확도
+    note: '0.35·ETE+0.25·SpeedGain+0.20·SeqOrder+0.20·LagTiming'
+  },
+  fault: {
+    consistency:     0.40,   // release height SD, wrist pos SD
+    injury_risk:     0.35,   // x_factor, lead_knee_change extreme
+    fault_count:     0.25,   // discrete fault 발생 개수
+    note: '0.40·일관성+0.35·부상위험+0.25·결함횟수'
+  },
+  fitness: {
+    cmj_pp:          0.40,   // CMJ peak power / BW
+    imtp_pf:         0.40,   // IMTP peak force / BW
+    asymmetry:       0.20,   // L/R 비대칭 (적을수록 ↑)
+    note: '0.40·CMJ+0.40·IMTP+0.20·대칭'
+  }
+};
+
+/**
+ * 가중평균 composite score 계산
+ * @param {object} weights  COMPOSITE_WEIGHTS 의 한 카테고리
+ * @param {object} components  {key: 0~100 점수, ...}
+ * @returns {{score, breakdown}}
+ */
+function compositeScore(weights, components){
+  let totalW = 0, totalScore = 0;
+  const breakdown = [];
+  for(const [key, w] of Object.entries(weights)){
+    if(key === 'note') continue;
+    const v = components[key];
+    if(v == null || isNaN(v)) continue;
+    totalW += w;
+    totalScore += w * v;
+    breakdown.push({ component: key, value: Math.round(v), weight: w });
+  }
+  return {
+    score: totalW > 0 ? Math.round(totalScore / totalW) : null,
+    breakdown,
+    formula: weights.note || ''
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   5. 코호트 percentile
+
+   N≥10 의 코호트 데이터에 대해 한 선수의 위치를 퍼센타일로 환산.
+   N<10 이면 신뢰도 부족 표시.
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * percentile rank (linear interpolation)
+ * @param {number} value
+ * @param {number[]} cohort
+ * @returns {{percentile, n, reliable}}
+ */
+function percentileRank(value, cohort){
+  const v = cohort.filter(x => x != null && !isNaN(x)).sort((a,b)=>a-b);
+  if(v.length === 0 || value == null) return { percentile: null, n: 0, reliable: false };
+  let below = 0;
+  for(const x of v){
+    if(x < value) below++;
+    else if(x === value) below += 0.5;
+    else break;
+  }
+  return {
+    percentile: Math.round(below / v.length * 100),
+    n: v.length,
+    reliable: v.length >= 10
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   외부 노출 — 브라우저 전역 (window) 에 namespace 로 등록
+   ──────────────────────────────────────────────────────────── */
+
+const ANALYTICS = {
+  version: ANALYTICS_VERSION,
+  // 통계 유틸
+  mean: _mean, sd: _sd,
+  confidenceInterval, pairedTTest,
+  // 분석 함수
+  latentVelocity, eliScoresFromTheia,
+  compositeScore, percentileRank,
+  // 상수 (UI 인용용)
+  LATENT_VELOCITY_WEIGHTS,
+  COMPOSITE_WEIGHTS
+};
+
+// 브라우저 빌드에서 직접 접근 가능
+if(typeof window !== 'undefined') window.ANALYTICS = ANALYTICS;
+
+
+/* ===== js/data.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
    ║  1. 데이터 스키마 + 샘플 데이터                              ║
    ╚══════════════════════════════════════════════════════════╝ */
@@ -1359,17 +1746,50 @@ function genMeasurements(){
       const isTheia = s.protocol === 'Theia+GRF';
       const sysScale = isTheia ? 1.0 : 1.9;
 
+      // Theia 핵심 변수 미리 산출 (latentVelocity·ELI 둘 다에서 재사용)
+      const trunk_dps  = Math.round((780 + rng()*180) * sysScale * 0.8);
+      const pelvis_dps = Math.round((480 + rng()*80) * sysScale);
+      const arm_dps    = Math.round(armVelBase + rng()*400);
+      const x_factor   = r1(20 + rng()*22);
+      const lead_knee  = r1(-15 + rng()*25);
+      const trunk_fwd  = r1(20 + rng()*20);
+      const trunk_lat  = r1(rng()*18);
+      const er_max     = r1(150 + rng()*40);
+      const stride_pct = r1(78 + rng()*15);
+      const front_grf  = r1(1.2 + rng()*0.8);
+      const brake_ratio= r2(0.25 + rng()*0.55);
+      const pt_lag     = Math.round(40 + rng()*60);
+      const ta_lag     = Math.round(30 + rng()*50);
+
+      // 잠재구속 — analytics.js 정식 회귀 (문헌 가중치)
+      const latentInput_bio = {
+        trunk_peak_dps: trunk_dps, pelvis_peak_dps: pelvis_dps,
+        shoulder_er_deg: er_max, stride_pct_height: stride_pct,
+        front_grf_bm: front_grf
+      };
+      // 체력은 hasFitness 회차에만 — 임시값 미리 (아래에서 재사용)
+      const tmpFit = s.hasFitness ? {
+        cmj_pp_bm: r1(28 + (baseFitness + (rng()-0.5)*0.2)*20),
+        imtp_pf_bm: r1(20 + (baseFitness + (rng()-0.5)*0.2)*12)
+      } : {};
+      const latent = (typeof ANALYTICS !== 'undefined')
+        ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit)
+        : { potential_kmh: r1(velo + 6), gap_kmh: 6, contributions: [], model: 'fallback' };
+
       const m = {
         protocol: s.protocol, date: s.date,
         velocity: {
           measured_kmh: r1(velo),
-          potential_kmh: r1(velo + 6 + (score-60)/10),
-          score: Math.round(score)
+          potential_kmh: latent.potential_kmh,
+          gap_kmh:       latent.gap_kmh,
+          contributions: latent.contributions,
+          model:         latent.model,
+          score:         Math.round(score)
         },
         sequence: {
-          pelvis_dps: Math.round((480 + rng()*80) * sysScale),
-          trunk_dps:  Math.round((780 + rng()*180) * sysScale * 0.8),
-          arm_dps:    Math.round(armVelBase + rng()*400),
+          pelvis_dps: pelvis_dps,
+          trunk_dps:  trunk_dps,
+          arm_dps:    arm_dps,
           ete_pct:    Math.round(60 + rng()*30 + scoreTrend*f),
           speed_gain: r2(1.4 + rng()*0.4),
           proper_seq: rng() > 0.15,
@@ -1398,40 +1818,26 @@ function genMeasurements(){
             speed_gain_pt:          r2(1.40 + rng()*0.35),    // 골반→몸통
             speed_gain_ta:          r2(1.30 + rng()*0.30),    // 몸통→팔
             proper_seq:             rng() > 0.15,
-            pelvis_to_trunk_lag_ms: Math.round(40 + rng()*60),
-            trunk_to_arm_lag_ms:    Math.round(30 + rng()*50),
+            pelvis_to_trunk_lag_ms: pt_lag,
+            trunk_to_arm_lag_ms:    ta_lag,
             score: Math.round(seqScore + (rng()-0.5)*6)
           };
-          // 누수 ELI 6 zones (점수 100=완벽, 0=완전누수) — Theia+GRF 회차에만
-          const leak = isTheia ? (function(){
-            const z1 = Math.max(20,Math.min(98, 65 + rng()*30 + scoreTrend*f));
-            const z2 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
-            const z3 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
-            const z4 = Math.max(20,Math.min(98, 65 + rng()*28 + scoreTrend*f));
-            const z5 = Math.max(20,Math.min(98, 70 + rng()*25 + scoreTrend*f));
-            const z6 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
-            const eli = Math.round((z1+z2+z3+z4+z5+z6)/6);
-            // 인과 분석 — 가장 점수 낮은 zone 3개를 우선순위 결함으로
-            const zones = [
-              {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함',          score: Math.round(z1)},
-              {key:'zone2', label:'골반-상체 분리 (X-팩터) 부족', defect:'X-factor 미달',                score: Math.round(z2)},
-              {key:'zone3', label:'앞발 받쳐주기 (블로킹) 약함',  defect:'Lead knee collapse',           score: Math.round(z3)},
-              {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',  defect:'FC 시 트렁크 기울기 부적절',   score: Math.round(z4)},
-              {key:'zone5', label:'어깨 정렬 (외전·외회전) 부족', defect:'Shoulder alignment 결함',      score: Math.round(z5)},
-              {key:'zone6', label:'골반 감속 (브레이크) 부족',    defect:'Pelvis braking 부족',          score: Math.round(z6)}
-            ];
-            const sorted = [...zones].sort((a,b)=>a.score-b.score);
-            const causal = sorted.slice(0,3).map(z=>({
-              zone: z.key, zone_label: z.label, defect: z.defect,
-              impact_kmh: r1(-((100-z.score)/12 + rng()*0.8))   // 추정 손실 km/h
-            }));
-            return {
-              zone1_sequence: zones[0].score, zone2_x_factor: zones[1].score,
-              zone3_lead_block: zones[2].score, zone4_trunk_at_fc: zones[3].score,
-              zone5_shoulder_align: zones[4].score, zone6_pelvis_brake: zones[5].score,
-              eli_score: eli, causal_chains: causal
-            };
-          })() : null;
+          // 누수 ELI 6 zones — analytics.js 정식 산출 (문헌 근거 변환식)
+          // Theia+GRF 회차에만 (Uplift 는 GRF 없어 불가)
+          const leak = isTheia
+            ? (typeof ANALYTICS !== 'undefined'
+                ? ANALYTICS.eliScoresFromTheia({
+                    pelvis_to_trunk_lag_ms: pt_lag,
+                    trunk_to_arm_lag_ms:    ta_lag,
+                    x_factor_max_deg:       x_factor,
+                    lead_knee_change_deg:   lead_knee,
+                    trunk_tilt_at_fc_deg:   trunk_fwd,
+                    trunk_lat_tilt_deg:     trunk_lat,
+                    shoulder_er_max_deg:    er_max,
+                    pelvis_brake_ratio:     brake_ratio
+                  })
+                : null)
+            : null;
           return { generation: gen, transfer: trf, leakage: leak };
         })(),
         grf: isTheia ? {
@@ -1441,8 +1847,8 @@ function genMeasurements(){
           type: ['균형형','뒤에 처지는','앞으로 쏟아지는','잠깐만 미는','좌우로 새는'][Math.floor(rng()*5)]
         } : null,
         faults: {
-          x_factor_deg: r1(20 + rng()*22),
-          lead_knee_change: r1(-15 + rng()*25),
+          x_factor_deg: x_factor,
+          lead_knee_change: lead_knee,
           release_height_sd_cm: r1(2 + rng()*4 - scoreTrend*f*0.05),
           wrist_pos_sd_cm: r1(2.5 + rng()*5),
           trunk_tilt_sd_deg: r1(0.8 + rng()*2.5),
@@ -1516,6 +1922,9 @@ function scoreColor(s){
 function riskLabel(r){return {low:'낮음',mid:'중간',high:'높음'}[r]||'—'}
 function riskPill(r){return `<span class="pill ${r==='high'?'bad':r==='mid'?'warn':'good'}">${riskLabel(r)}</span>`}
 
+
+
+/* ===== js/render.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
    ║  3. TAB 1: 1차 측정 결과                                    ║
    ╚══════════════════════════════════════════════════════════╝ */
@@ -1588,18 +1997,23 @@ let m1Sort = {key:'score', dir:'desc'};
 function buildM1Table(){
   const rows = PLAYERS.map(p=>{
     const m = DATA[p.id][1];
+    const fb = m.rapsodo?.fb;
     return {
-      pid:p.id, name:p.name, arm:p.arm, height:p.height,
-      velo: m.velocity.measured_kmh, velo_pot: m.velocity.potential_kmh,
-      score: m.velocity.score,
-      gen: m.energy?.generation?.score ?? null,
-      trf: m.energy?.transfer?.score ?? null,
-      eli: m.energy?.leakage?.eli_score ?? null,
-      grf: m.grf ? m.grf.lhei : null,
-      cmj_jh: m.fitness?.cmj.jump_height_cm ?? null,
-      imtp_pf: m.fitness?.imtp.peak_force_bm_n_kg ?? null,
-      risk: m.faults.injury_risk,
-      cons: m.faults.release_height_sd_cm
+      pid:p.id, name:p.name, arm:p.arm,
+      velo:     fb?.velocity?.max ?? m.velocity.measured_kmh,
+      velo_avg: fb?.velocity?.avg ?? null,
+      spin:     fb?.spin?.avg ?? null,
+      spin_eff: fb?.spin_eff?.avg ?? null,
+      ivb:      fb?.ivb?.avg ?? null,
+      bauer:    fb?.bauer_units ?? null,
+      stuff:    fb?.stuff_score ?? null,
+      command:  fb?.command_score ?? null,
+      score:    m.velocity.score,
+      gen:      m.energy?.generation?.score ?? null,
+      trf:      m.energy?.transfer?.score ?? null,
+      eli:      m.energy?.leakage?.eli_score ?? null,
+      grf:      m.grf ? m.grf.lhei : null,
+      risk:     m.faults.injury_risk,
     };
   });
   const k=m1Sort.key, dir=m1Sort.dir==='asc'?1:-1;
@@ -1615,23 +2029,24 @@ function buildM1Table(){
   tb.innerHTML = rows.map(r=>{
     const isReal = REAL_DATA_KEYS.has(`${r.pid}:1`);
     const realDot = isReal ? ' <span title="실측 데이터" style="color:var(--accent);font-size:10px">●</span>' : '';
-    // 누수는 점수가 낮을수록 누수 큼 → "누수↑" 컬럼은 100-eli 로 표시 (값 클수록 누수 심각)
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
       <td><b>${r.name}</b>${realDot}</td>
       <td class="right">${r.arm}</td>
-      <td class="right">${fmt(r.velo,1)}</td>
-      <td class="right">${fmt(r.velo_pot,1)}</td>
+      <td class="right"><b>${fmt(r.velo,1)}</b></td>
+      <td class="right">${fmt(r.velo_avg,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt0(r.spin)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.spin_eff,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.ivb,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.bauer,1)}</td>
+      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
+      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
       <td class="right"><b style="color:${scoreColor(r.score)}">${fmt0(r.score)}</b></td>
-      <td class="right" style="background:#ddf4ff20"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
-      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.trf)}">${fmt0(r.trf)}</b></td>
+      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
       <td class="right" style="background:#ffebe920"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
       <td class="right">${fmt0(r.grf)}</td>
       <td class="right">${riskPill(r.risk)}</td>
-      <td class="right">${fmt(r.cons,1)} cm</td>
-      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.cmj_jh,1)}</td>
-      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.imtp_pf,1)}</td>
     </tr>`;
   }).join('');
   document.querySelectorAll('#m1-table thead th').forEach(th=>{
@@ -1834,8 +2249,20 @@ function renderPlayerView(pid){
   document.getElementById('p-velo-max').textContent = `${(m.velocity.measured_kmh+1.5).toFixed(1)} km/h`;
   document.getElementById('p-velo-pot').textContent = `${m.velocity.potential_kmh} km/h`;
   const resid = m.velocity.measured_kmh - m.velocity.potential_kmh;
+  // 잠재구속 회귀 — 기여도 상위 2개 표시 (analytics.js v2.1+)
+  const contribTop = (m.velocity.contributions || []).slice(0, 2).map(c => {
+    const labelMap = {
+      trunk_peak_dps:'몸통 회전속도', pelvis_peak_dps:'골반 회전속도',
+      cmj_pp_bm:'CMJ 파워', imtp_pf_bm:'IMTP 힘',
+      front_grf_bm:'앞발 GRF', shoulder_er_deg:'어깨 ER',
+      stride_pct_height:'스트라이드/신장'
+    };
+    return `${labelMap[c.var]||c.var} +${c.gain_kmh}`;
+  }).join(' · ');
   document.getElementById('p-velo-pot-delta').innerHTML =
-    `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b> ${resid>=0?'(효율 우수)':'(잠재 미발현)'}`;
+    `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b>` +
+    (contribTop ? ` <span style="color:var(--muted);font-size:11px">| ${contribTop}</span>` : '') +
+    ` <span style="font-size:10px;color:#999" title="회귀모델 v${m.velocity.model||'?'}">${m.velocity.model?'·v'+m.velocity.model:''}</span>`;
   const elsc = document.getElementById('p-score');
   elsc.textContent = m.velocity.score;
   elsc.style.color = scoreColor(m.velocity.score);
@@ -1874,7 +2301,18 @@ function renderPlayerView(pid){
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#1f2328',font:{size:11.5}}}},
+      animation:{duration:700, easing:'easeOutQuart'},
+      plugins:{
+        legend:{labels:{color:'#1f2328',font:{size:11.5}, usePointStyle:true, padding:12}},
+        tooltip:{
+          backgroundColor:'rgba(31,35,40,.95)', padding:10, cornerRadius:6,
+          callbacks:{
+            label: function(ctx){
+              return `${ctx.dataset.label}: ${Math.round(ctx.parsed.r)} / 100`;
+            }
+          }
+        }
+      },
       scales:{r:{
         suggestedMin:0, suggestedMax:100,
         grid:{color:'#eaeef2'}, angleLines:{color:'#eaeef2'},
@@ -1904,7 +2342,7 @@ function renderPlayerView(pid){
         backgroundColor:'rgba(130,80,223,.4)', borderColor:'#8250df', borderWidth:1
       }]
     },
-    options:chartOpts({yTitle:'피크 각속도 (°/s)'})
+    options:chartOpts({yTitle:'피크 각속도 (°/s)', unit:'°/s', decimals:0, beginAtZero:true})
   });
 
   // ⚡ 에너지 분석 — 생성·전달·누수 (v1.8 헤드라인)
@@ -2001,8 +2439,200 @@ function renderPlayerView(pid){
   document.getElementById('p-wp-sd').textContent = m.faults.wrist_pos_sd_cm + ' cm';
   document.getElementById('p-tt-sd').textContent = m.faults.trunk_tilt_sd_deg + '°';
 
+  // 🎯 Rapsodo 패스트볼 분석
+  renderRapsodoFB(m.rapsodo, p);
+
   // 체력 4 카드 (보조)
   renderFitnessCards(m.fitness);
+}
+
+/* 코호트 모드 — KBO/HS 토글로 비교 평가 변경 */
+let RAP_COHORT = (typeof localStorage !== 'undefined' && localStorage.getItem('rap_cohort')) || 'KBO';
+
+function renderRapsodoFB(rap, player){
+  const area = document.getElementById('p-rapsodo-area');
+  if(!area) return;
+  if(!rap || !rap.fb){
+    area.innerHTML = `<div style="text-align:center;color:var(--muted);padding:20px;background:var(--panel2);border-radius:6px">
+      Rapsodo CSV 인입 후 자동 표시 — <a href="#" onclick="switchTab('data');return false;" style="color:var(--accent)">데이터 관리 탭으로 이동</a>
+    </div>`;
+    return;
+  }
+  const fb = rap.fb;
+  const COH = RAPSODO_BENCHMARKS[RAP_COHORT];
+  const armSign = player.arm === 'R' ? 1 : -1;
+  document.getElementById('rap-cohort-badge').textContent = `코호트: ${RAP_COHORT} 기준`;
+
+  // 코호트 대비 평가
+  function vs(val, ref, fmt=0, unit='', lowerBetter=false){
+    if(val == null) return '<span style="color:var(--muted)">—</span>';
+    const diff = val - ref;
+    const good = lowerBetter ? diff < 0 : diff > 0;
+    const c = Math.abs(diff) < (Math.abs(ref) * 0.03) ? 'var(--muted)' : (good ? 'var(--good)' : 'var(--bad)');
+    const sign = diff >= 0 ? '+' : '';
+    return `<span style="color:${c};font-weight:600">${sign}${diff.toFixed(fmt)}${unit}</span>`;
+  }
+
+  // 6 카드
+  area.innerHTML = `
+    <div class="grid grid-3">
+      <!-- ① Velocity -->
+      <div class="scard" style="border-top:3px solid #cf222e">
+        <h3>① Velocity (구속)</h3>
+        <div class="row"><span>최고 (max)</span><span class="v" style="font-size:18px;font-weight:700">${fb.velocity.max} <span style="font-size:11px;color:var(--muted)">km/h</span></span></div>
+        <div class="row"><span>평균 (avg)</span><span class="v">${fb.velocity.avg} km/h</span></div>
+        <div class="row"><span>변동 (SD)</span><span class="v">${fb.velocity.sd} km/h</span></div>
+        <div class="row"><span>플레이트 평균</span><span class="v">${fb.plate_velocity.avg} km/h</span></div>
+        <div class="row"><span>감속률</span><span class="v">${fb.velo_loss_pct}%</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>${RAP_COHORT} 평균 ${COH.velo} 대비</span>${vs(fb.velocity.avg, COH.velo, 1, ' km/h')}
+        </div>
+      </div>
+
+      <!-- ② Spin & Stuff -->
+      <div class="scard" style="border-top:3px solid #0969da">
+        <h3>② Spin & Stuff (회전·구위)</h3>
+        <div class="row"><span>회전수 (Spin)</span><span class="v" style="font-size:16px;font-weight:700">${fb.spin.avg} rpm</span></div>
+        <div class="row"><span>True Spin</span><span class="v">${fb.true_spin_avg} rpm</span></div>
+        <div class="row"><span>회전효율 (Efficiency)</span><span class="v" style="color:${fb.spin_eff.avg>=90?'var(--good)':fb.spin_eff.avg>=80?'var(--warn)':'var(--bad)'}">${fb.spin_eff.avg}%</span></div>
+        <div class="row"><span>회전축 (deg)</span><span class="v">${fb.spin_axis_deg}°</span></div>
+        <div class="row"><span>Gyro 각도</span><span class="v">${fb.gyro_avg}°</span></div>
+        <div class="row"><span>Bauer Units</span><span class="v" style="font-weight:700">${fb.bauer_units}</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Stuff Score</span><span class="v" style="font-size:16px;color:${scoreColor(fb.stuff_score)}">${fb.stuff_score}/100</span>
+        </div>
+      </div>
+
+      <!-- ③ Movement -->
+      <div class="scard" style="border-top:3px solid #1a7f37">
+        <h3>③ Movement (무브먼트)</h3>
+        <div class="row"><span>IVB (수직 라이즈)</span><span class="v" style="font-size:16px;font-weight:700">${fb.ivb.avg} cm</span></div>
+        <div class="row"><span>IVB SD</span><span class="v">${fb.ivb.sd} cm</span></div>
+        <div class="row"><span>HB (수평 무브)</span><span class="v">${fb.hb.avg>0?'+':''}${fb.hb.avg} cm</span></div>
+        <div class="row"><span>VB Total (중력 포함)</span><span class="v">${fb.vb_total_avg} cm</span></div>
+        <div class="row"><span>VAA (진입각)</span><span class="v" style="color:${fb.vaa_avg>=-5.0?'var(--good)':fb.vaa_avg>=-6.0?'var(--warn)':'var(--bad)'}">${fb.vaa_avg}°</span></div>
+        <div class="row"><span>HAA</span><span class="v">${fb.haa_avg}°</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>${RAP_COHORT} IVB ${COH.ivb} 대비</span>${vs(fb.ivb.avg, COH.ivb, 1, ' cm')}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-top:12px">
+      <!-- ④ Release Consistency -->
+      <div class="scard" style="border-top:3px solid #bc4c00">
+        <h3>④ Release Consistency (릴리스 일관성)</h3>
+        <div class="row"><span>Height (높이)</span><span class="v">${fb.release.height_avg} m</span></div>
+        <div class="row"><span>Height SD</span><span class="v" style="color:${fb.release.height_sd_cm<3?'var(--good)':fb.release.height_sd_cm<5?'var(--warn)':'var(--bad)'}">${fb.release.height_sd_cm} cm</span></div>
+        <div class="row"><span>Side (좌우)</span><span class="v">${fb.release.side_avg} m</span></div>
+        <div class="row"><span>Side SD</span><span class="v" style="color:${fb.release.side_sd_cm<3?'var(--good)':fb.release.side_sd_cm<5?'var(--warn)':'var(--bad)'}">${fb.release.side_sd_cm} cm</span></div>
+        <div class="row"><span>Extension (앞으로)</span><span class="v">${fb.release.extension_avg} m</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Release Angle</span><span class="v">${fb.release.angle_avg}°</span>
+        </div>
+      </div>
+
+      <!-- ⑤ Command -->
+      <div class="scard" style="border-top:3px solid #8250df">
+        <h3>⑤ Command (제구)</h3>
+        <div class="row"><span>In-Zone %</span><span class="v" style="font-size:16px;font-weight:700;color:${fb.in_zone_pct>=60?'var(--good)':fb.in_zone_pct>=45?'var(--warn)':'var(--bad)'}">${fb.in_zone_pct}%</span></div>
+        <div class="row"><span>플레이트 평균 높이</span><span class="v">${fb.plate.height_avg} cm</span></div>
+        <div class="row"><span>플레이트 평균 좌우</span><span class="v">${fb.plate.side_avg} cm</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Command Score</span><span class="v" style="font-size:16px;color:${scoreColor(fb.command_score)}">${fb.command_score}/100</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
+          Stuff vs Command 4분면 → 우상=Elite · 우하=Stuff Only · 좌상=Strike Thrower · 좌하=Develop
+        </div>
+      </div>
+
+      <!-- ⑥ ${RAP_COHORT} 코호트 비교 -->
+      <div class="scard" style="border-top:3px solid #6e7781">
+        <h3>⑥ ${RAP_COHORT} 코호트 평가</h3>
+        <div class="row"><span>구속</span>${vs(fb.velocity.avg, COH.velo, 1, ' km/h')}</div>
+        <div class="row"><span>회전수</span>${vs(fb.spin.avg, COH.spin, 0, ' rpm')}</div>
+        <div class="row"><span>회전효율</span>${vs(fb.spin_eff.avg, COH.eff, 1, '%')}</div>
+        <div class="row"><span>IVB</span>${vs(fb.ivb.avg, COH.ivb, 1, ' cm')}</div>
+        <div class="row"><span>Bauer Units</span>${vs(fb.bauer_units, COH.bauer, 1, '')}</div>
+        <div class="row"><span>VAA (낮을수록 좋음)</span>${vs(fb.vaa_avg, COH.vaa, 2, '°', true)}</div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span><b>Extension</b></span>${vs(fb.release.extension_avg, COH.ext, 2, ' m')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Movement Profile (IVB vs HB scatter) — Chart.js → SVG로 그림 -->
+    <div class="grid grid-2" style="margin-top:14px">
+      <div class="panel" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:12.5px">Movement Profile · IVB vs HB
+          <span style="float:right;font-size:11px;color:var(--muted)">개별 throw + 평균(◆) + 코호트(✚)</span></h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="rap-mov-chart"></canvas></div>
+      </div>
+      <div class="panel" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:12.5px">Stuff vs Command 4분면
+          <span style="float:right;font-size:11px;color:var(--muted)">우상=Elite</span></h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="rap-sc-chart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="footnote" style="margin-top:12px">
+      <b>지표 해설</b>:
+      <code>IVB</code>=Induced Vertical Break (중력 제외 수직 무브먼트, 클수록 "라이즈") ·
+      <code>Spin Efficiency</code>=True Spin/Total Spin (높을수록 회전이 무브먼트로 변환) ·
+      <code>VAA</code>=Vertical Approach Angle (덜 가파를수록=0에 가까울수록 "플랫" 패스트볼, 헛스윙 유도) ·
+      <code>Bauer Units</code>=Spin/Velocity(mph) (회전 효율 proxy, 25+ 양호) ·
+      <code>Extension</code>=릴리스 시 마운드에서 앞으로 나간 거리 (길수록 "체감 구속" ↑)
+    </div>
+  `;
+
+  // 차트 — Movement Profile (산점도)
+  if(chartsP.rapMov) chartsP.rapMov.destroy();
+  const throwsPts = (fb.throws||[]).map(t => ({x: t.hb, y: t.ivb}));
+  const avgPt = {x: fb.hb.avg, y: fb.ivb.avg};
+  const cohPt = {x: armSign * 8, y: COH.ivb};
+  chartsP.rapMov = new Chart(document.getElementById('rap-mov-chart'), {
+    type: 'scatter',
+    data: {datasets: [
+      {label:'개별 throw', data: throwsPts, backgroundColor:'rgba(13,109,253,0.5)', borderColor:'#0969da', pointRadius:4},
+      {label:'평균 ◆', data: [avgPt], backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:9, pointStyle:'rectRot'},
+      {label:`${RAP_COHORT} 코호트 ✚`, data: [cohPt], backgroundColor:'#cf222e', borderColor:'#cf222e', pointRadius:9, pointStyle:'crossRot', borderWidth:3}
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#1f2328',font:{size:11}}}},
+      scales:{
+        x:{title:{display:true,text:'HB · 수평 무브 (cm, +=arm side)',color:'#656d76'},
+           min:-30, max:30, grid:{color:'#eaeef2'}, ticks:{color:'#656d76'}},
+        y:{title:{display:true,text:'IVB · 수직 라이즈 (cm)',color:'#656d76'},
+           min:0, max:65, grid:{color:'#eaeef2'}, ticks:{color:'#656d76'}}
+      }
+    }
+  });
+
+  // Stuff vs Command — 본인 1점 + 팀 다른 선수들 비교
+  if(chartsP.rapSC) chartsP.rapSC.destroy();
+  const teamSC = PLAYERS.map(pl => {
+    const r = DATA[pl.id]?.[1]?.rapsodo?.fb;
+    return r ? {x: r.stuff_score, y: r.command_score, label: pl.name, isMe: pl.id === player.id} : null;
+  }).filter(Boolean);
+  chartsP.rapSC = new Chart(document.getElementById('rap-sc-chart'), {
+    type: 'scatter',
+    data: {datasets: [
+      {label:'팀 동료', data: teamSC.filter(p=>!p.isMe), backgroundColor:'rgba(101,109,118,0.4)', borderColor:'#656d76', pointRadius:4},
+      {label:'본인', data: teamSC.filter(p=>p.isMe), backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:10, pointStyle:'rectRot'}
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#1f2328',font:{size:11}}},
+        tooltip:{callbacks:{label:c=>{const d=teamSC[c.datasetIndex===0?c.dataIndex:teamSC.findIndex(p=>p.isMe)];return `${d?.label} · S${d?.x} / C${d?.y}`;}}}
+      },
+      scales:{
+        x:{title:{display:true,text:'Stuff Score (구위 →)',color:'#656d76'}, min:0, max:100, grid:{color:'#eaeef2'},ticks:{color:'#656d76'}},
+        y:{title:{display:true,text:'Command Score (제구 →)',color:'#656d76'}, min:0, max:100, grid:{color:'#eaeef2'},ticks:{color:'#656d76'}}
+      }
+    }
+  });
 }
 
 function renderFitnessCards(fit){
@@ -2339,15 +2969,58 @@ function renderLongTab(){
    ║  7. 공통 차트 옵션 + 탭 전환                                  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
+/* ── Phase 3 (v2.2): 통일 색상 팔레트 + 향상된 툴팁/애니메이션 ──
+   colorblind-safe 팔레트 (Wong 2011 + GitHub 디자인) */
+const CHART_PALETTE = {
+  primary:    '#0969da',   // 본인/주력 — 청
+  secondary:  '#8250df',   // 보조 — 보라
+  accent:     '#1a7f37',   // 양호/긍정 — 녹
+  warning:    '#bf8700',   // 주의 — 황
+  danger:     '#cf222e',   // 경고/부족 — 적
+  neutral:    '#656d76',   // 비교/배경 — 회
+  // 점수 기반 (ELI/score 0~100)
+  scoreColor: function(s){
+    if(s == null || isNaN(s)) return this.neutral;
+    if(s >= 80) return this.accent;
+    if(s >= 60) return this.warning;
+    return this.danger;
+  },
+  // 5색 시리즈 (라인/그룹 비교)
+  series: ['#0969da', '#8250df', '#1a7f37', '#bf8700', '#cf222e']
+};
+
 function chartOpts(opts={}){
+  // opts: { yTitle, xTitle, unit, decimals, animate, customTooltip }
+  const unit = opts.unit || '';
+  const dec  = opts.decimals != null ? opts.decimals : 1;
   return {
     responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{labels:{color:'#1f2328',font:{size:11.5}}},
-             tooltip:{intersect:false,mode:'index'}},
+    animation: opts.animate === false ? false : { duration: 600, easing: 'easeOutQuart' },
+    interaction: { intersect: false, mode: 'index' },
+    plugins:{
+      legend:{labels:{color:'#1f2328',font:{size:11.5,family:'inherit'}, usePointStyle: true, padding: 10}},
+      tooltip:{
+        intersect:false, mode:'index',
+        backgroundColor: 'rgba(31,35,40,.95)', titleColor:'#fff', bodyColor:'#fff',
+        padding: 10, cornerRadius: 6, boxPadding: 4,
+        titleFont: {size: 12, weight: '600'}, bodyFont: {size: 11.5},
+        callbacks: opts.customTooltip || {
+          label: function(ctx){
+            const v = ctx.parsed.y != null ? ctx.parsed.y : ctx.parsed;
+            const num = (typeof v === 'number') ? v.toFixed(dec) : v;
+            return `${ctx.dataset.label || ''}: ${num}${unit ? ' '+unit : ''}`;
+          }
+        }
+      }
+    },
     scales:{
-      x:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'}},
-      y:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'},
-         title:opts.yTitle?{display:true,text:opts.yTitle,color:'#656d76'}:undefined}
+      x:{ticks:{color:'#656d76',font:{size:11}},
+         grid:{color:'#eaeef2', drawBorder: false},
+         title: opts.xTitle ? {display:true, text:opts.xTitle, color:'#656d76', font:{size:11}} : undefined},
+      y:{ticks:{color:'#656d76',font:{size:11}},
+         grid:{color:'#eaeef2', drawBorder: false},
+         title: opts.yTitle ? {display:true, text:opts.yTitle, color:'#656d76', font:{size:11}} : undefined,
+         beginAtZero: opts.beginAtZero}
     }
   };
 }
@@ -2485,6 +3158,9 @@ function genMeasurementsFor(arr){
   return out;
 }
 
+
+
+/* ===== js/io.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
    ║  8. Theia+GRF 결과 JSON 인입 (v1.2)                          ║
    ╚══════════════════════════════════════════════════════════╝ */
@@ -2543,8 +3219,60 @@ function applyTheiaRecord(rec){
     faults:   b.faults   ? {...cur.faults, ...b.faults}   : cur.faults,
     fitness:  b.fitness  ? mergeFitness(cur.fitness, b.fitness) : cur.fitness,
   };
+  // analytics.js — 실측 데이터를 통계 모듈로 재계산
+  enrichWithAnalytics(merged);
   DATA[rec.pid][rec.sid] = merged;
   REAL_DATA_KEYS.add(`${rec.pid}:${rec.sid}`);
+}
+
+/**
+ * 실측 데이터에 analytics.js 적용 — 잠재구속 + ELI 자동 재계산
+ * (potential_kmh / ELI score가 명시된 경우에만 덮어쓰지 않음)
+ */
+function enrichWithAnalytics(m){
+  if(typeof ANALYTICS === 'undefined') return;
+  // 1) 잠재구속 — 측정 구속 + 가용한 biomechanics 변수
+  const v = m.velocity;
+  if(v && v.measured_kmh != null){
+    const bio = {
+      trunk_peak_dps:     m.sequence?.trunk_dps,
+      pelvis_peak_dps:    m.sequence?.pelvis_dps,
+      shoulder_er_deg:    m.faults?.shoulder_er_max_deg,
+      stride_pct_height:  m.faults?.stride_pct_height,
+      front_grf_bm:       m.grf?.lead_force_bm
+    };
+    const fit = {
+      cmj_pp_bm:  m.fitness?.cmj?.peak_power_bm_w_kg,
+      imtp_pf_bm: m.fitness?.imtp?.peak_force_bm_n_kg
+    };
+    const lat = ANALYTICS.latentVelocity(v.measured_kmh, bio, fit);
+    if(lat.potential_kmh != null){
+      v.potential_kmh = lat.potential_kmh;
+      v.gap_kmh       = lat.gap_kmh;
+      v.contributions = lat.contributions;
+      v.model         = lat.model;
+    }
+  }
+  // 2) ELI — Theia+GRF 회차에만 (필요 변수가 있을 때)
+  if(m.protocol === 'Theia+GRF' && m.energy && m.faults){
+    const elInput = {
+      pelvis_to_trunk_lag_ms: m.energy.transfer?.pelvis_to_trunk_lag_ms,
+      trunk_to_arm_lag_ms:    m.energy.transfer?.trunk_to_arm_lag_ms,
+      x_factor_max_deg:       m.faults.x_factor_deg,
+      lead_knee_change_deg:   m.faults.lead_knee_change,
+      trunk_tilt_at_fc_deg:   m.faults.trunk_tilt_at_fc_deg,
+      trunk_lat_tilt_deg:     m.faults.trunk_lat_tilt_deg,
+      shoulder_er_max_deg:    m.faults.shoulder_er_max_deg,
+      pelvis_brake_ratio:     m.faults.pelvis_brake_ratio
+    };
+    // 핵심 입력이 1개 이상 있을 때만 재계산 (전부 null 이면 기존 leakage 유지)
+    const hasInput = Object.values(elInput).some(x => x != null);
+    if(hasInput){
+      const eli = ANALYTICS.eliScoresFromTheia(elInput);
+      // 기존 leakage 가 있으면 부분 갱신 (수동 입력 보존)
+      m.energy.leakage = { ...(m.energy.leakage || {}), ...eli };
+    }
+  }
 }
 function mergeFitness(cur, n){
   if(!cur) return n;
@@ -2702,6 +3430,363 @@ function downloadTemplate(kind){
   a.click();
 }
 
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  8b. CSV 파서 — ForceDecks + Rapsodo 자동 인입 (v1.16)        ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+// 가벼운 RFC4180 CSV 파서 (인용부호 안 콤마/줄바꿈 처리)
+function parseCSV(text){
+  const rows = []; let row = []; let cur = ''; let inQ = false;
+  text = text.replace(/﻿/, '');  // BOM 제거
+  for(let i=0; i<text.length; i++){
+    const c = text[i], n = text[i+1];
+    if(inQ){
+      if(c === '"' && n === '"'){ cur += '"'; i++; }
+      else if(c === '"'){ inQ = false; }
+      else { cur += c; }
+    } else {
+      if(c === '"'){ inQ = true; }
+      else if(c === ','){ row.push(cur); cur = ''; }
+      else if(c === '\n' || c === '\r'){
+        if(cur !== '' || row.length){ row.push(cur); rows.push(row); row = []; cur = ''; }
+        if(c === '\r' && n === '\n') i++;
+      } else { cur += c; }
+    }
+  }
+  if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+  if(!rows.length) return {header:[], rows:[]};
+  const header = rows[0].map(h => h.trim());
+  const data = rows.slice(1).filter(r => r.length === header.length || r.length>1)
+    .map(r => Object.fromEntries(header.map((h,i) => [h, (r[i]||'').trim()])));
+  return {header, rows: data};
+}
+function num(v){ if(v==null||v==='') return null; const n = parseFloat(v); return isNaN(n)?null:n; }
+
+// ForceDecks CSV → DATA[pid][1].fitness 자동 매핑
+function importValdCSV(text){
+  const {header, rows} = parseCSV(text);
+  const required = ['athlete_external_id','test_date'];
+  const missing = required.filter(c => !header.includes(c));
+  if(missing.length) return {ok:0, errors:[`필수 컬럼 누락: ${missing.join(', ')}`], applied:[]};
+
+  const errors = [], applied = [];
+  rows.forEach((r,i) => {
+    const pid = r.athlete_external_id;
+    if(!pid){ errors.push(`행 ${i+2}: athlete_external_id 비어있음`); return; }
+    const player = PLAYERS.find(p => p.id === pid);
+    if(!player){ errors.push(`행 ${i+2}: PLAYERS에 ${pid} 없음 (스킵)`); return; }
+
+    // 회차 결정 — test_date가 SESSIONS 중 어느 것과 매칭되는지
+    let sid = 1;
+    const matchSes = SESSIONS.find(s => s.date === r.test_date);
+    if(matchSes) sid = matchSes.id;
+
+    if(!DATA[pid][sid]) DATA[pid][sid] = {protocol: SESSIONS.find(s=>s.id===sid).protocol, date: r.test_date};
+
+    const fitness = {
+      cmj: {
+        jump_height_cm:           num(r.cmj_jump_height_cm),
+        peak_power_w:             num(r.cmj_peak_power_w),
+        peak_power_bm_w_kg:       num(r.cmj_peak_power_bm_w_kg),
+        rsi_modified_ms:          num(r.cmj_rsi_modified_ms),
+        conc_peak_force_bm_n_kg:  num(r.cmj_concentric_peak_force_bm_n_kg),
+        ecc_conc_force_ratio:     num(r.cmj_eccentric_concentric_force_ratio),
+      },
+      sj: {
+        jump_height_cm:           num(r.sj_jump_height_cm),
+        peak_power_bm_w_kg:       num(r.sj_peak_power_bm_w_kg),
+        conc_peak_force_bm_n_kg:  num(r.sj_concentric_peak_force_bm_n_kg),
+      },
+      eur: num(r.eur),
+      pogo: {
+        rsi_ms:                   num(r.pogo_rsi_ms),
+        mean_contact_time_ms:     num(r.pogo_mean_contact_time_ms),
+        mean_jump_height_cm:      num(r.pogo_mean_jump_height_cm),
+      },
+      imtp: {
+        peak_force_n:             num(r.imtp_peak_vertical_force_n),
+        peak_force_bm_n_kg:       num(r.imtp_peak_vertical_force_bm_n_kg),
+        rfd_0_100ms_n_s:          num(r.imtp_rfd_0_100ms_n_s),
+        force_at_100ms_bm_n_kg:   num(r.imtp_force_at_100ms_bm_n_kg),
+        asymmetry_pct:            num(r.imtp_asymmetry_pct),
+      },
+    };
+    // 체력 종합 점수 — CMJ JH(25cm 기준 0, 50cm 만점) + IMTP PF/BM(15 기준 0, 35 만점)
+    const cmjN  = fitness.cmj.jump_height_cm  != null ? Math.max(0,Math.min(100,(fitness.cmj.jump_height_cm-25)/25*100)) : null;
+    const imtpN = fitness.imtp.peak_force_bm_n_kg != null ? Math.max(0,Math.min(100,(fitness.imtp.peak_force_bm_n_kg-15)/20*100)) : null;
+    const parts = [cmjN, imtpN].filter(v => v != null);
+    fitness.score = parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : null;
+
+    DATA[pid][sid].fitness = fitness;
+    REAL_DATA_KEYS.add(`${pid}:${sid}`);
+    applied.push({pid, sid});
+  });
+  return {ok: applied.length, errors, applied};
+}
+
+// 원본 Rapsodo 2.0 CSV (45컬럼 메타 헤더 형식) 자동 감지 및 정규화
+function detectAndNormalizeRapsodoV2(text){
+  // 첫 5줄에 'Player ID:', 'Player Name:', '"No"' 패턴이 있으면 원본 v2.0
+  const lines = text.split(/\r?\n/);
+  const headerIdx = lines.findIndex(l => l.startsWith('"No"') || l.startsWith('No,'));
+  if(headerIdx < 0 || headerIdx > 6) return null;  // 표준 형식
+  // 메타 추출
+  let playerName = '';
+  for(let i = 0; i < headerIdx; i++){
+    if(lines[i].startsWith('"Player Name:"')){
+      playerName = (lines[i].split(',')[1] || '').replace(/"/g,'').trim();
+    }
+  }
+  // PID 추출 (P 01 → P01, P01 → P01)
+  const pidMatch = playerName.match(/P\s*(\d+)/i);
+  const pid = pidMatch ? `P${pidMatch[1].padStart(2,'0')}` : 'P01';
+  // 헤더부터 끝까지 파싱
+  const csvBody = lines.slice(headerIdx).join('\n');
+  const {header, rows} = parseCSV(csvBody);
+  // 표준 컬럼으로 매핑
+  const out = ['athlete_external_id,athlete_name,test_date,session_id,pitch_type,pitch_no,'+
+               'velocity_kmh,plate_velocity_kmh,velocity_loss_pct,'+
+               'spin_rpm,true_spin_rpm,spin_efficiency_pct,spin_axis_clock,spin_axis_deg,gyro_degree,'+
+               'ivb_cm,hb_cm,vb_total_cm,'+
+               'release_height_m,release_side_m,release_extension_m,release_angle_deg,'+
+               'vaa_deg,haa_deg,plate_height_cm,plate_side_cm,in_zone,bauer_units'];
+  function clkToDeg(s){
+    const m = (s||'').match(/(\d+):(\d+)/); if(!m) return '';
+    return Math.round(((+m[1]) % 12) * 30 + (+m[2]) / 2 * 10) / 10;
+  }
+  function n(v){ const x = parseFloat(v); return (isNaN(x) || v==='-' || v==='') ? '' : x; }
+  rows.forEach((r, i) => {
+    const vel = n(r['Velocity']);
+    const spin = n(r['Total Spin']);
+    const ext_ft = n(r['Release Extension (ft)']);
+    const ext_m = (ext_ft !== '') ? Math.round(ext_ft * 0.3048 * 100) / 100 : '';
+    const plate_vel = (vel !== '') ? Math.round(vel * 0.93 * 10) / 10 : '';
+    const velo_loss = (vel !== '' && plate_vel !== '') ? Math.round((vel - plate_vel) / vel * 100 * 10) / 10 : '';
+    const bauer = (vel !== '' && spin !== '') ? Math.round(spin / (vel * 0.621371) * 10) / 10 : '';
+    const inZone = r['Is Strike'] === 'Y' ? 1 : 0;
+    const pType = (r['Pitch Type'] || '').includes('Fastball') ? 'FB' : (r['Pitch Type'] || '');
+    out.push([pid, playerName, r['Date'] || '2026-05-15', `SES_${pid}`,
+              pType, i + 1,
+              vel, plate_vel, velo_loss,
+              spin, n(r['True Spin (release)']), n(r['Spin Efficiency (release)']),
+              r['Spin Direction'] || '', clkToDeg(r['Spin Direction']), n(r['Gyro Degree (deg)']),
+              n(r['VB (trajectory)']), n(r['HB (trajectory)']),
+              (n(r['VB (trajectory)']) !== '') ? Math.round((n(r['VB (trajectory)']) - 30)*10)/10 : '',
+              n(r['Release Height']), n(r['Release Side']), ext_m, n(r['Release Angle']),
+              n(r['Vertical Approach Angle']), n(r['Horizontal Approach Angle']),
+              n(r['Strike Zone Height']), n(r['Strike Zone Side']),
+              inZone, bauer].join(','));
+  });
+  return out.join('\n');
+}
+
+// Rapsodo 2.0 통계 헬퍼
+function _stat(arr){
+  const v = arr.filter(x => x != null && !isNaN(x));
+  if(!v.length) return {n:0, avg:null, sd:null, min:null, max:null};
+  const avg = v.reduce((a,b)=>a+b,0) / v.length;
+  const sd = v.length > 1 ? Math.sqrt(v.reduce((s,x) => s + (x-avg)**2, 0) / (v.length-1)) : 0;
+  return {n: v.length, avg, sd, min: Math.min(...v), max: Math.max(...v)};
+}
+function _rd(x, dec=1){ return x==null||isNaN(x) ? null : Math.round(x * 10**dec) / 10**dec; }
+
+// KBO/HS 코호트 평균 — 비교 평가용
+const RAPSODO_BENCHMARKS = {
+  KBO: {velo:142.0, spin:2200, eff:88, ivb:42, bauer:25.5, vaa:-5.0, ext:1.95},
+  HS:  {velo:128.0, spin:2050, eff:82, ivb:35, bauer:25.0, vaa:-5.5, ext:1.85},
+};
+
+// Rapsodo CSV → 선수별 FB 풀 분석 + velocity·release SD 매핑
+function importRapsodoCSV(text){
+  // 원본 Rapsodo 2.0 형식이면 자동 정규화
+  const normalized = detectAndNormalizeRapsodoV2(text);
+  if(normalized) text = normalized;
+
+  const {header, rows} = parseCSV(text);
+  const required = ['athlete_external_id','pitch_type','velocity_kmh'];
+  const missing = required.filter(c => !header.includes(c));
+  if(missing.length) return {ok:0, errors:[`필수 컬럼 누락: ${missing.join(', ')}`], applied:[]};
+
+  // 선수별 그룹화
+  const byPid = {};
+  rows.forEach(r => {
+    const pid = r.athlete_external_id; if(!pid) return;
+    if(!byPid[pid]) byPid[pid] = [];
+    byPid[pid].push(r);
+  });
+
+  const errors = [], applied = [];
+  Object.entries(byPid).forEach(([pid, throws]) => {
+    const player = PLAYERS.find(p => p.id === pid);
+    if(!player){ errors.push(`${pid}: PLAYERS에 없음 (스킵)`); return; }
+    const fb = throws.filter(t => t.pitch_type === 'FB' || t.pitch_type === 'Fastball');
+    if(!fb.length){ errors.push(`${pid}: FB throw 없음 — 첫 throw 사용`); fb.push(throws[0]); }
+
+    // ── 변수별 통계 ──
+    const stats = {
+      velocity:        _stat(fb.map(t => num(t.velocity_kmh))),
+      plate_velocity:  _stat(fb.map(t => num(t.plate_velocity_kmh))),
+      velo_loss:       _stat(fb.map(t => num(t.velocity_loss_pct))),
+      spin:            _stat(fb.map(t => num(t.spin_rpm))),
+      true_spin:       _stat(fb.map(t => num(t.true_spin_rpm))),
+      spin_eff:        _stat(fb.map(t => num(t.spin_efficiency_pct))),
+      spin_axis_deg:   _stat(fb.map(t => num(t.spin_axis_deg))),
+      gyro:            _stat(fb.map(t => num(t.gyro_degree))),
+      ivb:             _stat(fb.map(t => num(t.ivb_cm))),
+      hb:              _stat(fb.map(t => num(t.hb_cm))),
+      vb_total:        _stat(fb.map(t => num(t.vb_total_cm))),
+      release_height:  _stat(fb.map(t => num(t.release_height_m))),
+      release_side:    _stat(fb.map(t => num(t.release_side_m))),
+      release_ext:     _stat(fb.map(t => num(t.release_extension_m))),
+      release_angle:   _stat(fb.map(t => num(t.release_angle_deg))),
+      vaa:             _stat(fb.map(t => num(t.vaa_deg))),
+      haa:             _stat(fb.map(t => num(t.haa_deg))),
+      plate_height:    _stat(fb.map(t => num(t.plate_height_cm))),
+      plate_side:      _stat(fb.map(t => num(t.plate_side_cm))),
+      bauer:           _stat(fb.map(t => num(t.bauer_units))),
+    };
+    if(!stats.velocity.n){ errors.push(`${pid}: velocity_kmh 모두 빈 값`); return; }
+    const inZone = fb.filter(t => num(t.in_zone) === 1).length;
+
+    // ── 합성지표 — KBO 코호트 기준 (기본 모드) ──
+    const COH = RAPSODO_BENCHMARKS.KBO;
+    // Stuff (구위) = velocity, spin rate, IVB, spin efficiency 가중평균 → 0~100
+    const stuff_v = Math.max(0, Math.min(100, 50 + (stats.velocity.avg - COH.velo) * 4));
+    const stuff_s = Math.max(0, Math.min(100, 50 + (stats.spin.avg - COH.spin) / 10));
+    const stuff_i = Math.max(0, Math.min(100, 50 + (stats.ivb.avg - COH.ivb) * 2));
+    const stuff_e = Math.max(0, Math.min(100, 50 + (stats.spin_eff.avg - COH.eff) * 2));
+    const stuff_score = Math.round(stuff_v*0.35 + stuff_s*0.25 + stuff_i*0.20 + stuff_e*0.20);
+    // Command (제구) = release SD (height·side·ext), in_zone% 가중
+    const rh_sd_cm = (stats.release_height.sd || 0) * 100;
+    const rs_sd_cm = (stats.release_side.sd || 0) * 100;
+    const cmd_rh = Math.max(0, Math.min(100, 100 - rh_sd_cm * 12));
+    const cmd_rs = Math.max(0, Math.min(100, 100 - rs_sd_cm * 12));
+    const cmd_zone = stats.velocity.n ? (inZone / stats.velocity.n) * 100 : 0;
+    const command_score = Math.round(cmd_rh*0.35 + cmd_rs*0.35 + cmd_zone*0.30);
+
+    // 회차 — test_date 매칭 (없으면 1차)
+    const td = fb[0].test_date;
+    const matchSes = SESSIONS.find(s => s.date === td);
+    const sid = matchSes ? matchSes.id : 1;
+    if(!DATA[pid][sid]) DATA[pid][sid] = {protocol: SESSIONS.find(s=>s.id===sid).protocol, date: td};
+    const cur = DATA[pid][sid];
+
+    // velocity 핵심 — 기존 필드 유지하면서 채움
+    cur.velocity = {
+      ...(cur.velocity || {}),
+      measured_kmh:     _rd(stats.velocity.max, 1),
+      measured_avg_kmh: _rd(stats.velocity.avg, 1),
+      measured_sd:      _rd(stats.velocity.sd, 2),
+      n_throws:         stats.velocity.n,
+    };
+    cur.faults = {
+      ...(cur.faults || {}),
+      release_height_sd_cm: _rd(rh_sd_cm, 1),
+      wrist_pos_sd_cm:      _rd(rs_sd_cm, 1),
+    };
+
+    // ── Rapsodo 풀 블록 (구질별 — 현재는 FB 만, 추후 SL/CB/CH 확장) ──
+    cur.rapsodo = {
+      ...(cur.rapsodo || {}),
+      fb: {
+        n_throws: stats.velocity.n,
+        velocity:  {max:_rd(stats.velocity.max,1), avg:_rd(stats.velocity.avg,1),
+                    min:_rd(stats.velocity.min,1), sd:_rd(stats.velocity.sd,2)},
+        plate_velocity: {avg:_rd(stats.plate_velocity.avg,1), sd:_rd(stats.plate_velocity.sd,2)},
+        velo_loss_pct:  _rd(stats.velo_loss.avg,1),
+        spin:           {avg:Math.round(stats.spin.avg||0), sd:_rd(stats.spin.sd,0)},
+        true_spin_avg:  Math.round(stats.true_spin.avg||0),
+        spin_eff:       {avg:_rd(stats.spin_eff.avg,1), sd:_rd(stats.spin_eff.sd,1)},
+        spin_axis_deg:  _rd(stats.spin_axis_deg.avg,0),
+        gyro_avg:       _rd(stats.gyro.avg,1),
+        bauer_units:    _rd(stats.bauer.avg,1),
+        ivb:            {avg:_rd(stats.ivb.avg,1), sd:_rd(stats.ivb.sd,1)},
+        hb:             {avg:_rd(stats.hb.avg,1), sd:_rd(stats.hb.sd,1)},
+        vb_total_avg:   _rd(stats.vb_total.avg,1),
+        release: {
+          height_avg: _rd(stats.release_height.avg,2),
+          height_sd_cm: _rd(rh_sd_cm,1),
+          side_avg:   _rd(stats.release_side.avg,2),
+          side_sd_cm: _rd(rs_sd_cm,1),
+          extension_avg: _rd(stats.release_ext.avg,2),
+          extension_sd: _rd((stats.release_ext.sd||0)*100,1),
+          angle_avg:  _rd(stats.release_angle.avg,1),
+        },
+        vaa_avg: _rd(stats.vaa.avg,2),
+        haa_avg: _rd(stats.haa.avg,2),
+        plate: {
+          height_avg: _rd(stats.plate_height.avg,1),
+          side_avg:   _rd(stats.plate_side.avg,1),
+        },
+        in_zone_pct: Math.round(cmd_zone),
+        // 합성
+        stuff_score,
+        command_score,
+        // 원본 throws (선수별 산점도용 — 첫 5개만 보존)
+        throws: fb.slice(0, 30).map(t => ({
+          pitch_no: num(t.pitch_no), velocity: num(t.velocity_kmh),
+          spin: num(t.spin_rpm), spin_eff: num(t.spin_efficiency_pct),
+          ivb: num(t.ivb_cm), hb: num(t.hb_cm),
+          rh: num(t.release_height_m), rs: num(t.release_side_m),
+          ext: num(t.release_extension_m), vaa: num(t.vaa_deg),
+          plate_h: num(t.plate_height_cm), plate_s: num(t.plate_side_cm),
+          in_zone: num(t.in_zone)===1
+        }))
+      }
+    };
+    REAL_DATA_KEYS.add(`${pid}:${sid}`);
+    applied.push({pid, sid, ...stats.velocity, stuff_score, command_score});
+  });
+  return {ok: applied.length, errors, applied};
+}
+
+async function handleCSVFiles(fileList, kind){
+  const wrapId = kind === 'vald' ? 'vald-csv-result' : 'rapsodo-csv-result';
+  const wrap = document.getElementById(wrapId);
+  const messages = [];
+  for(const file of fileList){
+    try {
+      const text = await file.text();
+      const result = (kind === 'vald' ? importValdCSV : importRapsodoCSV)(text);
+      if(result.ok) messages.push(`✓ ${file.name}: ${result.ok}명 인입 완료`);
+      else messages.push(`⚠ ${file.name}: 인입 0건`);
+      result.errors.slice(0, 5).forEach(e => messages.push(`  · ${e}`));
+      if(result.errors.length > 5) messages.push(`  · ... 외 ${result.errors.length - 5}건`);
+    } catch(e){
+      messages.push(`✗ ${file.name}: 파싱 실패 — ${e.message}`);
+    }
+  }
+  wrap.innerHTML = messages.map(m => {
+    const cls = m.startsWith('✓') ? 'good' : m.startsWith('⚠') ? 'warn' : m.startsWith('  ') ? '' : 'bad';
+    return cls
+      ? `<div class="pill ${cls}" style="display:block;padding:6px 10px;margin:3px 0;font-weight:500">${m}</div>`
+      : `<div style="padding:2px 18px;color:var(--muted);font-size:11px">${m}</div>`;
+  }).join('');
+  refreshAllAfterImport();
+}
+
+function setupCSVZone(kind){
+  const ids = kind === 'vald'
+    ? {zone: 'vald-csv-zone', input: 'vald-csv-input'}
+    : {zone: 'rapsodo-csv-zone', input: 'rapsodo-csv-input'};
+  const zone = document.getElementById(ids.zone);
+  const input = document.getElementById(ids.input);
+  if(!zone || !input) return;
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', e => {
+    if(e.target.files.length) handleCSVFiles([...e.target.files], kind);
+  });
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.style.borderColor = 'var(--accent)'; zone.style.background = 'var(--accent-bg)';
+  }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.style.borderColor = ''; zone.style.background = '';
+  }));
+  zone.addEventListener('drop', e => {
+    if(e.dataTransfer.files.length) handleCSVFiles([...e.dataTransfer.files], kind);
+  });
+}
+
 function resetToSampleData(){
   if(!confirm('실측 데이터 인입분을 모두 버리고 샘플로 되돌립니다.\n저장된 localStorage도 함께 삭제됩니다. 진행할까요?')) return;
   // 새 샘플 데이터 생성
@@ -2801,6 +3886,9 @@ function updateStorageBadge(state){
 
 /* refreshAllAfterImport()의 마지막 줄에서 saveToStorage()가 호출됨 (아래 함수 정의 참고) */
 
+
+
+/* ===== js/reports_init.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
    ║  8c. 리포트 출력 — 선수 개별 + 코치 종합 (v1.9)               ║
    ╚══════════════════════════════════════════════════════════╝ */
@@ -3180,27 +4268,19 @@ function renderHeaderDynamic(){
   document.getElementById('hdr-d1').textContent = s1 ? s1.date : '—';
 }
 
-// 모바일 데모 — 단계별 try/catch + 디버그 표시
-function __step(name, fn){
-  try { fn(); }
-  catch(e){
-    console.error('init step "'+name+'" failed:', e);
-    var s = document.getElementById('js-status');
-    if(s){ s.style.color='#cf222e'; s.textContent='⚠ '+name+': '+(e.message||e).toString().slice(0,40); }
-  }
-}
-let __loaded = false;
-__step('localStorage', ()=>{ __loaded = loadFromStorage(); });
-__step('storage badge', ()=>{ updateStorageBadge(__loaded ? 'loaded' : 'none'); });
-__step('헤더', renderHeaderDynamic);
-__step('1차 KPI', renderM1KPI);
-__step('진행 그리드', renderProgressGrid);
-__step('1차 테이블', buildM1Table);
-__step('1차 히트맵', renderM1Heatmap);
-__step('SVG 차트', renderM1Charts);
-__step('선수 셀렉트', renderPlayerSelect);
-__step('선수 리포트', ()=>renderPlayerView(PLAYERS[0].id));
-__step('회차 카드', renderScheduleHalves);
+// localStorage에 저장된 게 있으면 먼저 복원 (없으면 그대로 샘플 데이터 사용)
+const __loaded = loadFromStorage();
+updateStorageBadge(__loaded ? 'loaded' : 'none');
+
+renderHeaderDynamic();
+renderM1KPI();
+renderProgressGrid();
+buildM1Table();
+renderM1Heatmap();
+renderM1Charts();
+renderPlayerSelect();
+renderPlayerView(PLAYERS[0].id);
+renderScheduleHalves();   // 장기 추적 탭 들어가기 전에도 카드는 미리 렌더해두기 (가벼움)
 // 복원된 실측 데이터가 있으면 헤더 데이터 상태도 갱신
 if(__loaded && REAL_DATA_KEYS.size > 0){
   const realCount = REAL_DATA_KEYS.size;
@@ -3212,6 +4292,23 @@ if(__loaded && REAL_DATA_KEYS.size > 0){
 
 // JSON 인입 와이어업
 setupJsonZone();
+// CSV 인입 와이어업 (v1.16)
+setupCSVZone('vald');
+setupCSVZone('rapsodo');
+
+// Rapsodo 코호트 토글 (KBO/HS) — v1.23
+(function(){
+  const sel = document.getElementById('rap-cohort-select');
+  if(!sel) return;
+  sel.value = RAP_COHORT;
+  sel.addEventListener('change', e => {
+    RAP_COHORT = e.target.value;
+    try { localStorage.setItem('rap_cohort', RAP_COHORT); } catch(_){}
+    // 선수 리포트 즉시 갱신
+    const pid = document.getElementById('player-select')?.value;
+    if(pid) renderPlayerView(pid);
+  });
+})();
 document.getElementById('dl-theia-template-single')?.addEventListener('click', ()=>downloadTemplate('single'));
 document.getElementById('dl-theia-template-batch')?.addEventListener('click', ()=>downloadTemplate('batch'));
 document.getElementById('reset-data')?.addEventListener('click', resetToSampleData);
@@ -3230,7 +4327,9 @@ document.getElementById('rep-pl-none')?.addEventListener('click', ()=>{
 document.getElementById('rep-pl-print')?.addEventListener('click', printSelectedPlayers);
 document.getElementById('rep-co-print')?.addEventListener('click', printCoachReport);
 document.getElementById('rep-session-co')?.addEventListener('change', renderCoachPreview);
-
 </script>
+
+
+
 </body>
 </html>
