@@ -401,6 +401,13 @@
     </div>
     <div class="meta">
       <div>1차 측정 예정일: <b id="hdr-d1">—</b> (Theia+GRF + ForceDecks + Rapsodo)</div>
+      <div style="margin:4px 0">
+        <label style="font-size:11px;color:var(--muted)">랩소도 코호트:</label>
+        <select id="rap-cohort-select" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid var(--line);background:#fff;font-family:inherit">
+          <option value="KBO">KBO 프로 기준</option>
+          <option value="HS">고교 (HS) 기준</option>
+        </select>
+      </div>
       <div>현재 데이터: <b id="data-status">샘플 데이터 (실측 데이터 미입력)</b>
         &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span></div>
     </div>
@@ -469,17 +476,19 @@
           <tr>
             <th data-key="name">선수</th>
             <th data-key="arm" class="right">투구</th>
-            <th data-key="velo" class="right">구속(km/h)</th>
-            <th data-key="velo_pot" class="right">잠재</th>
+            <th data-key="velo" class="right">FB Max(km/h)</th>
+            <th data-key="velo_avg" class="right">FB Avg</th>
+            <th data-key="spin" class="right" style="background:#ddf4ff">Spin</th>
+            <th data-key="spin_eff" class="right" style="background:#ddf4ff">Eff%</th>
+            <th data-key="ivb" class="right" style="background:#ddf4ff">IVB(cm)</th>
+            <th data-key="bauer" class="right" style="background:#ddf4ff">Bauer</th>
+            <th data-key="stuff" class="right" style="background:#fff8c5">Stuff</th>
+            <th data-key="command" class="right" style="background:#fff8c5">Cmd</th>
             <th data-key="score" class="right">종합</th>
-            <th data-key="gen" class="right" style="background:#ddf4ff">출력</th>
-            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
+            <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
             <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
-            <th data-key="grf" class="right">GRF·LHEI</th>
+            <th data-key="grf" class="right">LHEI</th>
             <th data-key="risk" class="right">부상</th>
-            <th data-key="cons" class="right">제구SD</th>
-            <th data-key="cmj_jh" class="right" style="color:var(--muted);font-size:10.5px">체력 CMJ</th>
-            <th data-key="imtp_pf" class="right" style="color:var(--muted);font-size:10.5px">체력 IMTP</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -687,8 +696,22 @@
   <span id="p-sg" style="display:none"></span>
   <span id="p-seq-binary" style="display:none"></span>
 
-  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <!-- 🎯 랩소도 패스트볼 분석 (Rapsodo 2.0) -->
   <div class="panel print-break">
+    <h2>🎯 랩소도 패스트볼 분석 <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo 2.0</span>
+        <span class="badge" id="rap-cohort-badge">코호트: KBO 기준</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      릴리스 → 플레이트까지의 변화, 회전 효율·축, IVB/HB 무브먼트, 진입각, 릴리스 일관성을 코호트 평균과 함께 평가.
+    </div>
+    <div id="p-rapsodo-area">
+      <div style="text-align:center;color:var(--muted);padding:20px;background:var(--panel2);border-radius:6px">
+        Rapsodo CSV 인입 후 자동 표시 — <a href="#" onclick="switchTab('data');return false;" style="color:var(--accent)">데이터 관리 탭으로 이동</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <div class="panel">
     <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
         <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
@@ -1369,18 +1392,23 @@ let m1Sort = {key:'score', dir:'desc'};
 function buildM1Table(){
   const rows = PLAYERS.map(p=>{
     const m = DATA[p.id][1];
+    const fb = m.rapsodo?.fb;
     return {
-      pid:p.id, name:p.name, arm:p.arm, height:p.height,
-      velo: m.velocity.measured_kmh, velo_pot: m.velocity.potential_kmh,
-      score: m.velocity.score,
-      gen: m.energy?.generation?.score ?? null,
-      trf: m.energy?.transfer?.score ?? null,
-      eli: m.energy?.leakage?.eli_score ?? null,
-      grf: m.grf ? m.grf.lhei : null,
-      cmj_jh: m.fitness?.cmj.jump_height_cm ?? null,
-      imtp_pf: m.fitness?.imtp.peak_force_bm_n_kg ?? null,
-      risk: m.faults.injury_risk,
-      cons: m.faults.release_height_sd_cm
+      pid:p.id, name:p.name, arm:p.arm,
+      velo:     fb?.velocity?.max ?? m.velocity.measured_kmh,
+      velo_avg: fb?.velocity?.avg ?? null,
+      spin:     fb?.spin?.avg ?? null,
+      spin_eff: fb?.spin_eff?.avg ?? null,
+      ivb:      fb?.ivb?.avg ?? null,
+      bauer:    fb?.bauer_units ?? null,
+      stuff:    fb?.stuff_score ?? null,
+      command:  fb?.command_score ?? null,
+      score:    m.velocity.score,
+      gen:      m.energy?.generation?.score ?? null,
+      trf:      m.energy?.transfer?.score ?? null,
+      eli:      m.energy?.leakage?.eli_score ?? null,
+      grf:      m.grf ? m.grf.lhei : null,
+      risk:     m.faults.injury_risk,
     };
   });
   const k=m1Sort.key, dir=m1Sort.dir==='asc'?1:-1;
@@ -1396,23 +1424,24 @@ function buildM1Table(){
   tb.innerHTML = rows.map(r=>{
     const isReal = REAL_DATA_KEYS.has(`${r.pid}:1`);
     const realDot = isReal ? ' <span title="실측 데이터" style="color:var(--accent);font-size:10px">●</span>' : '';
-    // 누수는 점수가 낮을수록 누수 큼 → "누수↑" 컬럼은 100-eli 로 표시 (값 클수록 누수 심각)
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
       <td><b>${r.name}</b>${realDot}</td>
       <td class="right">${r.arm}</td>
-      <td class="right">${fmt(r.velo,1)}</td>
-      <td class="right">${fmt(r.velo_pot,1)}</td>
+      <td class="right"><b>${fmt(r.velo,1)}</b></td>
+      <td class="right">${fmt(r.velo_avg,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt0(r.spin)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.spin_eff,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.ivb,1)}</td>
+      <td class="right" style="background:#ddf4ff20">${fmt(r.bauer,1)}</td>
+      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.stuff)}">${fmt0(r.stuff)}</b></td>
+      <td class="right" style="background:#fff8c520"><b style="color:${scoreColor(r.command)}">${fmt0(r.command)}</b></td>
       <td class="right"><b style="color:${scoreColor(r.score)}">${fmt0(r.score)}</b></td>
-      <td class="right" style="background:#ddf4ff20"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
-      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.trf)}">${fmt0(r.trf)}</b></td>
+      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
       <td class="right" style="background:#ffebe920"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
       <td class="right">${fmt0(r.grf)}</td>
       <td class="right">${riskPill(r.risk)}</td>
-      <td class="right">${fmt(r.cons,1)} cm</td>
-      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.cmj_jh,1)}</td>
-      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.imtp_pf,1)}</td>
     </tr>`;
   }).join('');
   document.querySelectorAll('#m1-table thead th').forEach(th=>{
@@ -1782,8 +1811,200 @@ function renderPlayerView(pid){
   document.getElementById('p-wp-sd').textContent = m.faults.wrist_pos_sd_cm + ' cm';
   document.getElementById('p-tt-sd').textContent = m.faults.trunk_tilt_sd_deg + '°';
 
+  // 🎯 Rapsodo 패스트볼 분석
+  renderRapsodoFB(m.rapsodo, p);
+
   // 체력 4 카드 (보조)
   renderFitnessCards(m.fitness);
+}
+
+/* 코호트 모드 — KBO/HS 토글로 비교 평가 변경 */
+let RAP_COHORT = (typeof localStorage !== 'undefined' && localStorage.getItem('rap_cohort')) || 'KBO';
+
+function renderRapsodoFB(rap, player){
+  const area = document.getElementById('p-rapsodo-area');
+  if(!area) return;
+  if(!rap || !rap.fb){
+    area.innerHTML = `<div style="text-align:center;color:var(--muted);padding:20px;background:var(--panel2);border-radius:6px">
+      Rapsodo CSV 인입 후 자동 표시 — <a href="#" onclick="switchTab('data');return false;" style="color:var(--accent)">데이터 관리 탭으로 이동</a>
+    </div>`;
+    return;
+  }
+  const fb = rap.fb;
+  const COH = RAPSODO_BENCHMARKS[RAP_COHORT];
+  const armSign = player.arm === 'R' ? 1 : -1;
+  document.getElementById('rap-cohort-badge').textContent = `코호트: ${RAP_COHORT} 기준`;
+
+  // 코호트 대비 평가
+  function vs(val, ref, fmt=0, unit='', lowerBetter=false){
+    if(val == null) return '<span style="color:var(--muted)">—</span>';
+    const diff = val - ref;
+    const good = lowerBetter ? diff < 0 : diff > 0;
+    const c = Math.abs(diff) < (Math.abs(ref) * 0.03) ? 'var(--muted)' : (good ? 'var(--good)' : 'var(--bad)');
+    const sign = diff >= 0 ? '+' : '';
+    return `<span style="color:${c};font-weight:600">${sign}${diff.toFixed(fmt)}${unit}</span>`;
+  }
+
+  // 6 카드
+  area.innerHTML = `
+    <div class="grid grid-3">
+      <!-- ① Velocity -->
+      <div class="scard" style="border-top:3px solid #cf222e">
+        <h3>① Velocity (구속)</h3>
+        <div class="row"><span>최고 (max)</span><span class="v" style="font-size:18px;font-weight:700">${fb.velocity.max} <span style="font-size:11px;color:var(--muted)">km/h</span></span></div>
+        <div class="row"><span>평균 (avg)</span><span class="v">${fb.velocity.avg} km/h</span></div>
+        <div class="row"><span>변동 (SD)</span><span class="v">${fb.velocity.sd} km/h</span></div>
+        <div class="row"><span>플레이트 평균</span><span class="v">${fb.plate_velocity.avg} km/h</span></div>
+        <div class="row"><span>감속률</span><span class="v">${fb.velo_loss_pct}%</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>${RAP_COHORT} 평균 ${COH.velo} 대비</span>${vs(fb.velocity.avg, COH.velo, 1, ' km/h')}
+        </div>
+      </div>
+
+      <!-- ② Spin & Stuff -->
+      <div class="scard" style="border-top:3px solid #0969da">
+        <h3>② Spin & Stuff (회전·구위)</h3>
+        <div class="row"><span>회전수 (Spin)</span><span class="v" style="font-size:16px;font-weight:700">${fb.spin.avg} rpm</span></div>
+        <div class="row"><span>True Spin</span><span class="v">${fb.true_spin_avg} rpm</span></div>
+        <div class="row"><span>회전효율 (Efficiency)</span><span class="v" style="color:${fb.spin_eff.avg>=90?'var(--good)':fb.spin_eff.avg>=80?'var(--warn)':'var(--bad)'}">${fb.spin_eff.avg}%</span></div>
+        <div class="row"><span>회전축 (deg)</span><span class="v">${fb.spin_axis_deg}°</span></div>
+        <div class="row"><span>Gyro 각도</span><span class="v">${fb.gyro_avg}°</span></div>
+        <div class="row"><span>Bauer Units</span><span class="v" style="font-weight:700">${fb.bauer_units}</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Stuff Score</span><span class="v" style="font-size:16px;color:${scoreColor(fb.stuff_score)}">${fb.stuff_score}/100</span>
+        </div>
+      </div>
+
+      <!-- ③ Movement -->
+      <div class="scard" style="border-top:3px solid #1a7f37">
+        <h3>③ Movement (무브먼트)</h3>
+        <div class="row"><span>IVB (수직 라이즈)</span><span class="v" style="font-size:16px;font-weight:700">${fb.ivb.avg} cm</span></div>
+        <div class="row"><span>IVB SD</span><span class="v">${fb.ivb.sd} cm</span></div>
+        <div class="row"><span>HB (수평 무브)</span><span class="v">${fb.hb.avg>0?'+':''}${fb.hb.avg} cm</span></div>
+        <div class="row"><span>VB Total (중력 포함)</span><span class="v">${fb.vb_total_avg} cm</span></div>
+        <div class="row"><span>VAA (진입각)</span><span class="v" style="color:${fb.vaa_avg>=-5.0?'var(--good)':fb.vaa_avg>=-6.0?'var(--warn)':'var(--bad)'}">${fb.vaa_avg}°</span></div>
+        <div class="row"><span>HAA</span><span class="v">${fb.haa_avg}°</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>${RAP_COHORT} IVB ${COH.ivb} 대비</span>${vs(fb.ivb.avg, COH.ivb, 1, ' cm')}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-top:12px">
+      <!-- ④ Release Consistency -->
+      <div class="scard" style="border-top:3px solid #bc4c00">
+        <h3>④ Release Consistency (릴리스 일관성)</h3>
+        <div class="row"><span>Height (높이)</span><span class="v">${fb.release.height_avg} m</span></div>
+        <div class="row"><span>Height SD</span><span class="v" style="color:${fb.release.height_sd_cm<3?'var(--good)':fb.release.height_sd_cm<5?'var(--warn)':'var(--bad)'}">${fb.release.height_sd_cm} cm</span></div>
+        <div class="row"><span>Side (좌우)</span><span class="v">${fb.release.side_avg} m</span></div>
+        <div class="row"><span>Side SD</span><span class="v" style="color:${fb.release.side_sd_cm<3?'var(--good)':fb.release.side_sd_cm<5?'var(--warn)':'var(--bad)'}">${fb.release.side_sd_cm} cm</span></div>
+        <div class="row"><span>Extension (앞으로)</span><span class="v">${fb.release.extension_avg} m</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Release Angle</span><span class="v">${fb.release.angle_avg}°</span>
+        </div>
+      </div>
+
+      <!-- ⑤ Command -->
+      <div class="scard" style="border-top:3px solid #8250df">
+        <h3>⑤ Command (제구)</h3>
+        <div class="row"><span>In-Zone %</span><span class="v" style="font-size:16px;font-weight:700;color:${fb.in_zone_pct>=60?'var(--good)':fb.in_zone_pct>=45?'var(--warn)':'var(--bad)'}">${fb.in_zone_pct}%</span></div>
+        <div class="row"><span>플레이트 평균 높이</span><span class="v">${fb.plate.height_avg} cm</span></div>
+        <div class="row"><span>플레이트 평균 좌우</span><span class="v">${fb.plate.side_avg} cm</span></div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span>Command Score</span><span class="v" style="font-size:16px;color:${scoreColor(fb.command_score)}">${fb.command_score}/100</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
+          Stuff vs Command 4분면 → 우상=Elite · 우하=Stuff Only · 좌상=Strike Thrower · 좌하=Develop
+        </div>
+      </div>
+
+      <!-- ⑥ ${RAP_COHORT} 코호트 비교 -->
+      <div class="scard" style="border-top:3px solid #6e7781">
+        <h3>⑥ ${RAP_COHORT} 코호트 평가</h3>
+        <div class="row"><span>구속</span>${vs(fb.velocity.avg, COH.velo, 1, ' km/h')}</div>
+        <div class="row"><span>회전수</span>${vs(fb.spin.avg, COH.spin, 0, ' rpm')}</div>
+        <div class="row"><span>회전효율</span>${vs(fb.spin_eff.avg, COH.eff, 1, '%')}</div>
+        <div class="row"><span>IVB</span>${vs(fb.ivb.avg, COH.ivb, 1, ' cm')}</div>
+        <div class="row"><span>Bauer Units</span>${vs(fb.bauer_units, COH.bauer, 1, '')}</div>
+        <div class="row"><span>VAA (낮을수록 좋음)</span>${vs(fb.vaa_avg, COH.vaa, 2, '°', true)}</div>
+        <div class="row" style="border-top:1px dashed var(--line-soft);margin-top:5px;padding-top:5px">
+          <span><b>Extension</b></span>${vs(fb.release.extension_avg, COH.ext, 2, ' m')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Movement Profile (IVB vs HB scatter) — Chart.js → SVG로 그림 -->
+    <div class="grid grid-2" style="margin-top:14px">
+      <div class="panel" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:12.5px">Movement Profile · IVB vs HB
+          <span style="float:right;font-size:11px;color:var(--muted)">개별 throw + 평균(◆) + 코호트(✚)</span></h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="rap-mov-chart"></canvas></div>
+      </div>
+      <div class="panel" style="margin:0">
+        <h3 style="margin:0 0 8px;font-size:12.5px">Stuff vs Command 4분면
+          <span style="float:right;font-size:11px;color:var(--muted)">우상=Elite</span></h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="rap-sc-chart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="footnote" style="margin-top:12px">
+      <b>지표 해설</b>:
+      <code>IVB</code>=Induced Vertical Break (중력 제외 수직 무브먼트, 클수록 "라이즈") ·
+      <code>Spin Efficiency</code>=True Spin/Total Spin (높을수록 회전이 무브먼트로 변환) ·
+      <code>VAA</code>=Vertical Approach Angle (덜 가파를수록=0에 가까울수록 "플랫" 패스트볼, 헛스윙 유도) ·
+      <code>Bauer Units</code>=Spin/Velocity(mph) (회전 효율 proxy, 25+ 양호) ·
+      <code>Extension</code>=릴리스 시 마운드에서 앞으로 나간 거리 (길수록 "체감 구속" ↑)
+    </div>
+  `;
+
+  // 차트 — Movement Profile (산점도)
+  if(chartsP.rapMov) chartsP.rapMov.destroy();
+  const throwsPts = (fb.throws||[]).map(t => ({x: t.hb, y: t.ivb}));
+  const avgPt = {x: fb.hb.avg, y: fb.ivb.avg};
+  const cohPt = {x: armSign * 8, y: COH.ivb};
+  chartsP.rapMov = new Chart(document.getElementById('rap-mov-chart'), {
+    type: 'scatter',
+    data: {datasets: [
+      {label:'개별 throw', data: throwsPts, backgroundColor:'rgba(13,109,253,0.5)', borderColor:'#0969da', pointRadius:4},
+      {label:'평균 ◆', data: [avgPt], backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:9, pointStyle:'rectRot'},
+      {label:`${RAP_COHORT} 코호트 ✚`, data: [cohPt], backgroundColor:'#cf222e', borderColor:'#cf222e', pointRadius:9, pointStyle:'crossRot', borderWidth:3}
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#1f2328',font:{size:11}}}},
+      scales:{
+        x:{title:{display:true,text:'HB · 수평 무브 (cm, +=arm side)',color:'#656d76'},
+           min:-30, max:30, grid:{color:'#eaeef2'}, ticks:{color:'#656d76'}},
+        y:{title:{display:true,text:'IVB · 수직 라이즈 (cm)',color:'#656d76'},
+           min:0, max:65, grid:{color:'#eaeef2'}, ticks:{color:'#656d76'}}
+      }
+    }
+  });
+
+  // Stuff vs Command — 본인 1점 + 팀 다른 선수들 비교
+  if(chartsP.rapSC) chartsP.rapSC.destroy();
+  const teamSC = PLAYERS.map(pl => {
+    const r = DATA[pl.id]?.[1]?.rapsodo?.fb;
+    return r ? {x: r.stuff_score, y: r.command_score, label: pl.name, isMe: pl.id === player.id} : null;
+  }).filter(Boolean);
+  chartsP.rapSC = new Chart(document.getElementById('rap-sc-chart'), {
+    type: 'scatter',
+    data: {datasets: [
+      {label:'팀 동료', data: teamSC.filter(p=>!p.isMe), backgroundColor:'rgba(101,109,118,0.4)', borderColor:'#656d76', pointRadius:4},
+      {label:'본인', data: teamSC.filter(p=>p.isMe), backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:10, pointStyle:'rectRot'}
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#1f2328',font:{size:11}}},
+        tooltip:{callbacks:{label:c=>{const d=teamSC[c.datasetIndex===0?c.dataIndex:teamSC.findIndex(p=>p.isMe)];return `${d?.label} · S${d?.x} / C${d?.y}`;}}}
+      },
+      scales:{
+        x:{title:{display:true,text:'Stuff Score (구위 →)',color:'#656d76'}, min:0, max:100, grid:{color:'#eaeef2'},ticks:{color:'#656d76'}},
+        y:{title:{display:true,text:'Command Score (제구 →)',color:'#656d76'}, min:0, max:100, grid:{color:'#eaeef2'},ticks:{color:'#656d76'}}
+      }
+    }
+  });
 }
 
 function renderFitnessCards(fit){
@@ -2577,7 +2798,23 @@ function importValdCSV(text){
   return {ok: applied.length, errors, applied};
 }
 
-// Rapsodo CSV → 선수별 FB 통계로 velocity·release SD 매핑
+// Rapsodo 2.0 통계 헬퍼
+function _stat(arr){
+  const v = arr.filter(x => x != null && !isNaN(x));
+  if(!v.length) return {n:0, avg:null, sd:null, min:null, max:null};
+  const avg = v.reduce((a,b)=>a+b,0) / v.length;
+  const sd = v.length > 1 ? Math.sqrt(v.reduce((s,x) => s + (x-avg)**2, 0) / (v.length-1)) : 0;
+  return {n: v.length, avg, sd, min: Math.min(...v), max: Math.max(...v)};
+}
+function _rd(x, dec=1){ return x==null||isNaN(x) ? null : Math.round(x * 10**dec) / 10**dec; }
+
+// KBO/HS 코호트 평균 — 비교 평가용
+const RAPSODO_BENCHMARKS = {
+  KBO: {velo:142.0, spin:2200, eff:88, ivb:42, bauer:25.5, vaa:-5.0, ext:1.95},
+  HS:  {velo:128.0, spin:2050, eff:82, ivb:35, bauer:25.0, vaa:-5.5, ext:1.85},
+};
+
+// Rapsodo CSV → 선수별 FB 풀 분석 + velocity·release SD 매핑
 function importRapsodoCSV(text){
   const {header, rows} = parseCSV(text);
   const required = ['athlete_external_id','pitch_type','velocity_kmh'];
@@ -2597,18 +2834,49 @@ function importRapsodoCSV(text){
     const player = PLAYERS.find(p => p.id === pid);
     if(!player){ errors.push(`${pid}: PLAYERS에 없음 (스킵)`); return; }
     const fb = throws.filter(t => t.pitch_type === 'FB' || t.pitch_type === 'Fastball');
-    if(!fb.length){ errors.push(`${pid}: FB(Fastball) throw 없음 — 첫 throw 사용`); fb.push(throws[0]); }
+    if(!fb.length){ errors.push(`${pid}: FB throw 없음 — 첫 throw 사용`); fb.push(throws[0]); }
 
-    const velos = fb.map(t => num(t.velocity_kmh)).filter(v => v != null);
-    if(!velos.length){ errors.push(`${pid}: velocity_kmh 모두 빈 값`); return; }
+    // ── 변수별 통계 ──
+    const stats = {
+      velocity:        _stat(fb.map(t => num(t.velocity_kmh))),
+      plate_velocity:  _stat(fb.map(t => num(t.plate_velocity_kmh))),
+      velo_loss:       _stat(fb.map(t => num(t.velocity_loss_pct))),
+      spin:            _stat(fb.map(t => num(t.spin_rpm))),
+      true_spin:       _stat(fb.map(t => num(t.true_spin_rpm))),
+      spin_eff:        _stat(fb.map(t => num(t.spin_efficiency_pct))),
+      spin_axis_deg:   _stat(fb.map(t => num(t.spin_axis_deg))),
+      gyro:            _stat(fb.map(t => num(t.gyro_degree))),
+      ivb:             _stat(fb.map(t => num(t.ivb_cm))),
+      hb:              _stat(fb.map(t => num(t.hb_cm))),
+      vb_total:        _stat(fb.map(t => num(t.vb_total_cm))),
+      release_height:  _stat(fb.map(t => num(t.release_height_m))),
+      release_side:    _stat(fb.map(t => num(t.release_side_m))),
+      release_ext:     _stat(fb.map(t => num(t.release_extension_m))),
+      release_angle:   _stat(fb.map(t => num(t.release_angle_deg))),
+      vaa:             _stat(fb.map(t => num(t.vaa_deg))),
+      haa:             _stat(fb.map(t => num(t.haa_deg))),
+      plate_height:    _stat(fb.map(t => num(t.plate_height_cm))),
+      plate_side:      _stat(fb.map(t => num(t.plate_side_cm))),
+      bauer:           _stat(fb.map(t => num(t.bauer_units))),
+    };
+    if(!stats.velocity.n){ errors.push(`${pid}: velocity_kmh 모두 빈 값`); return; }
+    const inZone = fb.filter(t => num(t.in_zone) === 1).length;
 
-    const veloMax = Math.max(...velos);
-    const veloAvg = velos.reduce((a,b)=>a+b,0) / velos.length;
-    // Release height SD (cm)
-    const rhs = fb.map(t => num(t.release_height_m)).filter(v => v != null).map(v => v*100);
-    const rhSD = rhs.length > 1
-      ? Math.sqrt(rhs.reduce((s,v) => s + (v - rhs.reduce((a,b)=>a+b,0)/rhs.length)**2, 0) / (rhs.length-1))
-      : null;
+    // ── 합성지표 — KBO 코호트 기준 (기본 모드) ──
+    const COH = RAPSODO_BENCHMARKS.KBO;
+    // Stuff (구위) = velocity, spin rate, IVB, spin efficiency 가중평균 → 0~100
+    const stuff_v = Math.max(0, Math.min(100, 50 + (stats.velocity.avg - COH.velo) * 4));
+    const stuff_s = Math.max(0, Math.min(100, 50 + (stats.spin.avg - COH.spin) / 10));
+    const stuff_i = Math.max(0, Math.min(100, 50 + (stats.ivb.avg - COH.ivb) * 2));
+    const stuff_e = Math.max(0, Math.min(100, 50 + (stats.spin_eff.avg - COH.eff) * 2));
+    const stuff_score = Math.round(stuff_v*0.35 + stuff_s*0.25 + stuff_i*0.20 + stuff_e*0.20);
+    // Command (제구) = release SD (height·side·ext), in_zone% 가중
+    const rh_sd_cm = (stats.release_height.sd || 0) * 100;
+    const rs_sd_cm = (stats.release_side.sd || 0) * 100;
+    const cmd_rh = Math.max(0, Math.min(100, 100 - rh_sd_cm * 12));
+    const cmd_rs = Math.max(0, Math.min(100, 100 - rs_sd_cm * 12));
+    const cmd_zone = stats.velocity.n ? (inZone / stats.velocity.n) * 100 : 0;
+    const command_score = Math.round(cmd_rh*0.35 + cmd_rs*0.35 + cmd_zone*0.30);
 
     // 회차 — test_date 매칭 (없으면 1차)
     const td = fb[0].test_date;
@@ -2617,17 +2885,71 @@ function importRapsodoCSV(text){
     if(!DATA[pid][sid]) DATA[pid][sid] = {protocol: SESSIONS.find(s=>s.id===sid).protocol, date: td};
     const cur = DATA[pid][sid];
 
+    // velocity 핵심 — 기존 필드 유지하면서 채움
     cur.velocity = {
       ...(cur.velocity || {}),
-      measured_kmh: Math.round(veloMax * 10) / 10,           // FB 최고
-      measured_avg_kmh: Math.round(veloAvg * 10) / 10,
-      n_throws: fb.length,
+      measured_kmh:     _rd(stats.velocity.max, 1),
+      measured_avg_kmh: _rd(stats.velocity.avg, 1),
+      measured_sd:      _rd(stats.velocity.sd, 2),
+      n_throws:         stats.velocity.n,
     };
-    if(rhSD != null){
-      cur.faults = { ...(cur.faults || {}), release_height_sd_cm: Math.round(rhSD * 10) / 10 };
-    }
+    cur.faults = {
+      ...(cur.faults || {}),
+      release_height_sd_cm: _rd(rh_sd_cm, 1),
+      wrist_pos_sd_cm:      _rd(rs_sd_cm, 1),
+    };
+
+    // ── Rapsodo 풀 블록 (구질별 — 현재는 FB 만, 추후 SL/CB/CH 확장) ──
+    cur.rapsodo = {
+      ...(cur.rapsodo || {}),
+      fb: {
+        n_throws: stats.velocity.n,
+        velocity:  {max:_rd(stats.velocity.max,1), avg:_rd(stats.velocity.avg,1),
+                    min:_rd(stats.velocity.min,1), sd:_rd(stats.velocity.sd,2)},
+        plate_velocity: {avg:_rd(stats.plate_velocity.avg,1), sd:_rd(stats.plate_velocity.sd,2)},
+        velo_loss_pct:  _rd(stats.velo_loss.avg,1),
+        spin:           {avg:Math.round(stats.spin.avg||0), sd:_rd(stats.spin.sd,0)},
+        true_spin_avg:  Math.round(stats.true_spin.avg||0),
+        spin_eff:       {avg:_rd(stats.spin_eff.avg,1), sd:_rd(stats.spin_eff.sd,1)},
+        spin_axis_deg:  _rd(stats.spin_axis_deg.avg,0),
+        gyro_avg:       _rd(stats.gyro.avg,1),
+        bauer_units:    _rd(stats.bauer.avg,1),
+        ivb:            {avg:_rd(stats.ivb.avg,1), sd:_rd(stats.ivb.sd,1)},
+        hb:             {avg:_rd(stats.hb.avg,1), sd:_rd(stats.hb.sd,1)},
+        vb_total_avg:   _rd(stats.vb_total.avg,1),
+        release: {
+          height_avg: _rd(stats.release_height.avg,2),
+          height_sd_cm: _rd(rh_sd_cm,1),
+          side_avg:   _rd(stats.release_side.avg,2),
+          side_sd_cm: _rd(rs_sd_cm,1),
+          extension_avg: _rd(stats.release_ext.avg,2),
+          extension_sd: _rd((stats.release_ext.sd||0)*100,1),
+          angle_avg:  _rd(stats.release_angle.avg,1),
+        },
+        vaa_avg: _rd(stats.vaa.avg,2),
+        haa_avg: _rd(stats.haa.avg,2),
+        plate: {
+          height_avg: _rd(stats.plate_height.avg,1),
+          side_avg:   _rd(stats.plate_side.avg,1),
+        },
+        in_zone_pct: Math.round(cmd_zone),
+        // 합성
+        stuff_score,
+        command_score,
+        // 원본 throws (선수별 산점도용 — 첫 5개만 보존)
+        throws: fb.slice(0, 30).map(t => ({
+          pitch_no: num(t.pitch_no), velocity: num(t.velocity_kmh),
+          spin: num(t.spin_rpm), spin_eff: num(t.spin_efficiency_pct),
+          ivb: num(t.ivb_cm), hb: num(t.hb_cm),
+          rh: num(t.release_height_m), rs: num(t.release_side_m),
+          ext: num(t.release_extension_m), vaa: num(t.vaa_deg),
+          plate_h: num(t.plate_height_cm), plate_s: num(t.plate_side_cm),
+          in_zone: num(t.in_zone)===1
+        }))
+      }
+    };
     REAL_DATA_KEYS.add(`${pid}:${sid}`);
-    applied.push({pid, sid, veloMax, veloAvg, n: fb.length});
+    applied.push({pid, sid, ...stats.velocity, stuff_score, command_score});
   });
   return {ok: applied.length, errors, applied};
 }
@@ -3184,6 +3506,20 @@ setupJsonZone();
 // CSV 인입 와이어업 (v1.16)
 setupCSVZone('vald');
 setupCSVZone('rapsodo');
+
+// Rapsodo 코호트 토글 (KBO/HS) — v1.23
+(function(){
+  const sel = document.getElementById('rap-cohort-select');
+  if(!sel) return;
+  sel.value = RAP_COHORT;
+  sel.addEventListener('change', e => {
+    RAP_COHORT = e.target.value;
+    try { localStorage.setItem('rap_cohort', RAP_COHORT); } catch(_){}
+    // 선수 리포트 즉시 갱신
+    const pid = document.getElementById('player-select')?.value;
+    if(pid) renderPlayerView(pid);
+  });
+})();
 document.getElementById('dl-theia-template-single')?.addEventListener('click', ()=>downloadTemplate('single'));
 document.getElementById('dl-theia-template-batch')?.addEventListener('click', ()=>downloadTemplate('batch'));
 document.getElementById('reset-data')?.addEventListener('click', resetToSampleData);
