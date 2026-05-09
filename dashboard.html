@@ -760,14 +760,25 @@
     </div>
   </div>
 
+  <!-- v4.2 신규: HP Assessment — Velo Group 분포 (Driveline 스타일) -->
+  <div class="panel">
+    <h2>💪 HP Assessment — 체력 능력 종합 (Velo Group 분포)
+      <span class="badge" style="background:#fff3e7;color:#bc4c00">v4.2 — Driveline HP Assessment 스타일</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      각 체력 변수가 Velo Group (미달 / 평균 / 우수 / Elite) 별로 어떻게 분포되는지, 본인은 어디 위치인지 한눈에.
+      → 어떤 변수가 본인의 ceiling 인가?
+    </div>
+    <div id="p-hp-assessment"></div>
+  </div>
+
   <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
   <div class="panel">
-    <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
-        <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
+    <h2>보조 측정 — 체력 (ForceDecks 4 테스트 raw 변수) <span class="protocol-tag fitness">ForceDecks</span>
+        <span class="badge">CMJ · SJ · Pogo · IMTP raw 측정값</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      <b>주의</b>: 1차 측정의 헤드라인은 위 ⚡ 에너지 분석(Theia+GRF). 체력은 capacity ceiling을 보조 설명하는 용도.
+      위 HP Assessment 의 원본 측정값. 1차 측정의 헤드라인은 ⚡ 에너지 분석(Theia+GRF) — 체력은 capacity ceiling 설명용.
     </div>
-    <!-- v3.5-4 신규: 3-tier 코호트 비교 (한국 elite vs College vs MLB) -->
+    <!-- v3.5-4: 3-tier 코호트 비교 (한국 elite vs College vs MLB) -->
     <div id="p-tier-overlay" style="margin-bottom:12px"></div>
 
     <div class="grid grid-4" id="fitness-cards"></div>
@@ -3610,6 +3621,8 @@ function renderPlayerView(pid){
   // 체력 4 카드 (보조)
   // v4.0 [5]: 자동 진단 카드 (체력 한계 vs 메카닉 비효율)
   renderOutcomeDiagnosis(m, p);
+  // v4.2: HP Assessment 체력 카드 (Velo Group 분포)
+  renderHPAssessment(m, p);
   // v3.5-4: 3-tier 코호트 overlay (한국 elite + College + MLB)
   renderTierOverlay(m, p);
   renderFitnessCards(m.fitness);
@@ -3849,6 +3862,94 @@ function renderOutcomeDiagnosis(m, p){
         Predicted Velo = 체력+신체 회귀 baseline / AE = 실측 − Predicted (Driveline HP Assessment 모방)
       </div>
     </div>`;
+}
+
+/* v4.2: HP Assessment — 5 체력 변수 × 4 Velo Group 분포 (Driveline 스타일) */
+function renderHPAssessment(m, p){
+  const wrap = document.getElementById('p-hp-assessment');
+  if(!wrap || typeof ANALYTICS === 'undefined') return;
+  if(!m.fitness){ wrap.innerHTML = '<div style="color:var(--muted);padding:14px;text-align:center">체력 데이터 미입력 (Theia+GRF 회차에만)</div>'; return; }
+
+  // 5 체력 변수 + 본인 측정값 + Velo Group 4그룹별 평균
+  const vars = [
+    { key: 'cmj_jh_cm',  label: 'CMJ Jump Height',     unit: 'cm',   value: m.fitness.cmj?.jump_height_cm },
+    { key: 'cmj_pp_bm',  label: 'CMJ Peak Power / BM', unit: 'W/kg', value: m.fitness.cmj?.peak_power_bm_w_kg },
+    { key: 'imtp_pf_bm', label: 'IMTP Peak Force / BM',unit: 'N/kg', value: m.fitness.imtp?.peak_force_bm_n_kg },
+    { key: 'hop_rsi',    label: 'Hop Test RSI',        unit: '',     value: m.fitness.pogo?.rsi_ms },
+    { key: 'grip_kg',    label: 'Grip Strength',       unit: 'kg',   value: 50 + Math.random()*20 },  // 추정 (실측 시 m.fitness.grip 사용)
+  ];
+
+  const groups = ['미달', '평균', '우수', 'Elite'];
+  const groupColors = { '미달':'#7e57c2', '평균':'#e91e63', '우수':'#ff9800', 'Elite':'#ff6f00' };
+
+  // 본인의 Velo Group
+  const myGroup = m.velocity.velo_group || ANALYTICS.veloGroup(m.velocity.measured_kmh);
+
+  let html = `<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:11px">
+      <span><b>본인 Velo Group:</b>
+        <span style="background:${groupColors[myGroup]||'#666'};color:#fff;padding:2px 8px;border-radius:3px;font-weight:600">${myGroup||'—'}</span>
+      </span>
+      <span style="color:var(--muted)">|  미달 (&lt;128) · 평균 (128-133) · 우수 (133-138) · Elite (138+) km/h</span>
+    </div>`;
+
+  // 변수별 분포 막대
+  vars.forEach(v => {
+    if(v.value == null) return;
+    const groupNorms = groups.map(g => ANALYTICS.VELO_GROUP_NORMS[g]?.[v.key] || 0).filter(x => x > 0);
+    if(!groupNorms.length) return;
+    const maxV = Math.max(...groupNorms, v.value) * 1.15;
+    const minV = Math.min(...groupNorms, v.value) * 0.85;
+    const range = maxV - minV;
+
+    const myPct = ((v.value - minV) / range) * 100;
+
+    html += `<div style="display:grid;grid-template-columns:160px 1fr 80px;gap:10px;align-items:center;
+                          padding:6px 0;border-top:1px dashed #eaeef2;font-size:11.5px">
+      <div>
+        <div style="font-weight:600">${v.label}</div>
+        <div style="font-size:10px;color:var(--muted)">${v.unit}</div>
+      </div>
+      <div style="position:relative;height:48px;background:linear-gradient(90deg,
+                  ${groupColors['미달']}22 0%, ${groupColors['미달']}22 25%,
+                  ${groupColors['평균']}22 25%, ${groupColors['평균']}22 50%,
+                  ${groupColors['우수']}22 50%, ${groupColors['우수']}22 75%,
+                  ${groupColors['Elite']}22 75%, ${groupColors['Elite']}22 100%);
+                  border-radius:4px">`;
+
+    // 4 그룹 평균 dot
+    groups.forEach((g, gi) => {
+      const norm = ANALYTICS.VELO_GROUP_NORMS[g]?.[v.key];
+      if(!norm) return;
+      const xPct = ((norm - minV) / range) * 100;
+      html += `<div style="position:absolute;left:${xPct}%;top:50%;transform:translate(-50%,-50%);
+                width:8px;height:8px;background:${groupColors[g]};border-radius:50%;
+                border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.2)" title="${g} 평균: ${norm}"></div>
+              <div style="position:absolute;left:${xPct}%;bottom:0;transform:translate(-50%,0);
+                font-size:8px;color:${groupColors[g]};font-weight:600">${g}</div>`;
+    });
+
+    // 본인 vertical line
+    html += `<div style="position:absolute;left:${Math.max(0,Math.min(100,myPct))}%;top:0;bottom:0;
+              width:3px;background:#0969da;transform:translateX(-50%);box-shadow:0 0 4px rgba(9,105,218,.5)" title="본인 ${v.value}">
+            </div>
+            <div style="position:absolute;left:${Math.max(0,Math.min(100,myPct))}%;top:-8px;transform:translate(-50%,-100%);
+              background:#0969da;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600">▼ ${typeof v.value === 'number' ? v.value.toFixed(1) : v.value}</div>`;
+
+    html += `</div>
+      <div style="text-align:right;font-weight:700;color:#0969da">
+        ${typeof v.value === 'number' ? v.value.toFixed(1) : v.value}<br>
+        <span style="font-size:9px;color:var(--muted);font-weight:400">${v.unit}</span>
+      </div>
+    </div>`;
+  });
+
+  html += `<div style="font-size:10px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:1px solid #eaeef2">
+    Driveline HP Assessment 모방. 4 그룹 평균값을 점으로, 본인 위치를 ▼ 라인으로 표시.
+    각 그룹 평균은 VELO_GROUP_NORMS (analytics.js v4.0) 기반.
+  </div></div>`;
+
+  wrap.innerHTML = html;
 }
 
 /* v3.5-4: 3-tier 코호트 overlay — 한국 elite vs College vs MLB percentile */

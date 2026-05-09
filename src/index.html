@@ -381,14 +381,25 @@
     </div>
   </div>
 
+  <!-- v4.2 신규: HP Assessment — Velo Group 분포 (Driveline 스타일) -->
+  <div class="panel">
+    <h2>💪 HP Assessment — 체력 능력 종합 (Velo Group 분포)
+      <span class="badge" style="background:#fff3e7;color:#bc4c00">v4.2 — Driveline HP Assessment 스타일</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      각 체력 변수가 Velo Group (미달 / 평균 / 우수 / Elite) 별로 어떻게 분포되는지, 본인은 어디 위치인지 한눈에.
+      → 어떤 변수가 본인의 ceiling 인가?
+    </div>
+    <div id="p-hp-assessment"></div>
+  </div>
+
   <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
   <div class="panel">
-    <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
-        <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
+    <h2>보조 측정 — 체력 (ForceDecks 4 테스트 raw 변수) <span class="protocol-tag fitness">ForceDecks</span>
+        <span class="badge">CMJ · SJ · Pogo · IMTP raw 측정값</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      <b>주의</b>: 1차 측정의 헤드라인은 위 ⚡ 에너지 분석(Theia+GRF). 체력은 capacity ceiling을 보조 설명하는 용도.
+      위 HP Assessment 의 원본 측정값. 1차 측정의 헤드라인은 ⚡ 에너지 분석(Theia+GRF) — 체력은 capacity ceiling 설명용.
     </div>
-    <!-- v3.5-4 신규: 3-tier 코호트 비교 (한국 elite vs College vs MLB) -->
+    <!-- v3.5-4: 3-tier 코호트 비교 (한국 elite vs College vs MLB) -->
     <div id="p-tier-overlay" style="margin-bottom:12px"></div>
 
     <div class="grid grid-4" id="fitness-cards"></div>
