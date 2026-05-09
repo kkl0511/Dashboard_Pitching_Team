@@ -225,11 +225,20 @@
       </div>
     </div>
     <div class="panel">
-      <h2>키네틱 시퀀스 (피크 회전속도)</h2>
-      <div class="chart-wrap lg"><canvas id="p-sequence"></canvas></div>
+      <h2>키네틱 시퀀스 (피크 회전속도) <span class="badge" style="background:#ddf4ff;color:#0969da">v3.8 시각</span></h2>
+      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:center">
+        <div>
+          <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
+               style="width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line-soft)">
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
+            골반 → 몸통 → 팔 가속 순서 (proper sequence)
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="p-sequence"></canvas></div>
+      </div>
       <div class="footnote">
         Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
-        ETE = 분절 간 에너지 전달 효율(%).
+        ETE = 분절 간 에너지 전달 효율(%). 애니메이션 reference: BBL Kinematic Report.
       </div>
     </div>
   </div>

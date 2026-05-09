@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 180" fill="none">
+  <defs>
+    <clipPath id="batter-clip">
+      <rect x="0" y="0" width="400" height="180"></rect>
+    </clipPath>
+  </defs>
+  
+  
+  <g transform="translate(95, 8) scale(0.95)" fill="#2563EB">
+    
+    <ellipse cx="52" cy="10" rx="9" ry="10"></ellipse>
+    <path d="M44 6 Q42 2, 46 0 Q52 -2, 58 0 Q62 2, 62 6 Z"></path>
+    
+    
+    <path d="M42 18 C40 22, 38 30, 36 38 L32 50 C34 52, 42 54, 48 52 L56 48 C60 46, 62 40, 60 34 L58 26 C56 22, 54 18, 52 18 Z"></path>
+    
+    
+    <path d="M40 22 C36 20, 30 16, 26 14 L20 12 C18 11, 16 12, 16 14 L18 18 C20 20, 24 22, 28 24 L36 28 Z"></path>
+    
+    
+    <path d="M56 20 C60 18, 66 14, 72 10 L80 4 C82 2, 84 1, 86 0"></path>
+    <path d="M54 18 C58 16, 64 12, 70 8 L78 2 C80 0, 82 -1, 86 -2 L84 2 L76 8 L68 14 L60 20 Z"></path>
+    
+    
+    <path d="M16 14 L-10 -4 C-14 -7, -18 -10, -20 -12 L-26 -18 C-28 -20, -26 -23, -23 -22 L-18 -18 C-15 -16, -12 -12, -8 -8 L16 10 Z" fill="#2563EB"></path>
+    <rect x="-30" y="-26" width="12" height="5" rx="2" transform="rotate(-42, -24, -23)" fill="#2563EB"></rect>
+    
+    
+    <path d="M34 48 C30 54, 24 62, 18 70 L12 78 C10 80, 8 84, 6 86 L2 90 C0 92, -2 90, -1 88 L4 82 C6 78, 10 72, 14 66 L22 56 L30 50 Z"></path>
+    
+    <path d="M-1 88 L-8 90 C-10 90.5, -12 89, -11 87 L-4 85 Z"></path>
+    
+    
+    <path d="M46 50 C48 56, 52 64, 56 72 L60 80 C62 84, 64 86, 66 88 L70 92 C72 94, 70 96, 68 94 L62 88 C60 84, 56 78, 52 72 L46 62 L42 54 Z"></path>
+    
+    <path d="M68 94 L74 96 C76 96.5, 78 95, 77 93 L72 91 Z"></path>
+  </g>
+  
+  
+  <text x="175" y="134" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="52" letter-spacing="-1" text-anchor="middle">
+    <tspan fill="#111118">BB</tspan><tspan fill="#2563EB">L</tspan>
+  </text>
+  
+  
+  <text x="175" y="155" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" letter-spacing="6" text-anchor="middle" fill="#2563EB">
+    BASEBALL LAB
+  </text>
+</svg>

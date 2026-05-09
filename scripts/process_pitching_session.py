@@ -80,70 +80,121 @@ def load_roster(meta_dir):
 # Theia c3d.txt 파싱
 # ════════════════════════════════════════════════════════════
 def parse_theia_trial(path):
-    """c3d.txt 파일 1개 → trial summary dict"""
+    """c3d.txt 파일 1개 → trial summary dict (v2: 헤더 라벨 자동 매핑)
+
+    v3d ASCII export 형식:
+      라인 1: 변수명 (탭 구분, 같은 변수 X/Y/Z 가 연속 컬럼)
+      라인 2: 데이터 카테고리 (LINK_MODEL_BASED, FORCE, EVENT_LABEL ...)
+      라인 3: ORIGINAL/PROCESSED 등 처리 단계
+      라인 4: component (X, Y, Z, 0)
+      라인 5+: 데이터
+
+    헤더 자동 매핑으로 컬럼 인덱스 변동에 robust.
+    """
     try:
         with open(path, encoding='utf-8') as f:
             lines = f.readlines()
     except Exception as e:
         return {'error': str(e)}
+    if len(lines) < 6: return {'error': 'too few lines'}
 
-    DATA_START = 5
-    rows = []
-    for line in lines[DATA_START:]:
+    var_names = lines[1].split('\t')
+    components = lines[4].split('\t')
+    # 컬럼 매핑: "변수명_컴포넌트" → idx (첫 등장만)
+    col_map = {}
+    for i, (n, c) in enumerate(zip(var_names, components)):
+        n = n.strip(); c = c.strip()
+        if n:
+            key = f"{n}_{c}" if c else n
+            if key not in col_map: col_map[key] = i
+
+    data_rows = []
+    for line in lines[5:]:
         if not line.strip(): continue
-        parts = line.rstrip('\n').split('\t')
-        while len(parts) < 87: parts.append('')
-        rows.append(parts)
-    if not rows: return {'error': 'no data'}
+        data_rows.append(line.rstrip('\n').split('\t'))
+    if not data_rows: return {'error': 'no data'}
 
-    def col(idx):
-        return [safe_float(r[idx]) if idx < len(r) else None for r in rows]
-    def magnitude(xyz):
-        x, y, z = col(xyz[0]), col(xyz[1]), col(xyz[2])
+    def col_by_name(name):
+        idx = col_map.get(name)
+        if idx is None: return []
         out = []
-        for i in range(len(x)):
-            if x[i] is None or y[i] is None or z[i] is None:
-                out.append(None)
+        for r in data_rows:
+            if idx < len(r):
+                v = safe_float(r[idx])
+                out.append(v)
             else:
-                out.append((x[i]**2 + y[i]**2 + z[i]**2) ** 0.5)
+                out.append(None)
         return out
-    def safe_max(arr):
-        v = [x for x in arr if x is not None]
+
+    def safe_max_abs(arr):
+        v = [abs(x) for x in arr if x is not None]
         return max(v) if v else None
-    def find_event(idx):
-        for i, r in enumerate(rows):
-            v = safe_float(r[idx]) if idx < len(r) else None
-            if v is not None and v != 0:
-                return i
+
+    def find_event_by_name(name):
+        idx = col_map.get(name)
+        if idx is None: return None
+        for i, r in enumerate(data_rows):
+            if idx < len(r):
+                v = safe_float(r[idx])
+                if v is not None and v != 0: return i
         return None
 
-    pel_v = magnitude(THEIA_COLS['pelvis_ang_vel'])
-    trk_v = magnitude(THEIA_COLS['thorax_ang_vel'])
-    hum_v = magnitude(THEIA_COLS['humerus_ang_vel'])
-    xf = [abs(v) if v is not None else None for v in col(THEIA_COLS['x_factor'])]
-    fp1z = [abs(v) if v is not None else None for v in col(THEIA_COLS['fp1_force'][2])]
-    fp2z = [abs(v) if v is not None else None for v in col(THEIA_COLS['fp2_force'][2])]
-    powers = {k: [abs(v) if v is not None else None for v in col(THEIA_COLS[k])]
-              for k in ['r_shoulder_pow','l_shoulder_pow','r_elbow_pow','l_elbow_pow',
-                        'l_hip_pow','r_hip_pow','l_knee_pow','r_knee_pow']}
-    wrist_z = col(THEIA_COLS['r_wrist'][2])
-    fc = find_event(THEIA_COLS['event_footstrike'])
-    br = find_event(THEIA_COLS['event_release'])
-    rh_at_br = wrist_z[br] if (br is not None and br < len(wrist_z) and wrist_z[br] is not None) else None
+    # v3.7 GRF 자동 분류 — peak Z 큰 쪽 = lead (착지발), 작은 쪽 = rear (축발)
+    # 측정 환경마다 FP1/FP2 매핑 다름 (좌투/우투, 셋업) → 자동 분류로 robust
+    fp1z = safe_max_abs(col_by_name('FP1_Z'))
+    fp2z = safe_max_abs(col_by_name('FP2_Z'))
+    fp1x = safe_max_abs(col_by_name('FP1_X'))
+    fp1y = safe_max_abs(col_by_name('FP1_Y'))
+    fp2x = safe_max_abs(col_by_name('FP2_X'))
+    fp2y = safe_max_abs(col_by_name('FP2_Y'))
+    # 자동 분류
+    if fp1z is not None and fp2z is not None:
+        if fp1z >= fp2z:
+            lead_z, rear_z = fp1z, fp2z
+            lead_x, lead_y = fp1x, fp1y
+            rear_x, rear_y = fp2x, fp2y
+            fp_mapping = 'FP1=lead, FP2=rear'
+        else:
+            lead_z, rear_z = fp2z, fp1z
+            lead_x, lead_y = fp2x, fp2y
+            rear_x, rear_y = fp1x, fp1y
+            fp_mapping = 'FP1=rear, FP2=lead (자동 swap)'
+    else:
+        lead_z = rear_z = lead_x = lead_y = rear_x = rear_y = None
+        fp_mapping = 'GRF 데이터 없음'
 
     return {
-        'n_frames': len(rows),
-        'peak_pelvis_v': safe_max(pel_v),
-        'peak_trunk_v':  safe_max(trk_v),
-        'peak_arm_v':    safe_max(hum_v),
-        'max_x_factor': safe_max(xf),
-        'fp1_z_peak': safe_max(fp1z), 'fp2_z_peak': safe_max(fp2z),
-        **{f'pow_{k.replace("_pow","")}': safe_max(v) for k, v in powers.items()},
-        'pelvis_me_peak':  safe_max(col(THEIA_COLS['pelvis_me'])),
-        'trunk_me_peak':   safe_max(col(THEIA_COLS['trunk_me'])),
-        'humerus_me_peak': safe_max(col(THEIA_COLS['humerus_me'])),
-        'release_height_m': rh_at_br,
-        'fc_frame': fc, 'br_frame': br,
+        'n_frames': len(data_rows),
+        # v3.6 정확한 변수 매핑 (헤더 라벨 기반)
+        'peak_pelvis_v':   safe_max_abs(col_by_name('Pelvis_Ang_Vel_Z')),
+        'peak_trunk_v':    safe_max_abs(col_by_name('Thorax_Ang_Vel_Z')),
+        'peak_humerus_v':  safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')),
+        'peak_hand_v':     safe_max_abs(col_by_name('Pitching_Hand_Ang_Vel_X')),
+        'peak_shoulder_v': safe_max_abs(col_by_name('Pitching_Shoulder_Ang_Vel_Z')),
+        'peak_elbow_v':    safe_max_abs(col_by_name('Pitching_Elbow_Ang_Vel_X')),
+        'peak_arm_v':      safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')),  # 호환
+        'max_x_factor':    safe_max_abs(col_by_name('Trunk_wrt_Pelvis_Angle_Z')),
+        # GRF — v3.7 자동 분류 (raw + 분류 결과 둘 다 보존)
+        'fp1_z_peak': fp1z, 'fp2_z_peak': fp2z,            # raw (원본 보존)
+        'fp1_x_peak': fp1x, 'fp1_y_peak': fp1y,
+        'lead_z_peak': lead_z, 'rear_z_peak': rear_z,      # 자동 분류 결과
+        'lead_x_peak': lead_x, 'lead_y_peak': lead_y,
+        'rear_x_peak': rear_x, 'rear_y_peak': rear_y,
+        'fp_mapping':  fp_mapping,
+        # Stride
+        'stride_length':   safe_max_abs(col_by_name('STRIDE_LENGTH_X')),
+        'stride_pct':      safe_max_abs(col_by_name('STRIDE_LENGTH_MEAN_PERCENT_X')),
+        # Lead knee
+        'lead_knee_max':   safe_max_abs(col_by_name('Lead_Knee_Angle_X')),
+        # Trunk
+        'trunk_lateral_tilt': safe_max_abs(col_by_name('Trunk_Angle_Y')),
+        'trunk_forward_tilt': safe_max_abs(col_by_name('Trunk_Angle_X')),
+        # Events
+        'fc_frame': find_event_by_name('Footstrike'),
+        'br_frame': find_event_by_name('Release'),
+        # 호환성 (이전 코드 의존)
+        'pelvis_me_peak': None, 'trunk_me_peak': None, 'humerus_me_peak': None,
+        'release_height_m': None,
     }
 
 def scan_theia_player(player_dir, log):

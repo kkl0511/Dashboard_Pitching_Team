@@ -11,7 +11,83 @@
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '3.4';
+const ANALYTICS_VERSION = '3.8';
+
+/* ────────────────────────────────────────────────────────────
+   v3.8-2: BBL VELO_REGRESSION_v33_22 — 외부 reference 회귀 모델
+   출처: kkl0511/Uplift_Pitching_Report (BBL n=169 sessions, OLS)
+   - 학습 R²    = 0.377
+   - LOO-CV R² = 0.268 (cross-validation 검증 통과)
+   - 한국 고교 + 고2~고3 mixed cohort
+   우리 LATENT_VELOCITY_WEIGHTS 와 cross-check reference
+   ──────────────────────────────────────────────────────────── */
+
+const BBL_VELO_MODEL = {
+  intercept: 15.6232,
+  // 비표준화 계수 (km/h per unit)
+  coefs: {
+    max_x_factor_mean:                   0.177448,
+    lead_knee_ext_change_fc_to_br_mean:  0.022827,
+    proper_sequence_binary_mean:         8.733000,   // ★ β=0.276 (1순위)
+    pelvis_to_trunk_lag_ms_sd:           0.000924,
+    elbow_ext_vel_max_mean:              0.001245,
+    height_m:                            40.227000,  // ★ β=0.235
+    weight_kg:                           0.007000,
+    cmj_pp_bm:                           0.051000,
+    imtp_pp_bm:                          0.309000,
+    grip_strength:                       0.280420,   // ★ β=0.266 (2순위)
+    cog_decel:                           3.282000,   // v33.22 신규 (Driveline 검증)
+  },
+  // 비어있을 때 사용할 코호트 평균 (BBL imputation)
+  defaults: {
+    max_x_factor_mean:                   31.0,
+    lead_knee_ext_change_fc_to_br_mean:  3.0,
+    proper_sequence_binary_mean:         0.92,
+    pelvis_to_trunk_lag_ms_sd:           14.0,
+    elbow_ext_vel_max_mean:              1450.0,
+    height_m:                            1.78,
+    weight_kg:                           76.0,
+    cmj_pp_bm:                           45.0,
+    imtp_pp_bm:                          27.0,
+    grip_strength:                       55.0,
+    cog_decel:                           1.5,
+  },
+  R2: 0.377, R2_loo: 0.268, n: 169,
+  source: 'BBL Uplift Pitching Report v33.22 (kkl0511)',
+  // 표준화 β 1~5순위 (UI 인용)
+  top5_beta: ['proper_sequence (+0.276)', 'grip_strength (+0.266)',
+              'height (+0.235)', 'max_x_factor (+0.214)', 'cog_decel (+0.183)']
+};
+
+/**
+ * BBL 외부 회귀모델로 max velocity 예측
+ * @param {object} input  10~11 변수 (없으면 코호트 mean으로 imputation)
+ * @returns {{predicted_kmh, used_imputation, contributors}}
+ */
+function predictMaxVelocityBBL(input = {}){
+  const m = BBL_VELO_MODEL;
+  let pred = m.intercept;
+  const used_imputation = [];
+  const contributors = [];
+  for(const [k, c] of Object.entries(m.coefs)){
+    let v = input[k];
+    if(v == null || isNaN(v)){
+      v = m.defaults[k]; used_imputation.push(k);
+    }
+    const contribution = c * v;
+    pred += contribution;
+    contributors.push({ var: k, value: v, coef: c, contribution: Math.round(contribution*10)/10 });
+  }
+  return {
+    predicted_kmh: Math.round(pred*10)/10,
+    used_imputation,
+    contributors: contributors.sort((a,b)=>b.contribution-a.contribution),
+    source: m.source,
+    R2: m.R2,
+    R2_loo: m.R2_loo,
+    n: m.n
+  };
+}
 
 /* ────────────────────────────────────────────────────────────
    v3.2 — VALD College Baseball 노메이티브 데이터 (USA, College, N≈수백)
@@ -190,15 +266,31 @@ const VALD_NORMS = {
       bw_kg:             { unit: 'kg',   p: [63.9, 77.7, 84.7, 91.6, 105.4], n: 15 }
     },
     // ────────────────────────────────────────────────────
-    //   v3.4 신규 — 41명 고1 정밀측정 (Theia + 구속)
+    //   v3.6 갱신 — parser 정확화 (헤더 자동 매핑) 후 재산출
+    //   N=41, 선수당 median (IQR clipped). c3d.txt 컬럼 라벨 기반.
     // ────────────────────────────────────────────────────
     pitching: {
-      // 선수별 평균 구속 (선수당 ~10 trial 평균 → 41명 분포)
+      // 구속 (xlsx 별도 데이터 — 변경 없음)
       velocity_mean_kmh: { unit: 'km/h', p: [117.0, 130.8, 133.3, 137.8, 145.4], n: 41 },
-      // 선수별 최고 구속
       velocity_max_kmh:  { unit: 'km/h', p: [128.8, 132.4, 135.0, 138.9, 146.3], n: 41 },
-      // 골반 회전속도 peak (선수별 median, IQR-clipped)
-      pelvis_peak_dps:   { unit: 'deg/s', p: [880, 956, 1028, 1077, 1179], n: 41 }
+      // v3.6 정확한 메카닉 변수 (이전 잘못된 magnitude 계산 → Z 컴포넌트 single-axis)
+      pelvis_peak_dps:   { unit: 'deg/s', p: [523, 572, 632, 657, 695],  n: 41 },
+      trunk_peak_dps:    { unit: 'deg/s', p: [785, 826, 870, 908, 966],  n: 41 },
+      humerus_peak_dps:  { unit: 'deg/s', p: [4419, 4496, 4777, 5160, 5418], n: 41, note: 'Theia v3d processing artifact 가능성 — 단위 검증 필요' },
+      hand_peak_dps:     { unit: 'deg/s', p: [2547, 2778, 2987, 3208, 3325], n: 41 },
+      shoulder_peak_dps: { unit: 'deg/s', p: [3813, 3953, 4223, 4543, 4641], n: 41, note: 'Theia v3d processing artifact 가능성' },
+      elbow_peak_dps:    { unit: 'deg/s', p: [392, 468, 561, 737, 777],   n: 41 },
+      x_factor_max_deg:  { unit: 'deg',   p: [25.8, 30.9, 33.7, 39.4, 43.5], n: 41 },
+      // GRF — v3.7 자동 분류 (peak Z 큰 쪽=lead, 작은 쪽=rear)
+      // 측정 환경마다 FP1/FP2 매핑 다름 (좌투/우투, 셋업) → 자동 분류로 robust
+      lead_z_peak_n:     { unit: 'N',     p: [1395, 1538, 1641, 1812, 2245], n: 41,
+                           note: '착지발 (앞발 block). 41명 N=41, 자동 분류 후' },
+      rear_z_peak_n:     { unit: 'N',     p: [1103, 1268, 1352, 1444, 1563], n: 41,
+                           note: '축발 (뒷발 push-off). 자동 분류 후' },
+      // 호환성 (이전 fp1/fp2 라벨 — 사용 권장 안 함, 자동 분류 결과 사용)
+      fp1_z_peak_n:      { unit: 'N',     p: [1445, 1533, 1616, 1812, 1969], n: 41,
+                           note: 'raw FP1 — 측정 환경 따라 lead 또는 rear. lead_z_peak_n 사용 권장' },
+      fp2_z_peak_n:      { unit: 'N',     p: [1163, 1268, 1377, 1444, 1557], n: 41 }
     },
     // 41명 신체 통계
     body_pitchers: {
@@ -298,8 +390,10 @@ const GRADE_BENCHMARKS = {
     imtp_pf_bm_mean: 25, imtp_pf_bm_sd: 4,
     sj_jh_mean:     33.5, sj_jh_sd:     4.7,
     nordic_force_mean: 390, nordic_force_sd: 70,
-    // 메카닉: 41명 elite p75 (선수별 median 분포의 75th percentile)
-    pelvis_peak_dps_mean: 1077, pelvis_peak_dps_sd: 96,  // p75
+    // 메카닉: v3.6 parser 정확화 후 재산출 — 41명 elite p75
+    pelvis_peak_dps_mean: 657, pelvis_peak_dps_sd: 66,    // p75 (이전 1077 ✗)
+    trunk_peak_dps_mean:  908, trunk_peak_dps_sd:  68,    // p75 신규
+    x_factor_mean:       39.4, x_factor_sd:        7.0,   // p75 신규
     // 신체: 41명 elite p75
     height_mean: 188, height_sd: 4.0,
     weight_mean: 88, weight_sd: 6.0,
@@ -315,7 +409,7 @@ const GRADE_BENCHMARKS = {
     imtp_pf_bm_mean: 28, imtp_pf_bm_sd: 4,
     sj_jh_mean:     36, sj_jh_sd:     5,
     nordic_force_mean: 420, nordic_force_sd: 70,
-    pelvis_peak_dps_mean: 1130, pelvis_peak_dps_sd: 95,  // p85 추정
+    pelvis_peak_dps_mean: 676, pelvis_peak_dps_sd: 66,   // p85 추정 (v3.6 보정)
     height_mean: 189, weight_mean: 90,
     reference_type: 'p85 of 41 elite cohort (estimated)'
   },
@@ -328,7 +422,7 @@ const GRADE_BENCHMARKS = {
     imtp_pf_bm_mean: 31, imtp_pf_bm_sd: 4,
     sj_jh_mean:     38, sj_jh_sd:     5,
     nordic_force_mean: 450, nordic_force_sd: 70,
-    pelvis_peak_dps_mean: 1179, pelvis_peak_dps_sd: 95,  // 41명 p90
+    pelvis_peak_dps_mean: 695, pelvis_peak_dps_sd: 66,   // 41명 p90 (v3.6 보정)
     height_mean: 190, weight_mean: 92,
     reference_type: 'p90 of 41 elite cohort'
   }
@@ -338,14 +432,15 @@ const GRADE_BENCHMARKS = {
  * 학년별 잠재구속 임계치 보정 — 발달 단계에 맞춤
  * 같은 측정값이라도 학년에 따라 "충분/부족" 판정이 다름
  */
-// v3.5 보정: 41명 elite 코호트의 학년별 percentile 을 "충분 시작" 임계로 사용
-// 고1: p75 (1077), 고2: p85 (1130), 고3: p90 (1179) — 학년 ↑ 더 엄격
-// 그 임계 이상이면 추가 잠재구속 가능 (회귀 가산)
+// v3.6 정확한 매핑: 41명 elite 코호트의 학년별 percentile 임계
+// LATENT_VELOCITY_WEIGHTS.pelvis_peak_dps.th = 500 (Stodden 2001 일반)
+// 고1=p75(657), 고2=p85(676), 고3=p90(695) → offset = p − 500
+// LATENT_VELOCITY_WEIGHTS.trunk_peak_dps.th = 900 → 41명 p75=908 (offset +8)
 const GRADE_LATENT_OFFSETS = {
   // value = (LATENT_VELOCITY_WEIGHTS의 th) + (학년별 offset)
-  1: { trunk_peak_dps: -50, pelvis_peak_dps: +577, cmj_pp_bm: -12.3, imtp_pf_bm: -3, shoulder_er_deg: -10, stride_pct_height: -3 },
-  2: { trunk_peak_dps:  +0, pelvis_peak_dps: +630, cmj_pp_bm: -10.5, imtp_pf_bm:  0, shoulder_er_deg:   0, stride_pct_height:  0 },
-  3: { trunk_peak_dps: +50, pelvis_peak_dps: +679, cmj_pp_bm:  -9,    imtp_pf_bm: +1, shoulder_er_deg:  +5, stride_pct_height: +2 }
+  1: { trunk_peak_dps:  -75, pelvis_peak_dps: +157, cmj_pp_bm: -12.3, imtp_pf_bm: -3, shoulder_er_deg: -10, stride_pct_height: -3 },
+  2: { trunk_peak_dps:   -8, pelvis_peak_dps: +176, cmj_pp_bm: -10.5, imtp_pf_bm:  0, shoulder_er_deg:   0, stride_pct_height:  0 },
+  3: { trunk_peak_dps:  +66, pelvis_peak_dps: +195, cmj_pp_bm:  -9,    imtp_pf_bm: +1, shoulder_er_deg:  +5, stride_pct_height: +2 }
 };
 
 /**
@@ -880,12 +975,15 @@ function injuryRisk(m = {}){
    - McNally et al. (2015) — pitchers with GRF 패턴 4분류
    ──────────────────────────────────────────────────────────── */
 
+// v3.7 갱신: 41명 한국 elite 자동 분류 후 실측 기반
+// lead median = 195% BW, rear median = 161% BW (BW 840N 기준 — 84kg)
 const GRF_BENCHMARKS = {
-  rear_force_pct_ideal:  75,    // 축발 push-off (% BW)
-  lead_force_pct_ideal:  100,   // 착지발 block (% BW)
-  asymmetry_max:         15,    // 좌우 비대칭 한계 (%)
-  lhei_excellent:        1.20,  // N·s/kg
-  lhei_acceptable:       0.90
+  rear_force_pct_ideal:  160,   // 41명 elite median: rear 1352N / 84kg ≈ 161% BW
+  lead_force_pct_ideal:  195,   // 41명 elite median: lead 1641N / 84kg ≈ 195% BW
+  asymmetry_max:         15,
+  lhei_excellent:        1.20,
+  lhei_acceptable:       0.90,
+  source: 'KR HS Elite N=41 (자동 FP1/FP2 분류 후)'
 };
 
 /**
@@ -1145,6 +1243,8 @@ const ANALYTICS = {
   valdPercentile, injuryRisk,
   // v3.3 — 3-tier cohort 비교
   valdMultiTier,
+  // v3.8 — BBL 외부 회귀 모델
+  predictMaxVelocityBBL, BBL_VELO_MODEL,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
   COMPOSITE_WEIGHTS,
