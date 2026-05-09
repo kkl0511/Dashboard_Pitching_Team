@@ -12,29 +12,29 @@ const SESSIONS = [
 ];
 
 /* 선수 명단 — 행을 자유롭게 추가/삭제. 대시보드 모든 화면이 자동으로 인원수에 맞게 재배치됨.
-   필수 필드: id(외부ID), name, arm('R'|'L'), height(cm), weight(kg), dob(YYYY-MM-DD).
-   현재는 샘플 20명. 실제 명단 확정 시 이 배열만 갱신. */
+   필수 필드: id, name, arm('R'|'L'), grade(1|2|3 — 고교 학년), height(cm), weight(kg), dob(YYYY-MM-DD).
+   샘플 20명: 고1(P01~P07) 7명 · 고2(P08~P14) 7명 · 고3(P15~P20) 6명. 실제 명단으로 갱신. */
 const PLAYERS = [
-  {id:'P01', name:'선수01', arm:'R', height:178, weight:75, dob:'2007-03-15'},
-  {id:'P02', name:'선수02', arm:'R', height:182, weight:80, dob:'2007-06-22'},
-  {id:'P03', name:'선수03', arm:'L', height:176, weight:72, dob:'2008-01-10'},
-  {id:'P04', name:'선수04', arm:'R', height:180, weight:78, dob:'2007-09-04'},
-  {id:'P05', name:'선수05', arm:'R', height:174, weight:70, dob:'2008-04-18'},
-  {id:'P06', name:'선수06', arm:'L', height:185, weight:82, dob:'2007-11-30'},
-  {id:'P07', name:'선수07', arm:'R', height:179, weight:76, dob:'2008-02-25'},
-  {id:'P08', name:'선수08', arm:'R', height:177, weight:73, dob:'2007-07-12'},
-  {id:'P09', name:'선수09', arm:'R', height:181, weight:79, dob:'2007-12-08'},
-  {id:'P10', name:'선수10', arm:'L', height:175, weight:71, dob:'2008-05-19'},
-  {id:'P11', name:'선수11', arm:'R', height:183, weight:81, dob:'2007-10-03'},
-  {id:'P12', name:'선수12', arm:'R', height:178, weight:74, dob:'2008-03-27'},
-  {id:'P13', name:'선수13', arm:'R', height:172, weight:68, dob:'2008-08-15'},
-  {id:'P14', name:'선수14', arm:'R', height:180, weight:77, dob:'2007-04-09'},
-  {id:'P15', name:'선수15', arm:'L', height:184, weight:83, dob:'2007-08-21'},
-  {id:'P16', name:'선수16', arm:'R', height:176, weight:72, dob:'2008-06-14'},
-  {id:'P17', name:'선수17', arm:'R', height:179, weight:75, dob:'2007-05-30'},
-  {id:'P18', name:'선수18', arm:'R', height:181, weight:78, dob:'2007-09-11'},
-  {id:'P19', name:'선수19', arm:'R', height:177, weight:74, dob:'2008-07-25'},
-  {id:'P20', name:'선수20', arm:'L', height:182, weight:80, dob:'2008-01-19'},
+  {id:'P01', name:'선수01', arm:'R', grade:1, height:172, weight:68, dob:'2010-03-15'},
+  {id:'P02', name:'선수02', arm:'R', grade:1, height:175, weight:71, dob:'2010-06-22'},
+  {id:'P03', name:'선수03', arm:'L', grade:1, height:170, weight:65, dob:'2010-01-10'},
+  {id:'P04', name:'선수04', arm:'R', grade:1, height:174, weight:69, dob:'2010-09-04'},
+  {id:'P05', name:'선수05', arm:'R', grade:1, height:168, weight:62, dob:'2010-04-18'},
+  {id:'P06', name:'선수06', arm:'L', grade:1, height:178, weight:73, dob:'2010-11-30'},
+  {id:'P07', name:'선수07', arm:'R', grade:1, height:173, weight:67, dob:'2010-02-25'},
+  {id:'P08', name:'선수08', arm:'R', grade:2, height:177, weight:73, dob:'2009-07-12'},
+  {id:'P09', name:'선수09', arm:'R', grade:2, height:181, weight:79, dob:'2009-12-08'},
+  {id:'P10', name:'선수10', arm:'L', grade:2, height:175, weight:71, dob:'2009-05-19'},
+  {id:'P11', name:'선수11', arm:'R', grade:2, height:183, weight:81, dob:'2009-10-03'},
+  {id:'P12', name:'선수12', arm:'R', grade:2, height:178, weight:74, dob:'2009-03-27'},
+  {id:'P13', name:'선수13', arm:'R', grade:2, height:172, weight:68, dob:'2009-08-15'},
+  {id:'P14', name:'선수14', arm:'R', grade:2, height:180, weight:77, dob:'2009-04-09'},
+  {id:'P15', name:'선수15', arm:'L', grade:3, height:185, weight:84, dob:'2008-08-21'},
+  {id:'P16', name:'선수16', arm:'R', grade:3, height:178, weight:75, dob:'2008-06-14'},
+  {id:'P17', name:'선수17', arm:'R', grade:3, height:181, weight:78, dob:'2008-05-30'},
+  {id:'P18', name:'선수18', arm:'R', grade:3, height:183, weight:80, dob:'2008-09-11'},
+  {id:'P19', name:'선수19', arm:'R', grade:3, height:179, weight:76, dob:'2008-07-25'},
+  {id:'P20', name:'선수20', arm:'L', grade:3, height:184, weight:82, dob:'2008-01-19'},
 ];
 
 function seedRand(seed){let s=seed;return ()=>{s=(s*9301+49297)%233280;return s/233280}}
@@ -90,8 +90,9 @@ function genMeasurements(){
         cmj_pp_bm: r1(28 + (baseFitness + (rng()-0.5)*0.2)*20),
         imtp_pf_bm: r1(20 + (baseFitness + (rng()-0.5)*0.2)*12)
       } : {};
+      // 학년별 임계치 보정 — analytics v3.0
       const latent = (typeof ANALYTICS !== 'undefined')
-        ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit)
+        ? ANALYTICS.latentVelocity(velo, latentInput_bio, tmpFit, p.grade)
         : { potential_kmh: r1(velo + 6), gap_kmh: 6, contributions: [], model: 'fallback' };
 
       const m = {
@@ -207,12 +208,46 @@ function genMeasurements(){
             asymmetry_pct: r1(1 + rng()*7)
           }
         };
-        // 체력 종합점수 (CMJ JH + IMTP PF/BM 정규화 평균)
-        const cmjN = Math.min(100, (m.fitness.cmj.jump_height_cm-25)/25 * 100);
-        const imtpN = Math.min(100, (m.fitness.imtp.peak_force_bm_n_kg-15)/20 * 100);
-        m.fitness.score = Math.round((cmjN + imtpN)/2);
+        // 체력 종합점수 — v3.0 학년별 percentile + ANALYTICS.compositeScore + 비대칭 반영
+        if(typeof ANALYTICS !== 'undefined'){
+          // 학년별 percentile (0~100 직접 변환)
+          const cmjPctl  = ANALYTICS.gradePercentile(m.fitness.cmj.peak_power_bm_w_kg, p.grade, 'cmj_pp_bm');
+          const imtpPctl = ANALYTICS.gradePercentile(m.fitness.imtp.peak_force_bm_n_kg, p.grade, 'imtp_pf_bm');
+          // 비대칭은 7% 이하 우수, 12% 이상 불량 (ForceDecks 권장)
+          const asymScore = Math.max(0, Math.min(100, 100 - Math.max(0, m.fitness.imtp.asymmetry_pct - 5) * 8));
+          const cs = ANALYTICS.compositeScore(ANALYTICS.COMPOSITE_WEIGHTS.fitness, {
+            cmj_pp:    cmjPctl ? cmjPctl.percentile : null,
+            imtp_pf:   imtpPctl ? imtpPctl.percentile : null,
+            asymmetry: asymScore
+          });
+          m.fitness.score = cs.score;
+          m.fitness.score_breakdown = cs.breakdown;   // UI 에서 인용 가능
+          m.fitness.score_formula   = cs.formula;
+          // 학년별 percentile 도 저장 (선수 카드 표시용)
+          m.fitness.cmj_pctl_in_grade  = cmjPctl?.percentile ?? null;
+          m.fitness.imtp_pctl_in_grade = imtpPctl?.percentile ?? null;
+        } else {
+          // fallback: 기존 단순 평균
+          const cmjN = Math.min(100, (m.fitness.cmj.jump_height_cm-25)/25 * 100);
+          const imtpN = Math.min(100, (m.fitness.imtp.peak_force_bm_n_kg-15)/20 * 100);
+          m.fitness.score = Math.round((cmjN + imtpN)/2);
+        }
       } else {
         m.fitness = null;
+      }
+      // v3.0-B 제구 통합 점수 (Theia + Rapsodo)
+      // 샘플 단계: Theia consistency 만으로 산출. 실측 Rapsodo 인입 시 io.js 에서 재산출.
+      if(typeof ANALYTICS !== 'undefined'){
+        const cc = ANALYTICS.commandComposite({
+          release_height_sd_cm: m.faults.release_height_sd_cm,
+          wrist_pos_sd_cm:      m.faults.wrist_pos_sd_cm,
+          trunk_tilt_sd_deg:    m.faults.trunk_tilt_sd_deg
+        }, m.rapsodo?.fastball || {});
+        m.faults.command_composite = cc.composite;
+        m.faults.command_theia     = cc.theia_score;
+        m.faults.command_rapsodo   = cc.rapsodo_score;
+        m.faults.command_agreement = cc.agreement;
+        m.faults.command_warnings  = cc.warnings;
       }
       out[p.id][s.id] = m;
     });

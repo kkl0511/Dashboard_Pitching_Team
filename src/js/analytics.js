@@ -11,7 +11,80 @@
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '2.1';
+const ANALYTICS_VERSION = '3.0';
+
+/* ────────────────────────────────────────────────────────────
+   0. 학년별 벤치마크 (한국 고교 야구 투수 발달 단계)
+
+   문헌 + KBO 유소년 통계 + Stodden(2001), Fleisig(2009) 추정.
+   고1→고2→고3 으로 갈수록 골격 성장 + 근력 증가.
+   ──────────────────────────────────────────────────────────── */
+
+const GRADE_BENCHMARKS = {
+  // 학년별 평균·표준편차 (예시 — 측정 누적되면 실측치로 갱신)
+  1: {  // 고1
+    velocity_mean: 124, velocity_sd: 6,         // km/h
+    cmj_pp_bm_mean: 36, cmj_pp_bm_sd: 5,        // W/kg
+    imtp_pf_bm_mean: 25, imtp_pf_bm_sd: 4,      // N/kg
+    height_mean: 173, weight_mean: 67
+  },
+  2: {  // 고2
+    velocity_mean: 130, velocity_sd: 6,
+    cmj_pp_bm_mean: 41, cmj_pp_bm_sd: 5,
+    imtp_pf_bm_mean: 29, imtp_pf_bm_sd: 4,
+    height_mean: 178, weight_mean: 75
+  },
+  3: {  // 고3
+    velocity_mean: 135, velocity_sd: 6,
+    cmj_pp_bm_mean: 45, cmj_pp_bm_sd: 5,
+    imtp_pf_bm_mean: 32, imtp_pf_bm_sd: 4,
+    height_mean: 181, weight_mean: 79
+  }
+};
+
+/**
+ * 학년별 잠재구속 임계치 보정 — 발달 단계에 맞춤
+ * 같은 측정값이라도 학년에 따라 "충분/부족" 판정이 다름
+ */
+const GRADE_LATENT_OFFSETS = {
+  // value = (LATENT_VELOCITY_WEIGHTS의 th) + (학년별 offset)
+  // 고1: 임계치 ↓ (낮은 기준), 고3: 임계치 ↑
+  1: { trunk_peak_dps: -100, pelvis_peak_dps: -50, cmj_pp_bm: -5, imtp_pf_bm: -3, shoulder_er_deg: -10, stride_pct_height: -3 },
+  2: { trunk_peak_dps:    0, pelvis_peak_dps:   0, cmj_pp_bm:  0, imtp_pf_bm:  0, shoulder_er_deg:   0, stride_pct_height:  0 },
+  3: { trunk_peak_dps:  +50, pelvis_peak_dps: +25, cmj_pp_bm: +2, imtp_pf_bm: +1, shoulder_er_deg:  +5, stride_pct_height: +2 }
+};
+
+/**
+ * 학년 기반 z-score percentile (해당 학년 코호트 내 순위)
+ * @param {number} value 측정값
+ * @param {number} grade 1|2|3
+ * @param {string} metric  'velocity'|'cmj_pp_bm'|'imtp_pf_bm'
+ * @returns {{percentile, z, grade, mean, sd}}
+ */
+function gradePercentile(value, grade, metric){
+  const b = GRADE_BENCHMARKS[grade];
+  if(!b || value == null || isNaN(value)) return null;
+  const meanKey = metric + '_mean', sdKey = metric + '_sd';
+  if(b[meanKey] == null) return null;
+  const z = (value - b[meanKey]) / b[sdKey];
+  // z → percentile (정규근사)
+  const pct = Math.round(_normCdf(z) * 100);
+  return { percentile: pct, z: Math.round(z*100)/100, grade,
+           mean: b[meanKey], sd: b[sdKey] };
+}
+
+// 정규분포 CDF 근사 (Abramowitz & Stegun 26.2.17)
+function _normCdf(z){
+  if(z < -6) return 0; if(z > 6) return 1;
+  const b1=0.319381530, b2=-0.356563782, b3=1.781477937,
+        b4=-1.821255978, b5=1.330274429, p=0.2316419, c=0.39894228;
+  if(z >= 0){
+    const t = 1.0 / (1.0 + p*z);
+    return 1.0 - c*Math.exp(-z*z/2) * t * (b1 + t*(b2 + t*(b3 + t*(b4 + t*b5))));
+  } else {
+    return 1.0 - _normCdf(-z);
+  }
+}
 
 /* ────────────────────────────────────────────────────────────
    1. 통계 헬퍼 — 평균·표준편차·신뢰구간
@@ -141,36 +214,108 @@ const LATENT_VELOCITY_WEIGHTS = {
  * @param {number} measured_kmh  실측 구속 (km/h)
  * @param {object} bio  Theia 변수 — {trunk_peak_dps, pelvis_peak_dps, shoulder_er_deg, stride_pct_height, front_grf_bm}
  * @param {object} fit  ForceDecks 변수 — {cmj_pp_bm, imtp_pf_bm}
- * @returns {{potential_kmh, gap_kmh, contributions, model}}
+ * @param {number} [grade]  1|2|3 — 학년별 임계치 보정 (없으면 default 고2 기준)
+ * @returns {{potential_kmh, gap_kmh, contributions, model, grade}}
  */
-function latentVelocity(measured_kmh, bio = {}, fit = {}){
+function latentVelocity(measured_kmh, bio = {}, fit = {}, grade = null){
   if(measured_kmh == null || isNaN(measured_kmh)){
-    return { potential_kmh: null, gap_kmh: null, contributions: [], model: ANALYTICS_VERSION };
+    return { potential_kmh: null, gap_kmh: null, contributions: [], model: ANALYTICS_VERSION, grade };
   }
   const inputs = { ...bio, ...fit };
+  const offsets = (grade && GRADE_LATENT_OFFSETS[grade]) || GRADE_LATENT_OFFSETS[2];
   const contributions = [];
   let totalGain = 0;
   for(const [key, spec] of Object.entries(LATENT_VELOCITY_WEIGHTS)){
     const x = inputs[key];
     if(x == null || isNaN(x)) continue;
-    const above = Math.max(0, x - spec.th);
+    const adjThreshold = spec.th + (offsets[key] || 0);
+    const above = Math.max(0, x - adjThreshold);
     const gain  = Math.min(spec.max, spec.w * above);
-    if(gain > 0.05){  // 0.05 km/h 미만은 무시
+    if(gain > 0.05){
       contributions.push({
-        var: key, value: x, threshold: spec.th, gain_kmh: Math.round(gain*10)/10,
+        var: key, value: x, threshold: adjThreshold, gain_kmh: Math.round(gain*10)/10,
         source: spec.src
       });
       totalGain += gain;
     }
   }
-  // 보수적 제한: 잠재구속은 측정 + 8 km/h 이내
   totalGain = Math.min(totalGain, 8.0);
   const potential = measured_kmh + totalGain;
   return {
     potential_kmh: Math.round(potential*10)/10,
     gap_kmh:       Math.round(totalGain*10)/10,
     contributions: contributions.sort((a,b)=>b.gain_kmh - a.gain_kmh),
-    model:         ANALYTICS_VERSION
+    model:         ANALYTICS_VERSION,
+    grade
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   3.5 제구 통합 (Command Composite) — Theia + Rapsodo
+   같은 "제구"를 운동학(Theia)과 결과(Rapsodo) 두 source 로 측정.
+   일치하면 신뢰 ↑, 불일치하면 측정 품질 경고.
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * 제구 통합 점수 계산
+ * @param {object} theiaConsistency  Theia 일관성 변수
+ *   {release_height_sd_cm, wrist_pos_sd_cm, trunk_tilt_sd_deg}
+ * @param {object} rapsodoCommand  Rapsodo 결과 변수
+ *   {release_height_sd_cm, release_side_sd_cm, in_zone_pct, command_score}
+ * @returns {{composite, theia_score, rapsodo_score, agreement, warnings}}
+ */
+function commandComposite(theiaConsistency = {}, rapsodoCommand = {}){
+  // Theia consistency 점수 (운동학적 일관성, 100=완벽)
+  let theiaScore = null;
+  if(theiaConsistency.release_height_sd_cm != null){
+    const rh = theiaConsistency.release_height_sd_cm;
+    const wp = theiaConsistency.wrist_pos_sd_cm;
+    const tt = theiaConsistency.trunk_tilt_sd_deg;
+    // SD 임계: release_height 3cm·wrist 3cm·trunk_tilt 1.5deg → 100점
+    let pen = 0;
+    pen += Math.max(0, rh - 2) * 12;     // 2cm 초과부터 감점
+    if(wp != null) pen += Math.max(0, wp - 2.5) * 8;
+    if(tt != null) pen += Math.max(0, tt - 1.0) * 15;
+    theiaScore = Math.max(0, Math.min(100, 100 - pen));
+  }
+
+  // Rapsodo 점수 (결과 일관성)
+  let rapScore = null;
+  if(rapsodoCommand.command_score != null){
+    rapScore = rapsodoCommand.command_score;
+  } else if(rapsodoCommand.in_zone_pct != null){
+    // command_score 없으면 in_zone%로 산출
+    rapScore = Math.min(100, rapsodoCommand.in_zone_pct * 1.4);  // 70% in-zone → 98점
+  }
+
+  // 통합
+  const composite = (theiaScore != null && rapScore != null)
+    ? Math.round(theiaScore * 0.5 + rapScore * 0.5)
+    : (theiaScore != null ? Math.round(theiaScore) :
+       rapScore != null ? Math.round(rapScore) : null);
+
+  // Cross-validation — release_height_sd 두 source 일치도
+  const warnings = [];
+  let agreement = null;
+  if(theiaConsistency.release_height_sd_cm != null && rapsodoCommand.release_height_sd_cm != null){
+    const diff = Math.abs(theiaConsistency.release_height_sd_cm - rapsodoCommand.release_height_sd_cm);
+    agreement = diff < 1 ? 'high' : diff < 2 ? 'medium' : 'low';
+    if(agreement === 'low'){
+      warnings.push(`Release height SD 불일치: Theia ${theiaConsistency.release_height_sd_cm}cm vs Rapsodo ${rapsodoCommand.release_height_sd_cm}cm — 측정 품질 검토`);
+    }
+  }
+  // Theia 와 Rapsodo 점수 격차도 경고
+  if(theiaScore != null && rapScore != null && Math.abs(theiaScore - rapScore) > 25){
+    warnings.push(`두 source 점수 격차 큼 (Theia ${Math.round(theiaScore)} vs Rapsodo ${Math.round(rapScore)}) — 운동학 일관성과 실투 결과 사이 갭`);
+  }
+
+  return {
+    composite,
+    theia_score: theiaScore != null ? Math.round(theiaScore) : null,
+    rapsodo_score: rapScore != null ? Math.round(rapScore) : null,
+    agreement,
+    warnings,
+    formula: '0.5·Theia(kinematic SD) + 0.5·Rapsodo(release SD + in-zone%)'
   };
 }
 
@@ -404,9 +549,13 @@ const ANALYTICS = {
   // 분석 함수
   latentVelocity, eliScoresFromTheia,
   compositeScore, percentileRank,
+  // v3.0 — 학년·제구 통합
+  gradePercentile, commandComposite,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
-  COMPOSITE_WEIGHTS
+  COMPOSITE_WEIGHTS,
+  GRADE_BENCHMARKS,
+  GRADE_LATENT_OFFSETS
 };
 
 // 브라우저 빌드에서 직접 접근 가능

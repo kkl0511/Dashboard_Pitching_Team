@@ -68,8 +68,11 @@ function applyTheiaRecord(rec){
  */
 function enrichWithAnalytics(m){
   if(typeof ANALYTICS === 'undefined') return;
-  // 1) 잠재구속 — 측정 구속 + 가용한 biomechanics 변수
+  // 1) 잠재구속 — 측정 구속 + 가용한 biomechanics 변수 (학년별 임계치 적용 v3.0)
   const v = m.velocity;
+  // 선수 학년 찾기 (PLAYERS lookup) — pid 추적
+  const pid = Object.keys(DATA).find(k => DATA[k][m.sid] === m || Object.values(DATA[k]).includes(m));
+  const grade = pid ? PLAYERS.find(p => p.id === pid)?.grade : null;
   if(v && v.measured_kmh != null){
     const bio = {
       trunk_peak_dps:     m.sequence?.trunk_dps,
@@ -82,12 +85,45 @@ function enrichWithAnalytics(m){
       cmj_pp_bm:  m.fitness?.cmj?.peak_power_bm_w_kg,
       imtp_pf_bm: m.fitness?.imtp?.peak_force_bm_n_kg
     };
-    const lat = ANALYTICS.latentVelocity(v.measured_kmh, bio, fit);
+    const lat = ANALYTICS.latentVelocity(v.measured_kmh, bio, fit, grade);
     if(lat.potential_kmh != null){
       v.potential_kmh = lat.potential_kmh;
       v.gap_kmh       = lat.gap_kmh;
       v.contributions = lat.contributions;
       v.model         = lat.model;
+    }
+  }
+  // v3.0-B 제구 통합 (Theia + Rapsodo)
+  if(m.faults){
+    const cc = ANALYTICS.commandComposite({
+      release_height_sd_cm: m.faults.release_height_sd_cm,
+      wrist_pos_sd_cm:      m.faults.wrist_pos_sd_cm,
+      trunk_tilt_sd_deg:    m.faults.trunk_tilt_sd_deg
+    }, m.rapsodo?.fastball || {});
+    if(cc.composite != null){
+      m.faults.command_composite = cc.composite;
+      m.faults.command_theia     = cc.theia_score;
+      m.faults.command_rapsodo   = cc.rapsodo_score;
+      m.faults.command_agreement = cc.agreement;
+      m.faults.command_warnings  = cc.warnings;
+    }
+  }
+  // v3.0 fitness 학년 percentile + composite 재계산
+  if(m.fitness && grade){
+    const cmjPctl  = ANALYTICS.gradePercentile(m.fitness.cmj?.peak_power_bm_w_kg, grade, 'cmj_pp_bm');
+    const imtpPctl = ANALYTICS.gradePercentile(m.fitness.imtp?.peak_force_bm_n_kg, grade, 'imtp_pf_bm');
+    const asym = m.fitness.imtp?.asymmetry_pct;
+    const asymScore = asym != null ? Math.max(0, Math.min(100, 100 - Math.max(0, asym - 5) * 8)) : null;
+    const cs = ANALYTICS.compositeScore(ANALYTICS.COMPOSITE_WEIGHTS.fitness, {
+      cmj_pp:    cmjPctl?.percentile,
+      imtp_pf:   imtpPctl?.percentile,
+      asymmetry: asymScore
+    });
+    if(cs.score != null){
+      m.fitness.score = cs.score;
+      m.fitness.score_breakdown = cs.breakdown;
+      m.fitness.cmj_pctl_in_grade  = cmjPctl?.percentile ?? null;
+      m.fitness.imtp_pctl_in_grade = imtpPctl?.percentile ?? null;
     }
   }
   // 2) ELI — Theia+GRF 회차에만 (필요 변수가 있을 때)

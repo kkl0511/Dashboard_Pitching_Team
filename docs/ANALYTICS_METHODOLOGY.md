@@ -1,7 +1,44 @@
-# 분석 방법론 (Analytics Methodology) — v2.1
+# 분석 방법론 (Analytics Methodology) — v3.0
 
 대시보드의 잠재구속·ELI·composite score 산출 공식과 문헌 근거를 정리한 문서입니다.
 모든 함수는 `src/js/analytics.js` 에 구현되어 있고, 브라우저에서 `window.ANALYTICS` 로 노출됩니다.
+
+> **v3.0 (2026-05-09)**: ① 학년별 벤치마크·잠재구속 임계치·percentile (고1/2/3 분리),
+> ② 제구 통합 점수 (Theia 운동학 + Rapsodo 결과 cross-validation), ③ fitness 점수가
+> COMPOSITE_WEIGHTS·학년별 percentile·비대칭 반영하도록 재배선.
+
+---
+
+## 0. 학년별 처리 (v3.0 신규)
+
+### GRADE_BENCHMARKS — 한국 고교 투수 발달 단계 기준
+
+| 학년 | 평균 구속 | CMJ PP/BM | IMTP PF/BM | 평균 신장 |
+|---|---|---|---|---|
+| 고1 | 124 ± 6 km/h | 36 ± 5 W/kg | 25 ± 4 N/kg | 173 cm |
+| 고2 | 130 ± 6 km/h | 41 ± 5 W/kg | 29 ± 4 N/kg | 178 cm |
+| 고3 | 135 ± 6 km/h | 45 ± 5 W/kg | 32 ± 4 N/kg | 181 cm |
+
+> 측정 누적되면 실제 코호트 평균·SD로 자동 갱신 권장.
+
+### 학년별 percentile
+
+`gradePercentile(value, grade, metric)` — 정규근사 z-score → percentile (0~100). 같은 학년 내 상대 위치를 보여줌. 학년이 다른 선수들끼리 직접 비교하지 않도록 차단.
+
+### 잠재구속 임계치 보정
+
+`LATENT_VELOCITY_WEIGHTS` 의 임계치 (θ) 가 학년별 offset 으로 자동 조정:
+
+| 변수 | 고1 offset | 고2 offset | 고3 offset |
+|---|---|---|---|
+| trunk_peak_dps | −100 | 0 | +50 |
+| pelvis_peak_dps | −50 | 0 | +25 |
+| cmj_pp_bm | −5 | 0 | +2 |
+| imtp_pf_bm | −3 | 0 | +1 |
+| shoulder_er_deg | −10 | 0 | +5 |
+| stride_pct_height | −3 | 0 | +2 |
+
+같은 측정값이라도 고1에는 "충분", 고3에는 "부족" 판정 가능.
 
 ---
 
@@ -64,6 +101,36 @@ $$\text{impact} = -\frac{(100 - \text{zone\_score}) \cdot w_{\text{zone}}}{10}$$
 | Z6 Pelvis brake | 0.20 |
 
 가중치는 위 문헌의 회귀계수에서 보수적으로 도출. **표시되는 손실은 추정값**이며 개별 선수에 대한 단정적 예측이 아닙니다.
+
+---
+
+## 2.5 제구 통합 점수 (Command Composite — v3.0 신규)
+
+같은 "제구"를 두 source 로 측정하여 통합:
+
+$$\text{command\_composite} = 0.5 \cdot \text{Theia}_{kinematic} + 0.5 \cdot \text{Rapsodo}_{result}$$
+
+### Theia (운동학적 일관성)
+
+trial-level SD 기반:
+- `release_height_sd_cm`: 2cm 초과 시 12pt/cm 감점
+- `wrist_pos_sd_cm`: 2.5cm 초과 시 8pt/cm 감점
+- `trunk_tilt_sd_deg`: 1.0° 초과 시 15pt/° 감점
+
+### Rapsodo (결과 일관성)
+
+- `command_score` 가 있으면 그대로 사용
+- 없으면 `in_zone_pct × 1.4` (70% in-zone → 98점)
+
+### Cross-validation
+
+- 두 source 의 `release_height_sd_cm` 가 **<1cm 차이** = high agreement
+- 1~2cm = medium · ≥2cm = low (측정 품질 경고)
+- 두 점수 격차 > 25점 = "운동학 일관성과 실투 결과 사이 갭" 경고
+
+### UI 표시
+
+선수 페이지의 "부상위험·제구일관성" 카드 하단에 통합 점수 + Theia/Rapsodo 분리 점수 + 경고 표시.
 
 ---
 

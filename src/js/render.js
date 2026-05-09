@@ -72,7 +72,7 @@ function buildM1Table(){
     const m = DATA[p.id][1];
     const fb = m.rapsodo?.fb;
     return {
-      pid:p.id, name:p.name, arm:p.arm,
+      pid:p.id, name:p.name, arm:p.arm, grade:p.grade,
       velo:     fb?.velocity?.max ?? m.velocity.measured_kmh,
       velo_avg: fb?.velocity?.avg ?? null,
       spin:     fb?.spin?.avg ?? null,
@@ -105,7 +105,7 @@ function buildM1Table(){
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
-      <td><b>${r.name}</b>${realDot}</td>
+      <td><b>${r.name}</b>${realDot}${r.grade?` <span style="background:#ddf4ff;color:#0969da;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600">고${r.grade}</span>`:''}</td>
       <td class="right">${r.arm}</td>
       <td class="right"><b>${fmt(r.velo,1)}</b></td>
       <td class="right">${fmt(r.velo_avg,1)}</td>
@@ -311,6 +311,7 @@ function renderPlayerView(pid){
     : `<span class="pill warn" title="샘플 데이터 — JSON 인입 시 자동 교체">샘플</span>`;
   document.getElementById('player-meta-line').innerHTML =
     `<span><b>${p.name}</b> (${p.id}) ${dataBadge}</span>` +
+    (p.grade ? `<span><b style="background:#0969da;color:#fff;padding:2px 7px;border-radius:4px;font-size:11px">고${p.grade}</b></span>` : '') +
     `<span>투구손: <b>${p.arm==='R'?'우투':'좌투'}</b></span>` +
     `<span>신장: <b>${p.height} cm</b></span>` +
     `<span>체중: <b>${p.weight} kg</b></span>` +
@@ -356,7 +357,8 @@ function renderPlayerView(pid){
       datasets:[{
         label: p.name,
         data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0, m.grf?.lhei ?? 0,
-              avg([m.faults.fault_score, m.faults.consistency_score])],
+              // v3.0-B: command_composite 우선 사용 (없으면 기존 consistency_score)
+              m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
         backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2, pointRadius:4,
         pointBackgroundColor:'#0969da'
       },{
@@ -366,7 +368,7 @@ function renderPlayerView(pid){
           avg(PLAYERS.map(x=>DATA[x.id][1].energy?.transfer?.score).filter(v=>v!=null)),
           avg(PLAYERS.map(x=>DATA[x.id][1].energy?.leakage?.eli_score).filter(v=>v!=null)),
           avg(PLAYERS.map(x=>DATA[x.id][1].grf?.lhei).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
+          avg(PLAYERS.map(x=>DATA[x.id][1].faults.command_composite ?? avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
         ],
         backgroundColor:'rgba(130,80,223,.10)', borderColor:'#8250df', borderWidth:1.5,
         borderDash:[4,3], pointRadius:3
@@ -511,6 +513,24 @@ function renderPlayerView(pid){
   document.getElementById('p-rh-sd').textContent = m.faults.release_height_sd_cm + ' cm';
   document.getElementById('p-wp-sd').textContent = m.faults.wrist_pos_sd_cm + ' cm';
   document.getElementById('p-tt-sd').textContent = m.faults.trunk_tilt_sd_deg + '°';
+  // v3.0-B: 제구 통합 점수
+  const cc = m.faults.command_composite;
+  const ccEl = document.getElementById('p-cmd-cmp');
+  if(ccEl){
+    if(cc != null){
+      ccEl.innerHTML = `<span style="color:${scoreColor(cc)};font-weight:700;font-size:16px">${cc}</span> / 100`;
+      const tScore = m.faults.command_theia, rScore = m.faults.command_rapsodo;
+      document.getElementById('p-cmd-detail').textContent =
+        `Theia ${tScore != null ? tScore : '—'} · Rapsodo ${rScore != null ? rScore : '—'}`;
+      const warns = m.faults.command_warnings || [];
+      document.getElementById('p-cmd-warnings').innerHTML = warns.length
+        ? warns.map(w => `⚠️ ${w}`).join('<br>') : '';
+    } else {
+      ccEl.textContent = '—';
+      document.getElementById('p-cmd-detail').textContent = '—';
+      document.getElementById('p-cmd-warnings').innerHTML = '';
+    }
+  }
 
   // 🎯 Rapsodo 패스트볼 분석
   renderRapsodoFB(m.rapsodo, p);
