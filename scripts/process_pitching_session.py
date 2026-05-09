@@ -34,7 +34,7 @@ THEIA_COLS = {
     'humerus_ang_vel': (8,9,10), 'forearm_ang_vel': (11,12,13),
     'x_factor': 23, 'shoulder_ang_vel': 27, 'elbow_ang_vel': 31,
     'lead_knee': 32, 'r_wrist': (39,40,41),
-    'fp1_force': (56,57,58), 'fp2_force': (59,60,61),
+    'fp1_force': (56,57,58), 'fp2_force': (59,60,61),  # v1.1: FP1=축발(뒷발), FP2=착지발(앞발)
     'event_max_knee': 70, 'event_footstrike': 71, 'event_max_er': 72,
     'event_release': 73, 'event_release100': 74,
     'r_shoulder_pow': 75, 'l_shoulder_pow': 76,
@@ -331,7 +331,7 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
     zones = [
         ('zone1','골반→몸통→팔 시퀀스', '분절 가속 순서 결함', 88),
         ('zone2','골반-상체 분리 (X-팩터)', 'X-factor 미달', round(norm(x_factor, 60, 1.0))),
-        ('zone3','앞발 받쳐주기 (블로킹)', 'Lead knee collapse', round(norm(fp1_peak/91*100, 110, 0.4))),
+        ('zone3','앞발 받쳐주기 (블로킹)', 'Lead knee collapse', round(norm(fp2_peak/91*100, 110, 0.4))),  # v1.1: FP2=착지발(앞발)
         ('zone4','앞발 착지 시 몸통 자세', 'FC 시 트렁크 기울기 부적절', 78),
         ('zone5','어깨 정렬 (외전·외회전)', 'Shoulder alignment 결함', 84),
         ('zone6','골반 감속 (브레이크)', 'Pelvis braking 부족', 72),
@@ -404,11 +404,12 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             },
         },
         'grf': {
+            # v1.1: FP1=축발(rear), FP2=착지발(lead/앞발)
             'lhei': round(min(98, (zones[2][3]*0.3 + zones[5][3]*0.2
-                              + norm(fp2_peak/91*100, 80, 0.5)*0.25
-                              + norm(fp1_peak/91*100, 110, 0.4)*0.25))),
-            'rear_force_pct': round(fp2_peak/(91*9.81)*100*100, 0)/100,
-            'lead_force_pct': round(fp1_peak/(91*9.81)*100*100, 0)/100,
+                              + norm(fp1_peak/91*100, 80, 0.5)*0.25      # 축발 추진력
+                              + norm(fp2_peak/91*100, 110, 0.4)*0.25))), # 앞발 블로킹
+            'rear_force_pct': round(fp1_peak/(91*9.81)*100*100, 0)/100,  # 축발 = FP1
+            'lead_force_pct': round(fp2_peak/(91*9.81)*100*100, 0)/100,  # 착지발 = FP2
             'type': '균형형',
         },
         'faults': {
