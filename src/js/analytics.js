@@ -35,29 +35,147 @@ function veloGroup(velocity_kmh){
   return null;
 }
 
+/* v5.10: OpenBiomechanics 기반 7-predictor Velocity Prediction Model
+ *
+ * Driveline OpenBiomechanics Project (https://github.com/drivelineresearch/openbiomechanics)
+ *   411 trial × 100명 (32 HS + 314 College + 42 Indep + 23 MiLB)
+ *   학습 R² = 0.372, RMSE = 6.07 km/h
+ *   7 predictors: pelvis_dps, trunk_dps, arm_dps, x_factor, mass_kg, height_m, stride_pct
+ *
+ * v5.10 신규 — stride_pct (= stride_length_m / height_m, OBP 정의와 일치)
+ *   STRIDE_LENGTH 컬럼은 c3d.txt에 single-value sparse → 전체 frame에서 추출
+ *   한국 cohort median stride_pct 0.797 ≈ OBP median 0.837 (검증 통과)
+ *
+ * 한국 cohort 적용 시 median residual +8.1 km/h (메카닉 대비 효율 우수)
+ *   → cohort 내 ranking이 정밀 (std 5.84 vs 5-pred 6.13)
+ */
+const OBP_VELO_MODEL = {
+  intercept:       -2.0818,
+  pelvis_dps_coef: -0.00539,
+  trunk_dps_coef:  +0.03006,
+  arm_dps_coef:    +0.00685,
+  x_factor_coef:   +0.03426,
+  mass_kg_coef:    +0.2469,
+  height_m_coef:   +21.792,
+  stride_pct_coef: +19.141,    // stride 길이 / 신장 비율 (0.7-1.0 range)
+  r_squared:       0.372,
+  rmse_kmh:        6.07,
+  cv_r_squared:    0.28,
+  n_train:         411,
+  cohort:          'OBP 100명 (32 HS + 314 College + 42 Indep + 23 MiLB)',
+  korean_bias:     +8.1,       // 한국 cohort median residual (effiency offset)
+  reference:       'https://github.com/drivelineresearch/openbiomechanics'
+};
+
+/**
+ * v5.10: OBP 7-predictor 모델로 메카닉 기반 구속 예측
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, mass_kg, height_m, stride_pct
+ *                        (stride_pct = stride_length_m / height_m, 0.7-1.0 range — OBP 정의)
+ * @param {number} measuredKmh  실측 구속 (있으면 residual + efficiency_label 계산)
+ * @param {boolean} applyKoreanBias  true면 한국 cohort bias 보정 (기본 false)
+ * @returns {{predicted_kmh, residual_kmh, efficiency_label, basis}}
+ */
+function predictVelocityOBP(input, measuredKmh = null, applyKoreanBias = false){
+  const M = OBP_VELO_MODEL;
+  if(!input || input.pelvis_dps==null || input.trunk_dps==null || input.arm_dps==null) return null;
+  // stride_pct fallback: stride_length / height_m → 없으면 cohort median 0.80
+  const stridePct = input.stride_pct
+                 ?? (input.stride_length && input.height_m ? input.stride_length / input.height_m : 0.80);
+  const xFac = input.x_factor ?? 28;       // 한국 cohort median fallback
+  let pred = M.intercept
+           + M.pelvis_dps_coef * input.pelvis_dps
+           + M.trunk_dps_coef  * input.trunk_dps
+           + M.arm_dps_coef    * input.arm_dps
+           + M.x_factor_coef   * xFac
+           + M.mass_kg_coef    * (input.mass_kg ?? 80)
+           + M.height_m_coef   * (input.height_m ?? 1.80)
+           + M.stride_pct_coef * stridePct;
+  if(applyKoreanBias) pred += M.korean_bias;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const out = { predicted_kmh: r(pred), basis: 'OBP_7pred_n411', stride_pct_used: r(stridePct, 3) };
+  if(measuredKmh != null){
+    out.residual_kmh = r(measuredKmh - pred);
+    // 한국 cohort 기준 +8 km/h 가 baseline → 라벨 임계 조정
+    out.efficiency_label = out.residual_kmh > +15 ? '🔥 매우 효율'
+                         : out.residual_kmh > +5  ? '✓ 효율 우수'
+                         : out.residual_kmh > 0   ? '○ 평균'
+                         : out.residual_kmh > -5  ? '△ 손실 있음'
+                         : '⚠ 큰 효율 손실';
+  }
+  return out;
+}
+
+/* v5.9: OpenBiomechanics playing-level 별 메카닉 reference (학술 standard)
+ *   Driveline OBP 100명 cohort의 level별 trial median
+ *   한국 cohort 별도 norm은 VELO_GROUP_NORMS 유지 (한국 고1/평균/우수/Elite)
+ *   대시보드는 두 reference를 병행 표시 가능 — "한국 동급 vs OBP 학술 standard" */
+const OBP_LEVEL_NORMS = {
+  'HS': {     // High School (n=32 trial, 7명, 평균 128 km/h)
+    pelvis_dps: 721, trunk_dps: 1032, arm_dps: 4419, x_factor: 35,
+    elbow_velo: 2350, hp_ratio_pct: 1279, elbow_varus_moment: 94,
+    velo_kmh_median: 128
+  },
+  'College': { // College (n=314 trial, 75명, 평균 137 km/h)
+    pelvis_dps: 742, trunk_dps: 1051, arm_dps: 4571, x_factor: 32,
+    elbow_velo: 2464, hp_ratio_pct: 1310, elbow_varus_moment: 110,
+    velo_kmh_median: 137
+  },
+  'Indep': {   // Independent (n=42 trial, 12명, 평균 138 km/h)
+    pelvis_dps: 804, trunk_dps: 1030, arm_dps: 4420, x_factor: 30,
+    elbow_velo: 2444, hp_ratio_pct: 1126, elbow_varus_moment: 121,
+    velo_kmh_median: 141
+  },
+  'MiLB': {    // Minor League (n=23 trial, 6명, 평균 144 km/h) — 진짜 elite
+    pelvis_dps: 726, trunk_dps: 1120, arm_dps: 4388, x_factor: 39,
+    elbow_velo: 2329, hp_ratio_pct: 1477, elbow_varus_moment: 134,
+    velo_kmh_median: 144
+  }
+};
+
 // 4-group 별 체력·메카닉 변수 평균 (59명 통합 기반 추정)
 // 추후 측정 누적 시 자동 갱신
 // v5.0: Driveline HP Assessment 6축 호환 — pp_peak_takeoff_bm 추가
+// v5.8: 4축 능력 라디아 — 한국 12명 (138+) + 프로/대학 16명 = 28명 elite cohort 실측 기반
+// v5.9: OBP MiLB 23 trial 추가로 transfer_score 재calibrate (n=51)
+//   transferScoreV2 self-calc mode에서 OBP MiLB H/P 1477% → norm(1477, 1660, 0.0337) = 44 점
+//   28명 한국+프로 elite mean 58과 평균하면 ~51 — 보수적으로 55 적용
+//   다른 축들은 elite 실측 데이터 부족 — 학술 reference 추정 유지
+const PRO_REFERENCE_4AXIS = {
+  generation_score:  85,  // 출력 — Elite power 생성 (실측 데이터 부족 → 학술 추정 -3 보수)
+  transfer_score:    55,  // v5.9 — 한국 28명 + OBP MiLB 23 trial 합본 평균 (재calibrated)
+  eli_score:         85,  // 누수 — 자세 결함 부족 (학술 추정 -5 보수)
+  command_composite: 75,  // 제구 — 프로도 stuff 우선 (학술 추정 -5 보수)
+  label: '📊 Elite ref (n=51 · 한국 28 + OBP MiLB 23)'
+};
+
+// v5.8: pelvis_dps, trunk_dps, arm_dps, x_factor를 한국 41명 cohort 그룹별 median으로 교체
+//   (이전 미국 Driveline 추정치와 패턴이 다름: 한국은 group간 ω 차이 작음, x_factor 절대값 낮음)
+//   fitness 부분(cmj/imtp/hop/grip/pp)은 기존 추정 reference 유지 (별도 fitness cohort 데이터 필요)
+//   GRF (lead_grf_bw, rear_grf_bw)도 기존 유지 (한국 GRF cohort 데이터 미수집)
 const VELO_GROUP_NORMS = {
   '미달': {
     cmj_pp_bm: 22, cmj_jh_cm: 30, imtp_pf_bm: 22, hop_rsi: 1.8, grip_kg: 50,
-    pp_peak_takeoff_bm: 7.5,    // v5.0: Plyo Push Up 추진력 (N/kg)
-    pelvis_dps: 560, trunk_dps: 820, x_factor: 22, lead_grf_bw: 1.7, rear_grf_bw: 1.4
+    pp_peak_takeoff_bm: 7.5,
+    pelvis_dps: 662, trunk_dps: 887, arm_dps: 4001, x_factor: 17,   // v5.8 한국 (n=2 — 외삽 주의)
+    lead_grf_bw: 1.7, rear_grf_bw: 1.4
   },
   '평균': {
     cmj_pp_bm: 25, cmj_jh_cm: 33, imtp_pf_bm: 25, hop_rsi: 2.1, grip_kg: 55,
     pp_peak_takeoff_bm: 9.0,
-    pelvis_dps: 600, trunk_dps: 870, x_factor: 28, lead_grf_bw: 1.95, rear_grf_bw: 1.55
+    pelvis_dps: 593, trunk_dps: 842, arm_dps: 4347, x_factor: 31,   // v5.8 한국 (n=9)
+    lead_grf_bw: 1.95, rear_grf_bw: 1.55
   },
   '우수': {
     cmj_pp_bm: 28, cmj_jh_cm: 36, imtp_pf_bm: 28, hop_rsi: 2.4, grip_kg: 60,
     pp_peak_takeoff_bm: 10.5,
-    pelvis_dps: 645, trunk_dps: 910, x_factor: 33, lead_grf_bw: 2.15, rear_grf_bw: 1.65
+    pelvis_dps: 634, trunk_dps: 887, arm_dps: 4166, x_factor: 26,   // v5.8 한국 (n=18)
+    lead_grf_bw: 2.15, rear_grf_bw: 1.65
   },
   'Elite': {
     cmj_pp_bm: 32, cmj_jh_cm: 40, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65,
     pp_peak_takeoff_bm: 12.0,
-    pelvis_dps: 690, trunk_dps: 950, x_factor: 38, lead_grf_bw: 2.35, rear_grf_bw: 1.75
+    pelvis_dps: 633, trunk_dps: 867, arm_dps: 4376, x_factor: 30,   // v5.8 한국 (n=12)
+    lead_grf_bw: 2.35, rear_grf_bw: 1.75
   }
 };
 
@@ -937,6 +1055,122 @@ function _clamp01(x){ return Math.max(0, Math.min(100, x)); }
  *   - pelvis_brake_ratio    (pelvis_AV at trunk_max / pelvis_peak_AV; 이상 <0.5)
  * @returns {{zone1..6, eli_score, causal_chains}}
  */
+/**
+ * v5.8: Mechanical Energy 자체 계산 — De Leva (1996) 인체 관성 모델
+ *
+ * V3D export에 Mechanical_Energy 컬럼이 없을 때 angular velocity peak로 KE_rot 추정.
+ * (V3D ME는 KE_total = KE_trans + KE_rot + PE 합산이라 정의가 다를 수 있음 →
+ *  학술적 일관성을 위해 모든 trial에 자체 계산 KE_rot 사용 권장)
+ *
+ * 학술 근거: De Leva (1996) "Adjustments to Zatsiorsky-Seluyanov's segment inertia parameters"
+ *   J. Biomech 29(9), 1223-1230. Korean adult male approximation.
+ *
+ *   I_segment_z = m_segment × (k_z × L_segment)²
+ *   KE_rot_peak = 0.5 × I × ω_peak²   (ω in rad/s)
+ *
+ *   m, L, k 비율 (BW, stature 대비):
+ *   ┌──────────┬─────────┬──────────┬─────────┐
+ *   │ Segment  │ m / BW  │ L / stat │ k_z / L │
+ *   ├──────────┼─────────┼──────────┼─────────┤
+ *   │ Pelvis   │ 10.1%   │  9.4%    │ 49.7%   │
+ *   │ Trunk    │ 43.5%   │ 37.8%    │ 32.3%   │
+ *   │ Humerus  │  2.7%   │ 18.6%    │ 28.5%   │
+ *   └──────────┴─────────┴──────────┴─────────┘
+ *
+ * @param {string} segment  'pelvis' | 'trunk' | 'humerus'
+ * @param {number} bodyMassKg
+ * @param {number} statureM
+ * @param {number} omegaPeakDegPerSec  peak angular velocity (deg/s)
+ * @returns {number} KE_rot peak in Joules
+ */
+const DE_LEVA_PARAMS = {
+  pelvis:  { m_frac: 0.101, L_frac: 0.094, k_frac: 0.497 },
+  trunk:   { m_frac: 0.435, L_frac: 0.378, k_frac: 0.323 },
+  humerus: { m_frac: 0.027, L_frac: 0.186, k_frac: 0.285 }
+};
+function selfCalcSegmentKE(segment, bodyMassKg, statureM, omegaPeakDegPerSec){
+  const p = DE_LEVA_PARAMS[segment];
+  if(!p || bodyMassKg == null || statureM == null || omegaPeakDegPerSec == null) return null;
+  const m = p.m_frac * bodyMassKg;                     // segment mass (kg)
+  const L = p.L_frac * statureM;                       // segment length (m)
+  const I = m * Math.pow(p.k_frac * L, 2);             // moment of inertia (kg·m²)
+  const omegaRad = omegaPeakDegPerSec * Math.PI / 180; // rad/s
+  return 0.5 * I * omegaRad * omegaRad;                // KE_rot in J
+}
+
+/**
+ * v5.5: 힘 전달(Energy Transfer) 점수 — Kinematic + Kinetic 결합
+ *
+ * 학술 근거:
+ *   - Aguinaldo & Escamilla (2019) Sports Biomech — kinematic sequencing + energy magnitude
+ *   - Naito et al. (2014, 2017) double-pendulum 모델 — energy flow ratios
+ *   - Werner et al. (2008) — elite pitcher mech energy ratios
+ *
+ * 두 측면을 50:50 가중평균:
+ *   1) Kinematic ETE (시간 차원) — ete_pct + speed_gain_pt + speed_gain_ta
+ *      proper sequence 타이밍이 맞고 분절 간 속도 증폭이 크면 높음
+ *   2) Kinetic ETE (에너지 차원) — humerus_J / pelvis_J × 100
+ *      골반 mech_energy가 팔/손까지 잘 전달되면 ratio 65-85%
+ *
+ * 한쪽 입력만 있을 때는 그 쪽만 사용 (graceful degradation).
+ *
+ * @param {object} input  — 다음 키들 중 일부 (모두 선택):
+ *   ete_pct, speed_gain_pt, speed_gain_ta,
+ *   mech_energy_pelvis_J, mech_energy_trunk_J, mech_energy_humerus_J
+ * @returns {{score, kinematic, kinetic_ete, ratio_humerus_to_pelvis_pct, basis}}
+ */
+function transferScoreV2(input = {}){
+  const norm = (v, base, mult) => Math.max(20, Math.min(98, 50 + (v - base) * mult));
+  const r = (x, p = 0) => x == null ? null : Math.round(x * Math.pow(10, p)) / Math.pow(10, p);
+
+  // (1) Kinematic ETE — 시퀀싱 측면
+  let kinematic = null;
+  if(input.ete_pct != null && input.speed_gain_pt != null && input.speed_gain_ta != null){
+    kinematic = norm(input.ete_pct, 75, 1.5)*0.4
+              + norm(input.speed_gain_pt*100, 150, 0.4)*0.3
+              + norm(input.speed_gain_ta*100, 200, 0.3)*0.3;
+  }
+
+  // (2) Kinetic ETE — 에너지 전달 측면. V3D ME 정의 vs self-calc KE_rot 정의가 다르므로 분기
+  //   V3D mode (Mechanical_Energy 컬럼 사용): ratio 학술 reference 65-90% (Werner 2008)
+  //   self-calc KE_rot mode (ω²·I): ratio 800-3000%, 1500%≈50점 임시 calibration
+  //   (cohort 누적 후 percentile-based로 재calibrate 권장)
+  let kineticEte = null, ratioPct = null;
+  const pJ = input.mech_energy_pelvis_J;
+  const hJ = input.mech_energy_humerus_J;
+  const meBasis = input.me_basis || 'V3D';   // 'V3D' | 'self_calc_KE_rot'
+  if(pJ != null && hJ != null && pJ > 0){
+    ratioPct = (hJ / pJ) * 100;
+    if(meBasis === 'self_calc_KE_rot'){
+      // v5.8: 한국 고1 + 프로/대학 합본 cohort (n=57) percentile-based calibration
+      //   median 1660 = 50점, p90 2550 = 80점, mult = 30/890 = 0.0337
+      //   학술 reference 65-90% (Werner)와는 다른 scale (KE_rot vs KE_total 정의 차이)
+      kineticEte = norm(ratioPct, 1660, 0.0337);
+    } else {
+      kineticEte = norm(ratioPct, 65, 0.8);       // V3D mode (학술 reference)
+    }
+  }
+
+  // 가중평균 (둘 다 있으면 50:50)
+  let score = null, basis = 'none';
+  if(kinematic != null && kineticEte != null){
+    score = 0.5 * kinematic + 0.5 * kineticEte; basis = 'combined';
+  } else if(kinematic != null){
+    score = kinematic;  basis = 'kinematic_only';
+  } else if(kineticEte != null){
+    score = kineticEte; basis = 'kinetic_only';
+  }
+
+  return {
+    score:                       r(score),
+    kinematic:                   r(kinematic),
+    kinetic_ete:                 r(kineticEte),
+    ratio_humerus_to_pelvis_pct: r(ratioPct, 1),
+    basis: basis,
+    me_basis: meBasis           // v5.8: 'V3D' or 'self_calc_KE_rot'
+  };
+}
+
 function eliScoresFromTheia(m){
   // Zone 1: Sequential timing (이상 pelvis→trunk 30-50ms, trunk→arm 25-45ms)
   const z1 = (function(){
@@ -1453,7 +1687,18 @@ const ANALYTICS = {
   GRADE_LATENT_OFFSETS,
   GRF_BENCHMARKS,
   STUFF_BENCHMARKS,
-  VALD_NORMS
+  VALD_NORMS,
+  // v5.4: 4축 라디아 Elite reference
+  PRO_REFERENCE_4AXIS,
+  // v5.5: 힘 전달 점수 (Kinematic + Kinetic ETE 결합)
+  transferScoreV2,
+  // v5.8: De Leva (1996) self-calc segment KE_rot
+  selfCalcSegmentKE,
+  DE_LEVA_PARAMS,
+  // v5.9: OpenBiomechanics 통합 — Velocity Prediction Model + Level별 reference
+  OBP_VELO_MODEL,
+  predictVelocityOBP,
+  OBP_LEVEL_NORMS
 };
 
 // 브라우저 빌드에서 직접 접근 가능

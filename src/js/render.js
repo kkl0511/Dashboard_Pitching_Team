@@ -406,30 +406,53 @@ function renderPlayerView(pid){
   document.getElementById('p-score-delta').textContent =
     `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
-  // v4.1: 4축 능력 차트 — 한국 코치 친화 라벨 (GRF는 출력·전달에 흡수)
-  // ⚡ 힘 만들기 (출력) / 🔗 힘 전달 / 💧 힘 보존 (누수 관리) / 🎯 제구 안정
+  // v5.4: 4축 능력 차트 — 본인 + 합성 베스트(전체 측정 max) + Elite 41 reference (3 dataset)
+  // ⚡ 힘 만들기 / 🔗 힘 전달 (시퀀싱 효율, ETE) / 💧 주요 누수 (자세 결함, ELI) / 🎯 제구 안정
   if(chartsP.r) chartsP.r.destroy();
   const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
+  // 합성 베스트 — 모든 PLAYERS × SESSIONS 측정에서 각 축 최고치 (가상 챔피언)
+  const allM = [];
+  PLAYERS.forEach(pl => SESSIONS.forEach(s => {
+    const mm = DATA[pl.id]?.[s.id];
+    if(mm && mm.energy) allM.push(mm);
+  }));
+  const safeMax = vals => {
+    const filtered = vals.filter(v => v != null && !isNaN(v));
+    return filtered.length ? Math.max(...filtered) : 0;
+  };
+  const bestData = [
+    safeMax(allM.map(mm => mm.energy?.generation?.score)),
+    safeMax(allM.map(mm => mm.energy?.transfer?.score)),
+    safeMax(allM.map(mm => mm.energy?.leakage?.eli_score)),
+    safeMax(allM.map(mm => mm.faults?.command_composite
+      ?? avg([mm.faults?.fault_score, mm.faults?.consistency_score])))
+  ];
+  // Elite 41 reference (analytics.js · 학술 추정 + Driveline 공개치)
+  const proRef = (typeof ANALYTICS !== 'undefined' && ANALYTICS.PRO_REFERENCE_4AXIS) || {
+    generation_score: 88, transfer_score: 85, eli_score: 90,
+    command_composite: 80, label: '📊 Elite 41 ref'
+  };
+  const proData = [proRef.generation_score, proRef.transfer_score, proRef.eli_score, proRef.command_composite];
   chartsP.r = new Chart(document.getElementById('p-radar'),{
     type:'radar',
     data:{
-      labels:['⚡ 힘 만들기\n(출력)','🔗 힘 전달','💧 힘 보존\n(누수 관리)','🎯 제구 안정'],
+      labels:['⚡ 힘 만들기','🔗 힘 전달\n(시퀀싱 효율)','💧 주요 누수\n(자세 결함)','🎯 제구 안정'],
       datasets:[{
         label: p.name,
         data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0,
               m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
-        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2, pointRadius:4,
-        pointBackgroundColor:'#0969da'
+        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
+        pointBackgroundColor:'#0969da', order: 1
       },{
-        label:'팀 평균',
-        data:[
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.generation?.score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.transfer?.score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.leakage?.eli_score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].faults.command_composite ?? avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
-        ],
-        backgroundColor:'rgba(130,80,223,.10)', borderColor:'#8250df', borderWidth:1.5,
-        borderDash:[4,3], pointRadius:3
+        label: `🏆 합성 베스트 (N=${allM.length})`,
+        data: bestData,
+        backgroundColor:'rgba(212,138,15,.06)', borderColor:'#bc8a0f', borderWidth:1.5,
+        borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#bc8a0f', order: 2
+      },{
+        label: proRef.label,
+        data: proData,
+        backgroundColor:'rgba(101,109,118,.05)', borderColor:'#656d76', borderWidth:1.3,
+        borderDash:[2,3], pointRadius:2.5, pointBackgroundColor:'#656d76', order: 3
       }]
     },
     options:{
@@ -455,28 +478,127 @@ function renderPlayerView(pid){
     }
   });
 
-  // 시퀀스
+  // 시퀀스 — v5.2: 키네틱 타이밍 시퀀스 곡선 (시간축 종모양, BR=0)
+  // 4분절(골반→몸통→팔→손)이 lag_ms 간격으로 차례로 피크 찍는 모습.
+  // 곡선은 Gaussian bell — 피크 시각/높이는 실측, 폭(σ)은 분절별 표준값.
   if(chartsP.s) chartsP.s.destroy();
-  chartsP.s = new Chart(document.getElementById('p-sequence'),{
-    type:'bar',
-    data:{
-      labels:['골반','몸통','팔'],
-      datasets:[{
-        label: p.name + ' (°/s)',
-        data:[m.sequence.pelvis_dps, m.sequence.trunk_dps, m.sequence.arm_dps],
-        backgroundColor:['#0969da','#1a7f37','#bc4c00']
-      },{
-        label:'팀 평균',
-        data:[
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.pelvis_dps)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.trunk_dps)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.arm_dps))
-        ],
-        backgroundColor:'rgba(130,80,223,.4)', borderColor:'#8250df', borderWidth:1
-      }]
-    },
-    options:chartOpts({yTitle:'피크 각속도 (°/s)', unit:'°/s', decimals:0, beginAtZero:true})
-  });
+  {
+    const seq  = m.sequence;
+    const trf  = m.energy?.transfer || {};
+    const ptLag = trf.pelvis_to_trunk_lag_ms ?? 50;
+    const taLag = trf.trunk_to_arm_lag_ms    ?? 35;
+    // 피크 시각 (BR=0 기준, ms): 팔이 BR 직전(-30ms), 그 앞으로 trunk·pelvis lag
+    const tArm    = -30;
+    const tTrunk  = tArm  - taLag;
+    const tPelvis = tTrunk - ptLag;
+    const tHand   = tArm  + 20;
+    // 피크 높이 — sequence dps 그대로, 손은 팔의 1.8배 (kinetic chain 표준)
+    const pkPelvis = seq.pelvis_dps;
+    const pkTrunk  = seq.trunk_dps;
+    const pkArm    = seq.arm_dps;
+    const pkHand   = Math.round(seq.arm_dps * 1.8);
+    // 분절별 종모양 폭 σ (큰 분절이 더 넓고 둔함)
+    const sigmas = {pelvis: 70, trunk: 55, arm: 42, hand: 38};
+    const gauss = (t, t0, peak, s) => peak * Math.exp(-Math.pow(t - t0, 2) / (2*s*s));
+    // 시간축 -300 ~ +50 ms, 5ms 간격
+    const xs = []; for(let t = -300; t <= 50; t += 5) xs.push(t);
+    // 본인
+    const series = (t0, pk, s) => xs.map(t => gauss(t, t0, pk, s));
+    // 팀 평균 (참고선)
+    const teamAvg = key => avg(PLAYERS.map(x => DATA[x.id][1].sequence[key]));
+    const tmTrf = (key) => avg(PLAYERS.map(x =>
+      (DATA[x.id][1].energy?.transfer?.[key]) ?? (key === 'pelvis_to_trunk_lag_ms' ? 50 : 35)
+    ));
+    const tmPtLag = tmTrf('pelvis_to_trunk_lag_ms');
+    const tmTaLag = tmTrf('trunk_to_arm_lag_ms');
+    const tmTArm  = -30, tmTTrunk = tmTArm - tmTaLag, tmTPelvis = tmTTrunk - tmPtLag, tmTHand = tmTArm + 20;
+    // BR=0 수직 점선 플러그인 (Chart.js 인라인)
+    const brLinePlugin = {
+      id: 'brLine_' + Date.now(),
+      afterDatasetsDraw(chart){
+        const {ctx, scales:{x, y}} = chart;
+        const xPos = x.getPixelForValue(0);
+        if(xPos == null || isNaN(xPos)) return;
+        ctx.save();
+        ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle = '#cf222e'; ctx.lineWidth = 1.4;
+        ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom); ctx.stroke();
+        ctx.fillStyle = '#cf222e'; ctx.font = '600 11px Apple SD Gothic Neo, sans-serif';
+        ctx.fillText('BR', xPos + 4, y.top + 12);
+        ctx.restore();
+      }
+    };
+    chartsP.s = new Chart(document.getElementById('p-sequence'),{
+      type:'line',
+      data:{
+        labels: xs,
+        datasets: [
+          // 본인 — 4 분절 (진한, fill)
+          { label:'골반', data: series(tPelvis, pkPelvis, sigmas.pelvis),
+            borderColor:'#0969da', backgroundColor:'rgba(9,105,218,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'몸통', data: series(tTrunk, pkTrunk, sigmas.trunk),
+            borderColor:'#1a7f37', backgroundColor:'rgba(26,127,55,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'팔',   data: series(tArm, pkArm, sigmas.arm),
+            borderColor:'#bc4c00', backgroundColor:'rgba(188,76,0,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'손',   data: series(tHand, pkHand, sigmas.hand),
+            borderColor:'#cf222e', backgroundColor:'rgba(207,34,46,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          // 팀 평균 — dashed, fill 없음, 옅은 회색
+          { label:'팀 평균 (참고)', data: series(tmTPelvis, teamAvg('pelvis_dps'), sigmas.pelvis),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5,
+            stack:'tm', stackKey:'tmA', skipLegend:true },
+          { label:'_tm2', data: series(tmTTrunk, teamAvg('trunk_dps'), sigmas.trunk),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+          { label:'_tm3', data: series(tmTArm, teamAvg('arm_dps'), sigmas.arm),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+          { label:'_tm4', data: series(tmTHand, teamAvg('arm_dps')*1.8, sigmas.hand),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        animation: { duration: 900, easing: 'easeOutQuart' },
+        interaction: { intersect:false, mode:'index' },
+        plugins:{
+          legend:{
+            labels:{
+              color:'#1f2328', font:{size:11.5}, usePointStyle:true, padding:10,
+              // 팀 평균 dashed는 첫 dataset만 범례 표시 (label '_tm*' 시작은 숨김)
+              filter: (item) => !/^_tm/.test(item.text)
+            }
+          },
+          tooltip:{
+            intersect:false, mode:'index',
+            backgroundColor:'rgba(31,35,40,.95)', titleColor:'#fff', bodyColor:'#fff',
+            padding:10, cornerRadius:6,
+            callbacks:{
+              title: (items) => `t = ${items[0].label} ms`,
+              label: (ctx) => /^_tm/.test(ctx.dataset.label)
+                ? null
+                : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)} °/s`
+            }
+          }
+        },
+        scales:{
+          x:{ type:'linear',
+              ticks:{color:'#656d76', font:{size:11},
+                     callback: v => v + ' ms'},
+              grid:{color:'#eaeef2'},
+              title:{display:true, text:'시간 (ms · 릴리스=0)', color:'#656d76', font:{size:11}} },
+          y:{ ticks:{color:'#656d76', font:{size:11}},
+              grid:{color:'#eaeef2'}, beginAtZero:true,
+              title:{display:true, text:'각속도 (°/s)', color:'#656d76', font:{size:11}} }
+        }
+      },
+      plugins: [brLinePlugin]
+    });
+  }
 
   // ⚡ 에너지 분석 — 생성·전달·누수 (v1.8 헤드라인)
   const e = m.energy;
@@ -491,9 +613,28 @@ function renderPlayerView(pid){
     document.getElementById('p-en-total-w').innerHTML = `<b>${gen.total_W} W</b>`;
     document.getElementById('p-en-mech').textContent = `${gen.mech_energy_pelvis_J} / ${gen.mech_energy_trunk_J} / ${gen.mech_energy_humerus_J} J`;
 
-    // 전달 (Transfer)
+    // 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 분해 표시
     const trf = e.transfer;
     document.getElementById('p-en-trf-score').innerHTML = `<span style="color:${scoreColor(trf.score)}">${fmt0(trf.score)}</span>`;
+    // v5.5: 두 측면 분해 표시 (있을 때만)
+    const elKine = document.getElementById('p-en-trf-kine');
+    const elKinetic = document.getElementById('p-en-trf-kinetic');
+    const elRatio = document.getElementById('p-en-trf-ratio');
+    if(elKine && trf.score_kinematic != null){
+      elKine.innerHTML = `<span style="color:${scoreColor(trf.score_kinematic)}">${fmt0(trf.score_kinematic)}</span>`;
+    } else if(elKine){ elKine.textContent = '—'; }
+    if(elKinetic && trf.score_kinetic_ete != null){
+      elKinetic.innerHTML = `<span style="color:${scoreColor(trf.score_kinetic_ete)}">${fmt0(trf.score_kinetic_ete)}</span>`;
+    } else if(elKinetic){
+      elKinetic.innerHTML = `<span style="color:var(--muted);font-size:11px">데이터 없음</span>`;
+    }
+    if(elRatio && trf.ratio_humerus_to_pelvis_pct != null){
+      const ratio = trf.ratio_humerus_to_pelvis_pct;
+      const ratioColor = ratio >= 65 ? '#1a7f37' : ratio >= 55 ? '#bc4c00' : '#cf222e';
+      elRatio.innerHTML = `<b style="color:${ratioColor}">${ratio.toFixed(1)}%</b>`;
+    } else if(elRatio){
+      elRatio.innerHTML = `<span style="color:var(--muted);font-size:11px">—</span>`;
+    }
     document.getElementById('p-en-ete').innerHTML = `<b>${trf.ete_pct}%</b>`;
     document.getElementById('p-en-sg-pt').textContent = `${trf.speed_gain_pt}×`;
     document.getElementById('p-en-sg-ta').textContent = `${trf.speed_gain_ta}×`;

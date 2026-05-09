@@ -180,8 +180,25 @@ function genMeasurements(){
             proper_seq:             rng() > 0.15,
             pelvis_to_trunk_lag_ms: pt_lag,
             trunk_to_arm_lag_ms:    ta_lag,
-            score: Math.round(seqScore + (rng()-0.5)*6)
           };
+          // v5.5: 힘 전달 점수 — analytics.transferScoreV2 (kinematic + kinetic ETE 결합)
+          if(typeof ANALYTICS !== 'undefined' && ANALYTICS.transferScoreV2){
+            const tsv2 = ANALYTICS.transferScoreV2({
+              ete_pct: trf.ete_pct,
+              speed_gain_pt: trf.speed_gain_pt,
+              speed_gain_ta: trf.speed_gain_ta,
+              mech_energy_pelvis_J:  gen.mech_energy_pelvis_J,
+              mech_energy_trunk_J:   gen.mech_energy_trunk_J,
+              mech_energy_humerus_J: gen.mech_energy_humerus_J
+            });
+            trf.score                       = tsv2.score;
+            trf.score_kinematic             = tsv2.kinematic;
+            trf.score_kinetic_ete           = tsv2.kinetic_ete;
+            trf.ratio_humerus_to_pelvis_pct = tsv2.ratio_humerus_to_pelvis_pct;
+            trf.basis                       = tsv2.basis;
+          } else {
+            trf.score = Math.round(seqScore + (rng()-0.5)*6);
+          }
           // 누수 ELI 6 zones — analytics.js 정식 산출 (문헌 근거 변환식)
           // Theia+GRF 회차에만 (Uplift 는 GRF 없어 불가)
           const leak = isTheia

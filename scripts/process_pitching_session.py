@@ -154,23 +154,67 @@ def parse_theia_trial(path):
         v = [abs(x) for x in arr if x is not None]
         return max(v) if v else None
 
-    def find_event_by_name(name):
-        idx = col_map.get(name)
+    def find_event_frame(name):
+        """EVENT_LABEL 컬럼은 발생 시각(초)을 frame=0에 저장하는 sparse 형식.
+        component 자동 시도 + TIME 컬럼과 매칭해서 frame index로 변환.
+        """
+        # 1) col_map에서 후보 키 자동 시도 (component X / 0 / ITEM / 없음)
+        idx = None
+        for cand in (name, f'{name}_X', f'{name}_0', f'{name}_ITEM'):
+            if cand in col_map:
+                idx = col_map[cand]
+                break
         if idx is None: return None
-        for i, r in enumerate(data_rows):
+
+        # 2) 첫 번째 0이 아닌 값 = 이벤트 시각(초)
+        event_time_sec = None
+        for r in data_rows:
             if idx < len(r):
                 v = safe_float(r[idx])
-                if v is not None and v != 0: return i
-        return None
+                if v is not None and v != 0:
+                    event_time_sec = v
+                    break
+        if event_time_sec is None: return None
+
+        # 3) TIME 컬럼에서 가장 가까운 frame index 찾기
+        time_arr = col_by_name('TIME_X') or col_by_name('TIME') or col_by_name('TIME_0')
+        if time_arr:
+            best_i, best_diff = None, float('inf')
+            for i, ti in enumerate(time_arr):
+                if ti is None: continue
+                d = abs(ti - event_time_sec)
+                if d < best_diff:
+                    best_diff, best_i = d, i
+            return best_i
+        # TIME 컬럼이 없으면 frame_rate 추정 후 변환 (240Hz fallback)
+        return int(round(event_time_sec * 240))
+
+    # v5.7: Theia 마커리스 골반 추적 jerk noise 완화 — FC~BR 분석 구간 제한
+    #   Naito et al. (2014), Werner et al. (2008) 표준
+    #   양쪽에 buffer (FC-5, BR+10 frame). event 없으면 전체 구간 fallback (graceful)
+    fc_event = find_event_frame('Footstrike')
+    br_event = find_event_frame('Release')
+    if fc_event is not None and br_event is not None and br_event > fc_event:
+        win_start = max(0, fc_event - 5)
+        win_end   = min(len(data_rows), br_event + 10)
+        analysis_window = (win_start, win_end)
+    else:
+        analysis_window = (0, len(data_rows))
+
+    def col_by_name_window(name):
+        """col_by_name 결과를 분석 구간(FC~BR)으로 잘라서 반환"""
+        arr = col_by_name(name)
+        if not arr: return []
+        return arr[analysis_window[0]:analysis_window[1]]
 
     # v3.7 GRF 자동 분류 — peak Z 큰 쪽 = lead (착지발), 작은 쪽 = rear (축발)
-    # 측정 환경마다 FP1/FP2 매핑 다름 (좌투/우투, 셋업) → 자동 분류로 robust
-    fp1z = safe_max_abs(col_by_name('FP1_Z'))
-    fp2z = safe_max_abs(col_by_name('FP2_Z'))
-    fp1x = safe_max_abs(col_by_name('FP1_X'))
-    fp1y = safe_max_abs(col_by_name('FP1_Y'))
-    fp2x = safe_max_abs(col_by_name('FP2_X'))
-    fp2y = safe_max_abs(col_by_name('FP2_Y'))
+    # v5.7 분석 구간 제한 (FC~BR) — boundary noise 제거
+    fp1z = safe_max_abs(col_by_name_window('FP1_Z'))
+    fp2z = safe_max_abs(col_by_name_window('FP2_Z'))
+    fp1x = safe_max_abs(col_by_name_window('FP1_X'))
+    fp1y = safe_max_abs(col_by_name_window('FP1_Y'))
+    fp2x = safe_max_abs(col_by_name_window('FP2_X'))
+    fp2y = safe_max_abs(col_by_name_window('FP2_Y'))
     # 자동 분류
     if fp1z is not None and fp2z is not None:
         if fp1z >= fp2z:
@@ -187,19 +231,23 @@ def parse_theia_trial(path):
         lead_z = rear_z = lead_x = lead_y = rear_x = rear_y = None
         fp_mapping = 'GRF 데이터 없음'
 
+    # v5.7: 모든 peak 추출이 FC~BR 분석 구간으로 제한됨 (Theia jerk noise 완화)
+    #   참조: Naito et al. (2014) energy flow, Werner et al. (2008) elite pitcher
+    #   c3d.txt component는 모두 'X' (단일 스칼라). col_by_name_window가 FC-5 ~ BR+10 frame만 잘라줌
     return {
         'n_frames': len(data_rows),
+        'analysis_window': analysis_window,                # v5.7 디버그용
         # v3.6 정확한 변수 매핑 (헤더 라벨 기반)
-        'peak_pelvis_v':   safe_max_abs(col_by_name('Pelvis_Ang_Vel_Z')),
-        'peak_trunk_v':    safe_max_abs(col_by_name('Thorax_Ang_Vel_Z')),
-        # v3.9 보정: 우리 raw 값이 xlsx 처리값보다 +490 deg/s 큼 (검증 결과)
-        # 18명 Accurate_Data xlsx vs 우리 parser 30 trial 비교: bias=+490, MAE=490
-        'peak_humerus_v':  (safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')) - 490) if safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')) else None,
-        'peak_hand_v':     safe_max_abs(col_by_name('Pitching_Hand_Ang_Vel_X')),
-        'peak_shoulder_v': safe_max_abs(col_by_name('Pitching_Shoulder_Ang_Vel_Z')),
-        'peak_elbow_v':    safe_max_abs(col_by_name('Pitching_Elbow_Ang_Vel_X')),
-        'peak_arm_v':      safe_max_abs(col_by_name('Pitching_Humerus_Ang_Vel_Z')),  # 호환
-        'max_x_factor':    safe_max_abs(col_by_name('Trunk_wrt_Pelvis_Angle_Z')),
+        'peak_pelvis_v':   safe_max_abs(col_by_name_window('Pelvis_Ang_Vel_Z')),
+        'peak_trunk_v':    safe_max_abs(col_by_name_window('Thorax_Ang_Vel_Z')),
+        # v3.9 보정: 우리 raw 값이 xlsx 처리값보다 +490 deg/s 큼 (Theia humerus_z bias)
+        # v5.8: peak_arm_v도 동일 -490 보정 (cohort 비교 검증으로 일관성 확정)
+        'peak_humerus_v':  (safe_max_abs(col_by_name_window('Pitching_Humerus_Ang_Vel_Z')) - 490) if safe_max_abs(col_by_name_window('Pitching_Humerus_Ang_Vel_Z')) else None,
+        'peak_hand_v':     safe_max_abs(col_by_name_window('Pitching_Hand_Ang_Vel_X')),
+        'peak_shoulder_v': safe_max_abs(col_by_name_window('Pitching_Shoulder_Ang_Vel_Z')),
+        'peak_elbow_v':    safe_max_abs(col_by_name_window('Pitching_Elbow_Ang_Vel_X')),
+        'peak_arm_v':      (safe_max_abs(col_by_name_window('Pitching_Humerus_Ang_Vel_Z')) - 490) if safe_max_abs(col_by_name_window('Pitching_Humerus_Ang_Vel_Z')) else None,
+        'max_x_factor':    safe_max_abs(col_by_name_window('Trunk_wrt_Pelvis_Angle_Z')),
         # GRF — v3.7 자동 분류 (raw + 분류 결과 둘 다 보존)
         'fp1_z_peak': fp1z, 'fp2_z_peak': fp2z,            # raw (원본 보존)
         'fp1_x_peak': fp1x, 'fp1_y_peak': fp1y,
@@ -207,19 +255,29 @@ def parse_theia_trial(path):
         'lead_x_peak': lead_x, 'lead_y_peak': lead_y,
         'rear_x_peak': rear_x, 'rear_y_peak': rear_y,
         'fp_mapping':  fp_mapping,
-        # Stride
+        # Stride · Lead knee · Trunk
+        # v5.10: STRIDE_LENGTH는 EVENT처럼 single-value sparse → window 무관 전체 frame에서 추출
         'stride_length':   safe_max_abs(col_by_name('STRIDE_LENGTH_X')),
         'stride_pct':      safe_max_abs(col_by_name('STRIDE_LENGTH_MEAN_PERCENT_X')),
-        # Lead knee
-        'lead_knee_max':   safe_max_abs(col_by_name('Lead_Knee_Angle_X')),
-        # Trunk
-        'trunk_lateral_tilt': safe_max_abs(col_by_name('Trunk_Angle_Y')),
-        'trunk_forward_tilt': safe_max_abs(col_by_name('Trunk_Angle_X')),
+        'lead_knee_max':   safe_max_abs(col_by_name_window('Lead_Knee_Angle_X')),
+        'trunk_lateral_tilt': safe_max_abs(col_by_name_window('Trunk_Angle_Y')),
+        'trunk_forward_tilt': safe_max_abs(col_by_name_window('Trunk_Angle_X')),
         # Events
-        'fc_frame': find_event_by_name('Footstrike'),
-        'br_frame': find_event_by_name('Release'),
-        # 호환성 (이전 코드 의존)
-        'pelvis_me_peak': None, 'trunk_me_peak': None, 'humerus_me_peak': None,
+        'fc_frame': fc_event,
+        'br_frame': br_event,
+        # v5.6 — Joint Power Scalar (W) · 8 관절 · pitching arm = R 가정
+        'pow_r_shoulder':  safe_max_abs(col_by_name_window('R_Shoulder_Power_Scalar_X')),
+        'pow_l_shoulder':  safe_max_abs(col_by_name_window('L_Shoulder_Power_Scalar_X')),
+        'pow_r_elbow':     safe_max_abs(col_by_name_window('R_Elbow_Power_Scalar_X')),
+        'pow_l_elbow':     safe_max_abs(col_by_name_window('L_Elbow_Power_Scalar_X')),
+        'pow_r_hip':       safe_max_abs(col_by_name_window('R_Hip_Power_Scalar_X')),
+        'pow_l_hip':       safe_max_abs(col_by_name_window('L_Hip_Power_Scalar_X')),
+        'pow_r_knee':      safe_max_abs(col_by_name_window('R_Knee_Power_Scalar_X')),
+        'pow_l_knee':      safe_max_abs(col_by_name_window('L_Knee_Power_Scalar_X')),
+        # v5.6 — Mechanical Energy (J) · 3 분절
+        'pelvis_me_peak':   safe_max_abs(col_by_name_window('Pelvis_Mechanical_Energy_X')),
+        'trunk_me_peak':    safe_max_abs(col_by_name_window('Trunk_Mechanical_Energy_X')),
+        'humerus_me_peak':  safe_max_abs(col_by_name_window('R_Humerus_ME_X')),
         'release_height_m': None,
     }
 
@@ -437,7 +495,8 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
 
     peak_pelvis = clip('peak_pelvis_v', 200, 1300, 600)
     peak_trunk  = clip('peak_trunk_v',  600, 1300, 900)
-    peak_arm    = clip('peak_arm_v',   1500, 2200, 1970)
+    # v5.8: peak_arm_v -490 보정 후 cohort range 4000-5500 → 임계 2500-7000으로 확대
+    peak_arm    = clip('peak_arm_v',   2500, 7000, 4500)
     x_factor    = clip('max_x_factor', 30, 180, 50)
     fp1_peak    = clip('fp1_z_peak',  500, 2000, 1100)
     fp2_peak    = clip('fp2_z_peak',  500, 1500, 750)
@@ -462,8 +521,23 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
     speed_gain_pt = round(peak_trunk / peak_pelvis, 2)
     speed_gain_ta = round(peak_arm / peak_trunk, 2)
     ete_pct = 80
-    trf_score = round(norm(ete_pct, 75, 1.5)*0.4 + norm(speed_gain_pt*100, 150, 0.4)*0.3
-                    + norm(speed_gain_ta*100, 200, 0.3)*0.3)
+    # v5.5: 힘 전달 점수 — kinematic + kinetic ETE 결합 (analytics.transferScoreV2 동일 로직)
+    trf_kinematic = (norm(ete_pct, 75, 1.5)*0.4
+                  + norm(speed_gain_pt*100, 150, 0.4)*0.3
+                  + norm(speed_gain_ta*100, 200, 0.3)*0.3)
+    # v5.6: mech_energy 비율 (humerus_J / pelvis_J × 100) — 실측 c3d.txt 값 사용
+    # parse_theia_trial이 Pelvis_Mechanical_Energy_X / R_Humerus_ME_X 컬럼을 직접 추출
+    pelvis_J  = clip('pelvis_me_peak',  100, 1500, None)
+    humerus_J = clip('humerus_me_peak', 50,  1500, None)
+    if pelvis_J and humerus_J and pelvis_J > 0:
+        ratio_pct  = humerus_J / pelvis_J * 100
+        trf_kinetic = norm(ratio_pct, 65, 0.8)
+        trf_score   = round(0.5 * trf_kinematic + 0.5 * trf_kinetic)
+        trf_basis   = 'combined'
+    else:
+        ratio_pct, trf_kinetic = None, None
+        trf_score   = round(trf_kinematic)
+        trf_basis   = 'kinematic_only'
 
     zones = [
         ('zone1','골반→몸통→팔 시퀀스', '분절 가속 순서 결함', 88),
@@ -532,6 +606,11 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
                 'proper_seq': True,
                 'pelvis_to_trunk_lag_ms': 50, 'trunk_to_arm_lag_ms': 35,
                 'score': trf_score,
+                # v5.5: 두 측면 노출
+                'score_kinematic': round(trf_kinematic),
+                'score_kinetic_ete': round(trf_kinetic) if trf_kinetic is not None else None,
+                'ratio_humerus_to_pelvis_pct': round(ratio_pct, 1) if ratio_pct is not None else None,
+                'basis': trf_basis,
             },
             'leakage': {
                 'zone1_sequence': zones[0][3], 'zone2_x_factor': zones[1][3],

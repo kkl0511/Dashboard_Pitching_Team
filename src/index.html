@@ -232,34 +232,37 @@
     </div>
   </div>
 
-  <!-- 라디아 + 4분면 -->
-  <div class="grid grid-2">
+  <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
+  <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2>투구 4대 능력 종합 차트 <span class="badge" style="background:#ddf4ff;color:#0969da">v4.1</span></h2>
-      <div class="chart-wrap lg"><canvas id="p-radar"></canvas></div>
-      <div class="footnote">
-        <b>⚡ 힘 만들기</b> (몸에서 power 생성) ·
-        <b>🔗 힘 전달</b> (분절 간 효율) ·
-        <b>💧 힘 보존</b> (누수 없이 전달) ·
-        <b>🎯 제구 안정</b> (반복 일관성)
-        — 4축 모두 0~100, 클수록 우수
+      <h2 style="font-size:15px">투구 4대 능력 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.4</span></h2>
+      <div class="chart-wrap" style="height:280px"><canvas id="p-radar"></canvas></div>
+      <div class="footnote" style="font-size:11px;line-height:1.55">
+        <b>⚡ 힘 만들기</b> (출력) · <b>🔗 힘 전달</b> (시퀀싱 효율) ·
+        <b>💧 주요 누수</b> (자세 결함) · <b>🎯 제구 안정</b> (반복 일관성)<br>
+        <span style="color:var(--muted)">전달은 분절 간 시퀀싱 시간을, 누수는 6 zone 자세 결함을 본다 — <b>다른 측면</b>이라 한쪽이 높고 다른 쪽이 낮을 수 있다.</span><br>
+        비교 reference 2종:
+        <span style="color:#bc8a0f">🏆 합성 베스트</span> (전체 측정 N개에서 각 축 최고) ·
+        <span style="color:#656d76">📊 Elite 41 ref</span> (Driveline pro + 한국 고교 elite 138+ km/h 코호트 추정)
       </div>
     </div>
     <div class="panel">
-      <h2>키네틱 시퀀스 (피크 회전속도) <span class="badge" style="background:#ddf4ff;color:#0969da">v3.8 시각</span></h2>
-      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:center">
+      <h2>키네틱 시퀀스 (타이밍 곡선) <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
         <div>
           <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
-               style="width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line-soft)">
+               style="width:100%;max-width:300px;border-radius:6px;border:1px solid var(--line-soft)">
           <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
-            골반 → 몸통 → 팔 가속 순서 (proper sequence)
+            골반 → 몸통 → 팔 → 손 가속 순서 (proper sequence)
           </div>
         </div>
-        <div class="chart-wrap" style="height:260px"><canvas id="p-sequence"></canvas></div>
+        <div class="chart-wrap" style="height:360px"><canvas id="p-sequence"></canvas></div>
       </div>
       <div class="footnote">
-        Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
-        ETE = 분절 간 에너지 전달 효율(%). 애니메이션 reference: BBL Kinematic Report.
+        정밀 바이오메카닉스 측정. <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>.
+        4분절(골반·몸통·팔·손)이 차례로 피크 찍는 모습 — Driveline / Driveline Plus / K-Motion 표준 시각.
+        곡선은 lag(P→T, T→A) + peak 각속도 데이터로 합성한 Gaussian 종모양 (σ는 분절별 표준).
+        팀 평균은 회색 점선. ETE = 분절 간 에너지 전달 효율(%).
       </div>
     </div>
   </div>
@@ -291,12 +294,16 @@
         <div class="row"><span>축발 (Rear) GRF</span><span class="v" id="p-rear">—</span></div>
       </div>
 
-      <!-- ② 에너지 전달 (Transfer) — v4.1: Lead GRF·LHEI·CoG_Decel 통합 -->
+      <!-- ② 에너지 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 -->
       <div class="scard" style="border-top:3px solid #1a7f37">
         <h3>② 🔗 힘 전달 (Transfer)
           <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
         </h3>
-        <div class="grp-title">전달 효율</div>
+        <div class="grp-title" title="v5.5: 시퀀싱 50% + 에너지 전달 50% 가중평균 — 학술 근거 Aguinaldo & Escamilla (2019)">합성 점수 분해</div>
+        <div class="row"><span>⏱ Kinematic (시퀀싱)</span><span class="v" id="p-en-trf-kine">—</span></div>
+        <div class="row"><span>⚡ Kinetic ETE (에너지)</span><span class="v" id="p-en-trf-kinetic">—</span></div>
+        <div class="row"><span title="humerus_J / pelvis_J × 100 · elite 65~85%">Power Ratio (H/P)</span><span class="v" id="p-en-trf-ratio">—</span></div>
+        <div class="grp-title">전달 효율 (시간 차원)</div>
         <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
         <div class="grp-title">Speed Gain (분절 간 가속비)</div>
         <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>

@@ -611,34 +611,37 @@
     </div>
   </div>
 
-  <!-- 라디아 + 4분면 -->
-  <div class="grid grid-2">
+  <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
+  <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2>투구 4대 능력 종합 차트 <span class="badge" style="background:#ddf4ff;color:#0969da">v4.1</span></h2>
-      <div class="chart-wrap lg"><canvas id="p-radar"></canvas></div>
-      <div class="footnote">
-        <b>⚡ 힘 만들기</b> (몸에서 power 생성) ·
-        <b>🔗 힘 전달</b> (분절 간 효율) ·
-        <b>💧 힘 보존</b> (누수 없이 전달) ·
-        <b>🎯 제구 안정</b> (반복 일관성)
-        — 4축 모두 0~100, 클수록 우수
+      <h2 style="font-size:15px">투구 4대 능력 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.4</span></h2>
+      <div class="chart-wrap" style="height:280px"><canvas id="p-radar"></canvas></div>
+      <div class="footnote" style="font-size:11px;line-height:1.55">
+        <b>⚡ 힘 만들기</b> (출력) · <b>🔗 힘 전달</b> (시퀀싱 효율) ·
+        <b>💧 주요 누수</b> (자세 결함) · <b>🎯 제구 안정</b> (반복 일관성)<br>
+        <span style="color:var(--muted)">전달은 분절 간 시퀀싱 시간을, 누수는 6 zone 자세 결함을 본다 — <b>다른 측면</b>이라 한쪽이 높고 다른 쪽이 낮을 수 있다.</span><br>
+        비교 reference 2종:
+        <span style="color:#bc8a0f">🏆 합성 베스트</span> (전체 측정 N개에서 각 축 최고) ·
+        <span style="color:#656d76">📊 Elite 41 ref</span> (Driveline pro + 한국 고교 elite 138+ km/h 코호트 추정)
       </div>
     </div>
     <div class="panel">
-      <h2>키네틱 시퀀스 (피크 회전속도) <span class="badge" style="background:#ddf4ff;color:#0969da">v3.8 시각</span></h2>
-      <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:center">
+      <h2>키네틱 시퀀스 (타이밍 곡선) <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
         <div>
           <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
-               style="width:100%;max-width:320px;border-radius:6px;border:1px solid var(--line-soft)">
+               style="width:100%;max-width:300px;border-radius:6px;border:1px solid var(--line-soft)">
           <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
-            골반 → 몸통 → 팔 가속 순서 (proper sequence)
+            골반 → 몸통 → 팔 → 손 가속 순서 (proper sequence)
           </div>
         </div>
-        <div class="chart-wrap" style="height:260px"><canvas id="p-sequence"></canvas></div>
+        <div class="chart-wrap" style="height:360px"><canvas id="p-sequence"></canvas></div>
       </div>
       <div class="footnote">
-        Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
-        ETE = 분절 간 에너지 전달 효율(%). 애니메이션 reference: BBL Kinematic Report.
+        정밀 바이오메카닉스 측정. <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>.
+        4분절(골반·몸통·팔·손)이 차례로 피크 찍는 모습 — Driveline / Driveline Plus / K-Motion 표준 시각.
+        곡선은 lag(P→T, T→A) + peak 각속도 데이터로 합성한 Gaussian 종모양 (σ는 분절별 표준).
+        팀 평균은 회색 점선. ETE = 분절 간 에너지 전달 효율(%).
       </div>
     </div>
   </div>
@@ -670,12 +673,16 @@
         <div class="row"><span>축발 (Rear) GRF</span><span class="v" id="p-rear">—</span></div>
       </div>
 
-      <!-- ② 에너지 전달 (Transfer) — v4.1: Lead GRF·LHEI·CoG_Decel 통합 -->
+      <!-- ② 에너지 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 -->
       <div class="scard" style="border-top:3px solid #1a7f37">
         <h3>② 🔗 힘 전달 (Transfer)
           <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
         </h3>
-        <div class="grp-title">전달 효율</div>
+        <div class="grp-title" title="v5.5: 시퀀싱 50% + 에너지 전달 50% 가중평균 — 학술 근거 Aguinaldo & Escamilla (2019)">합성 점수 분해</div>
+        <div class="row"><span>⏱ Kinematic (시퀀싱)</span><span class="v" id="p-en-trf-kine">—</span></div>
+        <div class="row"><span>⚡ Kinetic ETE (에너지)</span><span class="v" id="p-en-trf-kinetic">—</span></div>
+        <div class="row"><span title="humerus_J / pelvis_J × 100 · elite 65~85%">Power Ratio (H/P)</span><span class="v" id="p-en-trf-ratio">—</span></div>
+        <div class="grp-title">전달 효율 (시간 차원)</div>
         <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
         <div class="grp-title">Speed Gain (분절 간 가속비)</div>
         <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>
@@ -1363,29 +1370,147 @@ function veloGroup(velocity_kmh){
   return null;
 }
 
+/* v5.10: OpenBiomechanics 기반 7-predictor Velocity Prediction Model
+ *
+ * Driveline OpenBiomechanics Project (https://github.com/drivelineresearch/openbiomechanics)
+ *   411 trial × 100명 (32 HS + 314 College + 42 Indep + 23 MiLB)
+ *   학습 R² = 0.372, RMSE = 6.07 km/h
+ *   7 predictors: pelvis_dps, trunk_dps, arm_dps, x_factor, mass_kg, height_m, stride_pct
+ *
+ * v5.10 신규 — stride_pct (= stride_length_m / height_m, OBP 정의와 일치)
+ *   STRIDE_LENGTH 컬럼은 c3d.txt에 single-value sparse → 전체 frame에서 추출
+ *   한국 cohort median stride_pct 0.797 ≈ OBP median 0.837 (검증 통과)
+ *
+ * 한국 cohort 적용 시 median residual +8.1 km/h (메카닉 대비 효율 우수)
+ *   → cohort 내 ranking이 정밀 (std 5.84 vs 5-pred 6.13)
+ */
+const OBP_VELO_MODEL = {
+  intercept:       -2.0818,
+  pelvis_dps_coef: -0.00539,
+  trunk_dps_coef:  +0.03006,
+  arm_dps_coef:    +0.00685,
+  x_factor_coef:   +0.03426,
+  mass_kg_coef:    +0.2469,
+  height_m_coef:   +21.792,
+  stride_pct_coef: +19.141,    // stride 길이 / 신장 비율 (0.7-1.0 range)
+  r_squared:       0.372,
+  rmse_kmh:        6.07,
+  cv_r_squared:    0.28,
+  n_train:         411,
+  cohort:          'OBP 100명 (32 HS + 314 College + 42 Indep + 23 MiLB)',
+  korean_bias:     +8.1,       // 한국 cohort median residual (effiency offset)
+  reference:       'https://github.com/drivelineresearch/openbiomechanics'
+};
+
+/**
+ * v5.10: OBP 7-predictor 모델로 메카닉 기반 구속 예측
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, mass_kg, height_m, stride_pct
+ *                        (stride_pct = stride_length_m / height_m, 0.7-1.0 range — OBP 정의)
+ * @param {number} measuredKmh  실측 구속 (있으면 residual + efficiency_label 계산)
+ * @param {boolean} applyKoreanBias  true면 한국 cohort bias 보정 (기본 false)
+ * @returns {{predicted_kmh, residual_kmh, efficiency_label, basis}}
+ */
+function predictVelocityOBP(input, measuredKmh = null, applyKoreanBias = false){
+  const M = OBP_VELO_MODEL;
+  if(!input || input.pelvis_dps==null || input.trunk_dps==null || input.arm_dps==null) return null;
+  // stride_pct fallback: stride_length / height_m → 없으면 cohort median 0.80
+  const stridePct = input.stride_pct
+                 ?? (input.stride_length && input.height_m ? input.stride_length / input.height_m : 0.80);
+  const xFac = input.x_factor ?? 28;       // 한국 cohort median fallback
+  let pred = M.intercept
+           + M.pelvis_dps_coef * input.pelvis_dps
+           + M.trunk_dps_coef  * input.trunk_dps
+           + M.arm_dps_coef    * input.arm_dps
+           + M.x_factor_coef   * xFac
+           + M.mass_kg_coef    * (input.mass_kg ?? 80)
+           + M.height_m_coef   * (input.height_m ?? 1.80)
+           + M.stride_pct_coef * stridePct;
+  if(applyKoreanBias) pred += M.korean_bias;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const out = { predicted_kmh: r(pred), basis: 'OBP_7pred_n411', stride_pct_used: r(stridePct, 3) };
+  if(measuredKmh != null){
+    out.residual_kmh = r(measuredKmh - pred);
+    // 한국 cohort 기준 +8 km/h 가 baseline → 라벨 임계 조정
+    out.efficiency_label = out.residual_kmh > +15 ? '🔥 매우 효율'
+                         : out.residual_kmh > +5  ? '✓ 효율 우수'
+                         : out.residual_kmh > 0   ? '○ 평균'
+                         : out.residual_kmh > -5  ? '△ 손실 있음'
+                         : '⚠ 큰 효율 손실';
+  }
+  return out;
+}
+
+/* v5.9: OpenBiomechanics playing-level 별 메카닉 reference (학술 standard)
+ *   Driveline OBP 100명 cohort의 level별 trial median
+ *   한국 cohort 별도 norm은 VELO_GROUP_NORMS 유지 (한국 고1/평균/우수/Elite)
+ *   대시보드는 두 reference를 병행 표시 가능 — "한국 동급 vs OBP 학술 standard" */
+const OBP_LEVEL_NORMS = {
+  'HS': {     // High School (n=32 trial, 7명, 평균 128 km/h)
+    pelvis_dps: 721, trunk_dps: 1032, arm_dps: 4419, x_factor: 35,
+    elbow_velo: 2350, hp_ratio_pct: 1279, elbow_varus_moment: 94,
+    velo_kmh_median: 128
+  },
+  'College': { // College (n=314 trial, 75명, 평균 137 km/h)
+    pelvis_dps: 742, trunk_dps: 1051, arm_dps: 4571, x_factor: 32,
+    elbow_velo: 2464, hp_ratio_pct: 1310, elbow_varus_moment: 110,
+    velo_kmh_median: 137
+  },
+  'Indep': {   // Independent (n=42 trial, 12명, 평균 138 km/h)
+    pelvis_dps: 804, trunk_dps: 1030, arm_dps: 4420, x_factor: 30,
+    elbow_velo: 2444, hp_ratio_pct: 1126, elbow_varus_moment: 121,
+    velo_kmh_median: 141
+  },
+  'MiLB': {    // Minor League (n=23 trial, 6명, 평균 144 km/h) — 진짜 elite
+    pelvis_dps: 726, trunk_dps: 1120, arm_dps: 4388, x_factor: 39,
+    elbow_velo: 2329, hp_ratio_pct: 1477, elbow_varus_moment: 134,
+    velo_kmh_median: 144
+  }
+};
+
 // 4-group 별 체력·메카닉 변수 평균 (59명 통합 기반 추정)
 // 추후 측정 누적 시 자동 갱신
 // v5.0: Driveline HP Assessment 6축 호환 — pp_peak_takeoff_bm 추가
+// v5.8: 4축 능력 라디아 — 한국 12명 (138+) + 프로/대학 16명 = 28명 elite cohort 실측 기반
+// v5.9: OBP MiLB 23 trial 추가로 transfer_score 재calibrate (n=51)
+//   transferScoreV2 self-calc mode에서 OBP MiLB H/P 1477% → norm(1477, 1660, 0.0337) = 44 점
+//   28명 한국+프로 elite mean 58과 평균하면 ~51 — 보수적으로 55 적용
+//   다른 축들은 elite 실측 데이터 부족 — 학술 reference 추정 유지
+const PRO_REFERENCE_4AXIS = {
+  generation_score:  85,  // 출력 — Elite power 생성 (실측 데이터 부족 → 학술 추정 -3 보수)
+  transfer_score:    55,  // v5.9 — 한국 28명 + OBP MiLB 23 trial 합본 평균 (재calibrated)
+  eli_score:         85,  // 누수 — 자세 결함 부족 (학술 추정 -5 보수)
+  command_composite: 75,  // 제구 — 프로도 stuff 우선 (학술 추정 -5 보수)
+  label: '📊 Elite ref (n=51 · 한국 28 + OBP MiLB 23)'
+};
+
+// v5.8: pelvis_dps, trunk_dps, arm_dps, x_factor를 한국 41명 cohort 그룹별 median으로 교체
+//   (이전 미국 Driveline 추정치와 패턴이 다름: 한국은 group간 ω 차이 작음, x_factor 절대값 낮음)
+//   fitness 부분(cmj/imtp/hop/grip/pp)은 기존 추정 reference 유지 (별도 fitness cohort 데이터 필요)
+//   GRF (lead_grf_bw, rear_grf_bw)도 기존 유지 (한국 GRF cohort 데이터 미수집)
 const VELO_GROUP_NORMS = {
   '미달': {
     cmj_pp_bm: 22, cmj_jh_cm: 30, imtp_pf_bm: 22, hop_rsi: 1.8, grip_kg: 50,
-    pp_peak_takeoff_bm: 7.5,    // v5.0: Plyo Push Up 추진력 (N/kg)
-    pelvis_dps: 560, trunk_dps: 820, x_factor: 22, lead_grf_bw: 1.7, rear_grf_bw: 1.4
+    pp_peak_takeoff_bm: 7.5,
+    pelvis_dps: 662, trunk_dps: 887, arm_dps: 4001, x_factor: 17,   // v5.8 한국 (n=2 — 외삽 주의)
+    lead_grf_bw: 1.7, rear_grf_bw: 1.4
   },
   '평균': {
     cmj_pp_bm: 25, cmj_jh_cm: 33, imtp_pf_bm: 25, hop_rsi: 2.1, grip_kg: 55,
     pp_peak_takeoff_bm: 9.0,
-    pelvis_dps: 600, trunk_dps: 870, x_factor: 28, lead_grf_bw: 1.95, rear_grf_bw: 1.55
+    pelvis_dps: 593, trunk_dps: 842, arm_dps: 4347, x_factor: 31,   // v5.8 한국 (n=9)
+    lead_grf_bw: 1.95, rear_grf_bw: 1.55
   },
   '우수': {
     cmj_pp_bm: 28, cmj_jh_cm: 36, imtp_pf_bm: 28, hop_rsi: 2.4, grip_kg: 60,
     pp_peak_takeoff_bm: 10.5,
-    pelvis_dps: 645, trunk_dps: 910, x_factor: 33, lead_grf_bw: 2.15, rear_grf_bw: 1.65
+    pelvis_dps: 634, trunk_dps: 887, arm_dps: 4166, x_factor: 26,   // v5.8 한국 (n=18)
+    lead_grf_bw: 2.15, rear_grf_bw: 1.65
   },
   'Elite': {
     cmj_pp_bm: 32, cmj_jh_cm: 40, imtp_pf_bm: 32, hop_rsi: 2.7, grip_kg: 65,
     pp_peak_takeoff_bm: 12.0,
-    pelvis_dps: 690, trunk_dps: 950, x_factor: 38, lead_grf_bw: 2.35, rear_grf_bw: 1.75
+    pelvis_dps: 633, trunk_dps: 867, arm_dps: 4376, x_factor: 30,   // v5.8 한국 (n=12)
+    lead_grf_bw: 2.35, rear_grf_bw: 1.75
   }
 };
 
@@ -2265,6 +2390,122 @@ function _clamp01(x){ return Math.max(0, Math.min(100, x)); }
  *   - pelvis_brake_ratio    (pelvis_AV at trunk_max / pelvis_peak_AV; 이상 <0.5)
  * @returns {{zone1..6, eli_score, causal_chains}}
  */
+/**
+ * v5.8: Mechanical Energy 자체 계산 — De Leva (1996) 인체 관성 모델
+ *
+ * V3D export에 Mechanical_Energy 컬럼이 없을 때 angular velocity peak로 KE_rot 추정.
+ * (V3D ME는 KE_total = KE_trans + KE_rot + PE 합산이라 정의가 다를 수 있음 →
+ *  학술적 일관성을 위해 모든 trial에 자체 계산 KE_rot 사용 권장)
+ *
+ * 학술 근거: De Leva (1996) "Adjustments to Zatsiorsky-Seluyanov's segment inertia parameters"
+ *   J. Biomech 29(9), 1223-1230. Korean adult male approximation.
+ *
+ *   I_segment_z = m_segment × (k_z × L_segment)²
+ *   KE_rot_peak = 0.5 × I × ω_peak²   (ω in rad/s)
+ *
+ *   m, L, k 비율 (BW, stature 대비):
+ *   ┌──────────┬─────────┬──────────┬─────────┐
+ *   │ Segment  │ m / BW  │ L / stat │ k_z / L │
+ *   ├──────────┼─────────┼──────────┼─────────┤
+ *   │ Pelvis   │ 10.1%   │  9.4%    │ 49.7%   │
+ *   │ Trunk    │ 43.5%   │ 37.8%    │ 32.3%   │
+ *   │ Humerus  │  2.7%   │ 18.6%    │ 28.5%   │
+ *   └──────────┴─────────┴──────────┴─────────┘
+ *
+ * @param {string} segment  'pelvis' | 'trunk' | 'humerus'
+ * @param {number} bodyMassKg
+ * @param {number} statureM
+ * @param {number} omegaPeakDegPerSec  peak angular velocity (deg/s)
+ * @returns {number} KE_rot peak in Joules
+ */
+const DE_LEVA_PARAMS = {
+  pelvis:  { m_frac: 0.101, L_frac: 0.094, k_frac: 0.497 },
+  trunk:   { m_frac: 0.435, L_frac: 0.378, k_frac: 0.323 },
+  humerus: { m_frac: 0.027, L_frac: 0.186, k_frac: 0.285 }
+};
+function selfCalcSegmentKE(segment, bodyMassKg, statureM, omegaPeakDegPerSec){
+  const p = DE_LEVA_PARAMS[segment];
+  if(!p || bodyMassKg == null || statureM == null || omegaPeakDegPerSec == null) return null;
+  const m = p.m_frac * bodyMassKg;                     // segment mass (kg)
+  const L = p.L_frac * statureM;                       // segment length (m)
+  const I = m * Math.pow(p.k_frac * L, 2);             // moment of inertia (kg·m²)
+  const omegaRad = omegaPeakDegPerSec * Math.PI / 180; // rad/s
+  return 0.5 * I * omegaRad * omegaRad;                // KE_rot in J
+}
+
+/**
+ * v5.5: 힘 전달(Energy Transfer) 점수 — Kinematic + Kinetic 결합
+ *
+ * 학술 근거:
+ *   - Aguinaldo & Escamilla (2019) Sports Biomech — kinematic sequencing + energy magnitude
+ *   - Naito et al. (2014, 2017) double-pendulum 모델 — energy flow ratios
+ *   - Werner et al. (2008) — elite pitcher mech energy ratios
+ *
+ * 두 측면을 50:50 가중평균:
+ *   1) Kinematic ETE (시간 차원) — ete_pct + speed_gain_pt + speed_gain_ta
+ *      proper sequence 타이밍이 맞고 분절 간 속도 증폭이 크면 높음
+ *   2) Kinetic ETE (에너지 차원) — humerus_J / pelvis_J × 100
+ *      골반 mech_energy가 팔/손까지 잘 전달되면 ratio 65-85%
+ *
+ * 한쪽 입력만 있을 때는 그 쪽만 사용 (graceful degradation).
+ *
+ * @param {object} input  — 다음 키들 중 일부 (모두 선택):
+ *   ete_pct, speed_gain_pt, speed_gain_ta,
+ *   mech_energy_pelvis_J, mech_energy_trunk_J, mech_energy_humerus_J
+ * @returns {{score, kinematic, kinetic_ete, ratio_humerus_to_pelvis_pct, basis}}
+ */
+function transferScoreV2(input = {}){
+  const norm = (v, base, mult) => Math.max(20, Math.min(98, 50 + (v - base) * mult));
+  const r = (x, p = 0) => x == null ? null : Math.round(x * Math.pow(10, p)) / Math.pow(10, p);
+
+  // (1) Kinematic ETE — 시퀀싱 측면
+  let kinematic = null;
+  if(input.ete_pct != null && input.speed_gain_pt != null && input.speed_gain_ta != null){
+    kinematic = norm(input.ete_pct, 75, 1.5)*0.4
+              + norm(input.speed_gain_pt*100, 150, 0.4)*0.3
+              + norm(input.speed_gain_ta*100, 200, 0.3)*0.3;
+  }
+
+  // (2) Kinetic ETE — 에너지 전달 측면. V3D ME 정의 vs self-calc KE_rot 정의가 다르므로 분기
+  //   V3D mode (Mechanical_Energy 컬럼 사용): ratio 학술 reference 65-90% (Werner 2008)
+  //   self-calc KE_rot mode (ω²·I): ratio 800-3000%, 1500%≈50점 임시 calibration
+  //   (cohort 누적 후 percentile-based로 재calibrate 권장)
+  let kineticEte = null, ratioPct = null;
+  const pJ = input.mech_energy_pelvis_J;
+  const hJ = input.mech_energy_humerus_J;
+  const meBasis = input.me_basis || 'V3D';   // 'V3D' | 'self_calc_KE_rot'
+  if(pJ != null && hJ != null && pJ > 0){
+    ratioPct = (hJ / pJ) * 100;
+    if(meBasis === 'self_calc_KE_rot'){
+      // v5.8: 한국 고1 + 프로/대학 합본 cohort (n=57) percentile-based calibration
+      //   median 1660 = 50점, p90 2550 = 80점, mult = 30/890 = 0.0337
+      //   학술 reference 65-90% (Werner)와는 다른 scale (KE_rot vs KE_total 정의 차이)
+      kineticEte = norm(ratioPct, 1660, 0.0337);
+    } else {
+      kineticEte = norm(ratioPct, 65, 0.8);       // V3D mode (학술 reference)
+    }
+  }
+
+  // 가중평균 (둘 다 있으면 50:50)
+  let score = null, basis = 'none';
+  if(kinematic != null && kineticEte != null){
+    score = 0.5 * kinematic + 0.5 * kineticEte; basis = 'combined';
+  } else if(kinematic != null){
+    score = kinematic;  basis = 'kinematic_only';
+  } else if(kineticEte != null){
+    score = kineticEte; basis = 'kinetic_only';
+  }
+
+  return {
+    score:                       r(score),
+    kinematic:                   r(kinematic),
+    kinetic_ete:                 r(kineticEte),
+    ratio_humerus_to_pelvis_pct: r(ratioPct, 1),
+    basis: basis,
+    me_basis: meBasis           // v5.8: 'V3D' or 'self_calc_KE_rot'
+  };
+}
+
 function eliScoresFromTheia(m){
   // Zone 1: Sequential timing (이상 pelvis→trunk 30-50ms, trunk→arm 25-45ms)
   const z1 = (function(){
@@ -2781,7 +3022,18 @@ const ANALYTICS = {
   GRADE_LATENT_OFFSETS,
   GRF_BENCHMARKS,
   STUFF_BENCHMARKS,
-  VALD_NORMS
+  VALD_NORMS,
+  // v5.4: 4축 라디아 Elite reference
+  PRO_REFERENCE_4AXIS,
+  // v5.5: 힘 전달 점수 (Kinematic + Kinetic ETE 결합)
+  transferScoreV2,
+  // v5.8: De Leva (1996) self-calc segment KE_rot
+  selfCalcSegmentKE,
+  DE_LEVA_PARAMS,
+  // v5.9: OpenBiomechanics 통합 — Velocity Prediction Model + Level별 reference
+  OBP_VELO_MODEL,
+  predictVelocityOBP,
+  OBP_LEVEL_NORMS
 };
 
 // 브라우저 빌드에서 직접 접근 가능
@@ -2971,8 +3223,25 @@ function genMeasurements(){
             proper_seq:             rng() > 0.15,
             pelvis_to_trunk_lag_ms: pt_lag,
             trunk_to_arm_lag_ms:    ta_lag,
-            score: Math.round(seqScore + (rng()-0.5)*6)
           };
+          // v5.5: 힘 전달 점수 — analytics.transferScoreV2 (kinematic + kinetic ETE 결합)
+          if(typeof ANALYTICS !== 'undefined' && ANALYTICS.transferScoreV2){
+            const tsv2 = ANALYTICS.transferScoreV2({
+              ete_pct: trf.ete_pct,
+              speed_gain_pt: trf.speed_gain_pt,
+              speed_gain_ta: trf.speed_gain_ta,
+              mech_energy_pelvis_J:  gen.mech_energy_pelvis_J,
+              mech_energy_trunk_J:   gen.mech_energy_trunk_J,
+              mech_energy_humerus_J: gen.mech_energy_humerus_J
+            });
+            trf.score                       = tsv2.score;
+            trf.score_kinematic             = tsv2.kinematic;
+            trf.score_kinetic_ete           = tsv2.kinetic_ete;
+            trf.ratio_humerus_to_pelvis_pct = tsv2.ratio_humerus_to_pelvis_pct;
+            trf.basis                       = tsv2.basis;
+          } else {
+            trf.score = Math.round(seqScore + (rng()-0.5)*6);
+          }
           // 누수 ELI 6 zones — analytics.js 정식 산출 (문헌 근거 변환식)
           // Theia+GRF 회차에만 (Uplift 는 GRF 없어 불가)
           const leak = isTheia
@@ -3586,30 +3855,53 @@ function renderPlayerView(pid){
   document.getElementById('p-score-delta').textContent =
     `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
-  // v4.1: 4축 능력 차트 — 한국 코치 친화 라벨 (GRF는 출력·전달에 흡수)
-  // ⚡ 힘 만들기 (출력) / 🔗 힘 전달 / 💧 힘 보존 (누수 관리) / 🎯 제구 안정
+  // v5.4: 4축 능력 차트 — 본인 + 합성 베스트(전체 측정 max) + Elite 41 reference (3 dataset)
+  // ⚡ 힘 만들기 / 🔗 힘 전달 (시퀀싱 효율, ETE) / 💧 주요 누수 (자세 결함, ELI) / 🎯 제구 안정
   if(chartsP.r) chartsP.r.destroy();
   const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
+  // 합성 베스트 — 모든 PLAYERS × SESSIONS 측정에서 각 축 최고치 (가상 챔피언)
+  const allM = [];
+  PLAYERS.forEach(pl => SESSIONS.forEach(s => {
+    const mm = DATA[pl.id]?.[s.id];
+    if(mm && mm.energy) allM.push(mm);
+  }));
+  const safeMax = vals => {
+    const filtered = vals.filter(v => v != null && !isNaN(v));
+    return filtered.length ? Math.max(...filtered) : 0;
+  };
+  const bestData = [
+    safeMax(allM.map(mm => mm.energy?.generation?.score)),
+    safeMax(allM.map(mm => mm.energy?.transfer?.score)),
+    safeMax(allM.map(mm => mm.energy?.leakage?.eli_score)),
+    safeMax(allM.map(mm => mm.faults?.command_composite
+      ?? avg([mm.faults?.fault_score, mm.faults?.consistency_score])))
+  ];
+  // Elite 41 reference (analytics.js · 학술 추정 + Driveline 공개치)
+  const proRef = (typeof ANALYTICS !== 'undefined' && ANALYTICS.PRO_REFERENCE_4AXIS) || {
+    generation_score: 88, transfer_score: 85, eli_score: 90,
+    command_composite: 80, label: '📊 Elite 41 ref'
+  };
+  const proData = [proRef.generation_score, proRef.transfer_score, proRef.eli_score, proRef.command_composite];
   chartsP.r = new Chart(document.getElementById('p-radar'),{
     type:'radar',
     data:{
-      labels:['⚡ 힘 만들기\n(출력)','🔗 힘 전달','💧 힘 보존\n(누수 관리)','🎯 제구 안정'],
+      labels:['⚡ 힘 만들기','🔗 힘 전달\n(시퀀싱 효율)','💧 주요 누수\n(자세 결함)','🎯 제구 안정'],
       datasets:[{
         label: p.name,
         data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0,
               m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
-        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2, pointRadius:4,
-        pointBackgroundColor:'#0969da'
+        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
+        pointBackgroundColor:'#0969da', order: 1
       },{
-        label:'팀 평균',
-        data:[
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.generation?.score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.transfer?.score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.leakage?.eli_score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].faults.command_composite ?? avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
-        ],
-        backgroundColor:'rgba(130,80,223,.10)', borderColor:'#8250df', borderWidth:1.5,
-        borderDash:[4,3], pointRadius:3
+        label: `🏆 합성 베스트 (N=${allM.length})`,
+        data: bestData,
+        backgroundColor:'rgba(212,138,15,.06)', borderColor:'#bc8a0f', borderWidth:1.5,
+        borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#bc8a0f', order: 2
+      },{
+        label: proRef.label,
+        data: proData,
+        backgroundColor:'rgba(101,109,118,.05)', borderColor:'#656d76', borderWidth:1.3,
+        borderDash:[2,3], pointRadius:2.5, pointBackgroundColor:'#656d76', order: 3
       }]
     },
     options:{
@@ -3635,28 +3927,127 @@ function renderPlayerView(pid){
     }
   });
 
-  // 시퀀스
+  // 시퀀스 — v5.2: 키네틱 타이밍 시퀀스 곡선 (시간축 종모양, BR=0)
+  // 4분절(골반→몸통→팔→손)이 lag_ms 간격으로 차례로 피크 찍는 모습.
+  // 곡선은 Gaussian bell — 피크 시각/높이는 실측, 폭(σ)은 분절별 표준값.
   if(chartsP.s) chartsP.s.destroy();
-  chartsP.s = new Chart(document.getElementById('p-sequence'),{
-    type:'bar',
-    data:{
-      labels:['골반','몸통','팔'],
-      datasets:[{
-        label: p.name + ' (°/s)',
-        data:[m.sequence.pelvis_dps, m.sequence.trunk_dps, m.sequence.arm_dps],
-        backgroundColor:['#0969da','#1a7f37','#bc4c00']
-      },{
-        label:'팀 평균',
-        data:[
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.pelvis_dps)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.trunk_dps)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.arm_dps))
-        ],
-        backgroundColor:'rgba(130,80,223,.4)', borderColor:'#8250df', borderWidth:1
-      }]
-    },
-    options:chartOpts({yTitle:'피크 각속도 (°/s)', unit:'°/s', decimals:0, beginAtZero:true})
-  });
+  {
+    const seq  = m.sequence;
+    const trf  = m.energy?.transfer || {};
+    const ptLag = trf.pelvis_to_trunk_lag_ms ?? 50;
+    const taLag = trf.trunk_to_arm_lag_ms    ?? 35;
+    // 피크 시각 (BR=0 기준, ms): 팔이 BR 직전(-30ms), 그 앞으로 trunk·pelvis lag
+    const tArm    = -30;
+    const tTrunk  = tArm  - taLag;
+    const tPelvis = tTrunk - ptLag;
+    const tHand   = tArm  + 20;
+    // 피크 높이 — sequence dps 그대로, 손은 팔의 1.8배 (kinetic chain 표준)
+    const pkPelvis = seq.pelvis_dps;
+    const pkTrunk  = seq.trunk_dps;
+    const pkArm    = seq.arm_dps;
+    const pkHand   = Math.round(seq.arm_dps * 1.8);
+    // 분절별 종모양 폭 σ (큰 분절이 더 넓고 둔함)
+    const sigmas = {pelvis: 70, trunk: 55, arm: 42, hand: 38};
+    const gauss = (t, t0, peak, s) => peak * Math.exp(-Math.pow(t - t0, 2) / (2*s*s));
+    // 시간축 -300 ~ +50 ms, 5ms 간격
+    const xs = []; for(let t = -300; t <= 50; t += 5) xs.push(t);
+    // 본인
+    const series = (t0, pk, s) => xs.map(t => gauss(t, t0, pk, s));
+    // 팀 평균 (참고선)
+    const teamAvg = key => avg(PLAYERS.map(x => DATA[x.id][1].sequence[key]));
+    const tmTrf = (key) => avg(PLAYERS.map(x =>
+      (DATA[x.id][1].energy?.transfer?.[key]) ?? (key === 'pelvis_to_trunk_lag_ms' ? 50 : 35)
+    ));
+    const tmPtLag = tmTrf('pelvis_to_trunk_lag_ms');
+    const tmTaLag = tmTrf('trunk_to_arm_lag_ms');
+    const tmTArm  = -30, tmTTrunk = tmTArm - tmTaLag, tmTPelvis = tmTTrunk - tmPtLag, tmTHand = tmTArm + 20;
+    // BR=0 수직 점선 플러그인 (Chart.js 인라인)
+    const brLinePlugin = {
+      id: 'brLine_' + Date.now(),
+      afterDatasetsDraw(chart){
+        const {ctx, scales:{x, y}} = chart;
+        const xPos = x.getPixelForValue(0);
+        if(xPos == null || isNaN(xPos)) return;
+        ctx.save();
+        ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle = '#cf222e'; ctx.lineWidth = 1.4;
+        ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom); ctx.stroke();
+        ctx.fillStyle = '#cf222e'; ctx.font = '600 11px Apple SD Gothic Neo, sans-serif';
+        ctx.fillText('BR', xPos + 4, y.top + 12);
+        ctx.restore();
+      }
+    };
+    chartsP.s = new Chart(document.getElementById('p-sequence'),{
+      type:'line',
+      data:{
+        labels: xs,
+        datasets: [
+          // 본인 — 4 분절 (진한, fill)
+          { label:'골반', data: series(tPelvis, pkPelvis, sigmas.pelvis),
+            borderColor:'#0969da', backgroundColor:'rgba(9,105,218,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'몸통', data: series(tTrunk, pkTrunk, sigmas.trunk),
+            borderColor:'#1a7f37', backgroundColor:'rgba(26,127,55,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'팔',   data: series(tArm, pkArm, sigmas.arm),
+            borderColor:'#bc4c00', backgroundColor:'rgba(188,76,0,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          { label:'손',   data: series(tHand, pkHand, sigmas.hand),
+            borderColor:'#cf222e', backgroundColor:'rgba(207,34,46,.18)',
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+          // 팀 평균 — dashed, fill 없음, 옅은 회색
+          { label:'팀 평균 (참고)', data: series(tmTPelvis, teamAvg('pelvis_dps'), sigmas.pelvis),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5,
+            stack:'tm', stackKey:'tmA', skipLegend:true },
+          { label:'_tm2', data: series(tmTTrunk, teamAvg('trunk_dps'), sigmas.trunk),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+          { label:'_tm3', data: series(tmTArm, teamAvg('arm_dps'), sigmas.arm),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+          { label:'_tm4', data: series(tmTHand, teamAvg('arm_dps')*1.8, sigmas.hand),
+            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
+            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        animation: { duration: 900, easing: 'easeOutQuart' },
+        interaction: { intersect:false, mode:'index' },
+        plugins:{
+          legend:{
+            labels:{
+              color:'#1f2328', font:{size:11.5}, usePointStyle:true, padding:10,
+              // 팀 평균 dashed는 첫 dataset만 범례 표시 (label '_tm*' 시작은 숨김)
+              filter: (item) => !/^_tm/.test(item.text)
+            }
+          },
+          tooltip:{
+            intersect:false, mode:'index',
+            backgroundColor:'rgba(31,35,40,.95)', titleColor:'#fff', bodyColor:'#fff',
+            padding:10, cornerRadius:6,
+            callbacks:{
+              title: (items) => `t = ${items[0].label} ms`,
+              label: (ctx) => /^_tm/.test(ctx.dataset.label)
+                ? null
+                : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)} °/s`
+            }
+          }
+        },
+        scales:{
+          x:{ type:'linear',
+              ticks:{color:'#656d76', font:{size:11},
+                     callback: v => v + ' ms'},
+              grid:{color:'#eaeef2'},
+              title:{display:true, text:'시간 (ms · 릴리스=0)', color:'#656d76', font:{size:11}} },
+          y:{ ticks:{color:'#656d76', font:{size:11}},
+              grid:{color:'#eaeef2'}, beginAtZero:true,
+              title:{display:true, text:'각속도 (°/s)', color:'#656d76', font:{size:11}} }
+        }
+      },
+      plugins: [brLinePlugin]
+    });
+  }
 
   // ⚡ 에너지 분석 — 생성·전달·누수 (v1.8 헤드라인)
   const e = m.energy;
@@ -3671,9 +4062,28 @@ function renderPlayerView(pid){
     document.getElementById('p-en-total-w').innerHTML = `<b>${gen.total_W} W</b>`;
     document.getElementById('p-en-mech').textContent = `${gen.mech_energy_pelvis_J} / ${gen.mech_energy_trunk_J} / ${gen.mech_energy_humerus_J} J`;
 
-    // 전달 (Transfer)
+    // 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 분해 표시
     const trf = e.transfer;
     document.getElementById('p-en-trf-score').innerHTML = `<span style="color:${scoreColor(trf.score)}">${fmt0(trf.score)}</span>`;
+    // v5.5: 두 측면 분해 표시 (있을 때만)
+    const elKine = document.getElementById('p-en-trf-kine');
+    const elKinetic = document.getElementById('p-en-trf-kinetic');
+    const elRatio = document.getElementById('p-en-trf-ratio');
+    if(elKine && trf.score_kinematic != null){
+      elKine.innerHTML = `<span style="color:${scoreColor(trf.score_kinematic)}">${fmt0(trf.score_kinematic)}</span>`;
+    } else if(elKine){ elKine.textContent = '—'; }
+    if(elKinetic && trf.score_kinetic_ete != null){
+      elKinetic.innerHTML = `<span style="color:${scoreColor(trf.score_kinetic_ete)}">${fmt0(trf.score_kinetic_ete)}</span>`;
+    } else if(elKinetic){
+      elKinetic.innerHTML = `<span style="color:var(--muted);font-size:11px">데이터 없음</span>`;
+    }
+    if(elRatio && trf.ratio_humerus_to_pelvis_pct != null){
+      const ratio = trf.ratio_humerus_to_pelvis_pct;
+      const ratioColor = ratio >= 65 ? '#1a7f37' : ratio >= 55 ? '#bc4c00' : '#cf222e';
+      elRatio.innerHTML = `<b style="color:${ratioColor}">${ratio.toFixed(1)}%</b>`;
+    } else if(elRatio){
+      elRatio.innerHTML = `<span style="color:var(--muted);font-size:11px">—</span>`;
+    }
     document.getElementById('p-en-ete').innerHTML = `<b>${trf.ete_pct}%</b>`;
     document.getElementById('p-en-sg-pt').textContent = `${trf.speed_gain_pt}×`;
     document.getElementById('p-en-sg-ta').textContent = `${trf.speed_gain_ta}×`;
@@ -4879,6 +5289,25 @@ function enrichWithAnalytics(m){
     m.faults.injury_contributors = ir.contributors;
     m.faults.injury_recommendations = ir.recommendations;
   }
+  // v5.5: 힘 전달 점수 재계산 — kinematic + kinetic ETE (mech_energy_pelvis_J / humerus_J 사용)
+  if(m.energy?.transfer && m.energy?.generation && ANALYTICS.transferScoreV2){
+    const tsv2 = ANALYTICS.transferScoreV2({
+      ete_pct:               m.energy.transfer.ete_pct,
+      speed_gain_pt:         m.energy.transfer.speed_gain_pt,
+      speed_gain_ta:         m.energy.transfer.speed_gain_ta,
+      mech_energy_pelvis_J:  m.energy.generation.mech_energy_pelvis_J,
+      mech_energy_trunk_J:   m.energy.generation.mech_energy_trunk_J,
+      mech_energy_humerus_J: m.energy.generation.mech_energy_humerus_J
+    });
+    if(tsv2.score != null){
+      m.energy.transfer.score                       = tsv2.score;
+      m.energy.transfer.score_kinematic             = tsv2.kinematic;
+      m.energy.transfer.score_kinetic_ete           = tsv2.kinetic_ete;
+      m.energy.transfer.ratio_humerus_to_pelvis_pct = tsv2.ratio_humerus_to_pelvis_pct;
+      m.energy.transfer.basis                       = tsv2.basis;
+    }
+  }
+
   // 2) ELI — Theia+GRF 회차에만 (필요 변수가 있을 때)
   if(m.protocol === 'Theia+GRF' && m.energy && m.faults){
     const elInput = {
@@ -5023,27 +5452,92 @@ function parseC3DTxtTrial(text){
     for(const x of arr){ if(x !== null){ const a = Math.abs(x); if(m === null || a > m) m = a; } }
     return m;
   };
+  // v5.7: EVENT_LABEL = 발생 시각(초)을 frame=0에 저장하는 sparse 형식
+  // component 자동 시도 + TIME 컬럼과 매칭해 frame index로 변환
+  const findEventFrame = name => {
+    let idx;
+    for(const cand of [name, name+'_X', name+'_0', name+'_ITEM']){
+      if(cand in colMap){ idx = colMap[cand]; break; }
+    }
+    if(idx === undefined) return null;
+    // 1) 첫 번째 0이 아닌 값 = 이벤트 시각(초)
+    let eventTimeSec = null;
+    for(const r of dataRows){
+      if(idx < r.length){
+        const v = safeFloat(r[idx]);
+        if(v !== null && v !== 0){ eventTimeSec = v; break; }
+      }
+    }
+    if(eventTimeSec === null) return null;
+    // 2) TIME 컬럼 가장 가까운 frame
+    const timeArr = colByName('TIME_X').length ? colByName('TIME_X')
+                  : colByName('TIME').length   ? colByName('TIME')
+                  : colByName('TIME_0');
+    if(timeArr.length){
+      let bestI = null, bestDiff = Infinity;
+      for(let i = 0; i < timeArr.length; i++){
+        if(timeArr[i] === null) continue;
+        const d = Math.abs(timeArr[i] - eventTimeSec);
+        if(d < bestDiff){ bestDiff = d; bestI = i; }
+      }
+      return bestI;
+    }
+    // TIME 없으면 240Hz fallback
+    return Math.round(eventTimeSec * 240);
+  };
 
-  const fp1z = safeMaxAbs(colByName('FP1_Z'));
-  const fp2z = safeMaxAbs(colByName('FP2_Z'));
-  const humZ = safeMaxAbs(colByName('Pitching_Humerus_Ang_Vel_Z'));
+  // v5.7: Theia 마커리스 골반 추적 jerk noise 완화 — FC~BR 분석 구간 제한
+  // Naito (2014), Werner (2008) 표준. event 없으면 전체 구간 fallback
+  const fcEvent = findEventFrame('Footstrike');
+  const brEvent = findEventFrame('Release');
+  let winStart = 0, winEnd = dataRows.length;
+  if(fcEvent !== null && brEvent !== null && brEvent > fcEvent){
+    winStart = Math.max(0, fcEvent - 5);
+    winEnd   = Math.min(dataRows.length, brEvent + 10);
+  }
+  const colByNameWindow = name => {
+    const arr = colByName(name);
+    return arr.length ? arr.slice(winStart, winEnd) : [];
+  };
+
+  const fp1z = safeMaxAbs(colByNameWindow('FP1_Z'));
+  const fp2z = safeMaxAbs(colByNameWindow('FP2_Z'));
+  const humZ = safeMaxAbs(colByNameWindow('Pitching_Humerus_Ang_Vel_Z'));
 
   return {
     n_frames:        dataRows.length,
-    peak_pelvis_v:   safeMaxAbs(colByName('Pelvis_Ang_Vel_Z')),
-    peak_trunk_v:    safeMaxAbs(colByName('Thorax_Ang_Vel_Z')),
-    // process_pitching_session.py와 동일 bias 보정 (xlsx 처리값 대비 +490 deg/s)
+    analysis_window: [winStart, winEnd],   // v5.7 디버그용
+    fc_frame:        fcEvent,
+    br_frame:        brEvent,
+    peak_pelvis_v:   safeMaxAbs(colByNameWindow('Pelvis_Ang_Vel_Z')),
+    peak_trunk_v:    safeMaxAbs(colByNameWindow('Thorax_Ang_Vel_Z')),
+    // v5.8: peak_arm_v도 -490 bias 보정 (Theia humerus_z bias, 프로/대학 cohort 검증)
     peak_humerus_v:  humZ != null ? humZ - 490 : null,
-    peak_arm_v:      humZ,
-    peak_shoulder_v: safeMaxAbs(colByName('Pitching_Shoulder_Ang_Vel_Z')),
-    peak_elbow_v:    safeMaxAbs(colByName('Pitching_Elbow_Ang_Vel_X')),
-    max_x_factor:    safeMaxAbs(colByName('Trunk_wrt_Pelvis_Angle_Z')),
+    peak_arm_v:      humZ != null ? humZ - 490 : null,
+    peak_shoulder_v: safeMaxAbs(colByNameWindow('Pitching_Shoulder_Ang_Vel_Z')),
+    peak_elbow_v:    safeMaxAbs(colByNameWindow('Pitching_Elbow_Ang_Vel_X')),
+    max_x_factor:    safeMaxAbs(colByNameWindow('Trunk_wrt_Pelvis_Angle_Z')),
     fp1_z_peak:      fp1z,
     fp2_z_peak:      fp2z,
+    // v5.10: STRIDE_LENGTH는 single-value sparse (event-like) → window 무관 전체 frame
     stride_length:   safeMaxAbs(colByName('STRIDE_LENGTH_X')),
-    lead_knee_max:   safeMaxAbs(colByName('Lead_Knee_Angle_X')),
-    trunk_lateral_tilt: safeMaxAbs(colByName('Trunk_Angle_Y')),
-    trunk_forward_tilt: safeMaxAbs(colByName('Trunk_Angle_X')),
+    stride_pct:      safeMaxAbs(colByName('STRIDE_LENGTH_MEAN_PERCENT_X')),
+    lead_knee_max:   safeMaxAbs(colByNameWindow('Lead_Knee_Angle_X')),
+    trunk_lateral_tilt: safeMaxAbs(colByNameWindow('Trunk_Angle_Y')),
+    trunk_forward_tilt: safeMaxAbs(colByNameWindow('Trunk_Angle_X')),
+    // v5.6 + v5.7: Joint Power Scalar 8 (W) · FC~BR 구간만
+    pow_r_shoulder:  safeMaxAbs(colByNameWindow('R_Shoulder_Power_Scalar_X')),
+    pow_l_shoulder:  safeMaxAbs(colByNameWindow('L_Shoulder_Power_Scalar_X')),
+    pow_r_elbow:     safeMaxAbs(colByNameWindow('R_Elbow_Power_Scalar_X')),
+    pow_l_elbow:     safeMaxAbs(colByNameWindow('L_Elbow_Power_Scalar_X')),
+    pow_r_hip:       safeMaxAbs(colByNameWindow('R_Hip_Power_Scalar_X')),
+    pow_l_hip:       safeMaxAbs(colByNameWindow('L_Hip_Power_Scalar_X')),
+    pow_r_knee:      safeMaxAbs(colByNameWindow('R_Knee_Power_Scalar_X')),
+    pow_l_knee:      safeMaxAbs(colByNameWindow('L_Knee_Power_Scalar_X')),
+    // v5.6 + v5.7: Mechanical Energy 3 (J) · FC~BR 구간만
+    pelvis_me_peak:  safeMaxAbs(colByNameWindow('Pelvis_Mechanical_Energy_X')),
+    trunk_me_peak:   safeMaxAbs(colByNameWindow('Trunk_Mechanical_Energy_X')),
+    humerus_me_peak: safeMaxAbs(colByNameWindow('R_Humerus_ME_X')),
   };
 }
 
@@ -5056,23 +5550,68 @@ function synthesizeRecordFromTrials(pid, trials, sid){
   };
   const norm = (v, base, mult) => Math.max(20, Math.min(98, 50 + (v - base) * mult));
 
+  // v5.8: cohort 검증 후 임계 확대
+  //   peak_arm_v는 humerus_z(-490 보정)이라 한국 고1 + 프로/대학 cohort에서 4000-5500 범위
+  //   기존 1500-2200은 다른 정의(humerus_z 평면 회전 등) 가정이라 깎임 → 2500-7000으로 확대
   const peakPelvis = median(trials.map(t => t.peak_pelvis_v),  200, 1300, 600);
   const peakTrunk  = median(trials.map(t => t.peak_trunk_v),   600, 1300, 900);
-  const peakArm    = median(trials.map(t => t.peak_arm_v),    1500, 2200, 1970);
+  const peakArm    = median(trials.map(t => t.peak_arm_v),    2500, 7000, 4500);
   const xFactor    = median(trials.map(t => t.max_x_factor),  30, 180, 50);
   const fp1Peak    = median(trials.map(t => t.fp1_z_peak),    500, 2000, 1100);
   const fp2Peak    = median(trials.map(t => t.fp2_z_peak),    500, 1500, 750);
 
+  // v5.6: Joint Power Scalar 8개 + Mechanical Energy 3개 — 실측 c3d.txt에서
+  const powRSho = median(trials.map(t => t.pow_r_shoulder),  50,  5000, 800);
+  const powLSho = median(trials.map(t => t.pow_l_shoulder),  10,  5000, 100);
+  const powREl  = median(trials.map(t => t.pow_r_elbow),    100,  12000, 1800);
+  const powLEl  = median(trials.map(t => t.pow_l_elbow),     10,  12000, 100);
+  const powRHi  = median(trials.map(t => t.pow_r_hip),       50,  5000, 600);
+  const powLHi  = median(trials.map(t => t.pow_l_hip),       50,  5000, 600);
+  const powRKn  = median(trials.map(t => t.pow_r_knee),      50,  5000, 700);
+  const powLKn  = median(trials.map(t => t.pow_l_knee),      50,  5000, 700);
+  let pelvisJ  = median(trials.map(t => t.pelvis_me_peak),  10, 1500, null);
+  let trunkJ   = median(trials.map(t => t.trunk_me_peak),   10, 1500, null);
+  let humerusJ = median(trials.map(t => t.humerus_me_peak), 10, 1500, null);
+  let meBasis  = (pelvisJ != null && humerusJ != null) ? 'V3D' : null;
+
   const player = PLAYERS.find(p => p.id === pid);
   const weight = player?.weight || 91;
+  const heightM = (player?.height || 180) / 100;
+
+  // v5.8: V3D ME가 비어 있으면 De Leva 자체 계산 (KE_rot)
+  // 학술적 일관성: V3D ME는 KE_total 정의가 모호 → KE_rot proxy로 통일 비교 가능
+  if(typeof ANALYTICS !== 'undefined' && ANALYTICS.selfCalcSegmentKE){
+    if(pelvisJ == null){
+      pelvisJ = ANALYTICS.selfCalcSegmentKE('pelvis', weight, heightM, peakPelvis);
+      meBasis = 'self_calc_KE_rot';
+    }
+    if(trunkJ == null){
+      trunkJ  = ANALYTICS.selfCalcSegmentKE('trunk', weight, heightM, peakTrunk);
+    }
+    if(humerusJ == null){
+      humerusJ = ANALYTICS.selfCalcSegmentKE('humerus', weight, heightM, peakArm);
+      meBasis = meBasis ?? 'self_calc_KE_rot';
+    }
+  }
 
   const genScore = Math.round(norm(peakArm, 1900, 0.05)*0.3 + norm(800, 800, 0.04)*0.3
                   + norm(peakTrunk, 850, 0.04)*0.2 + norm(400, 350, 0.05)*0.2);
   const speedGainPt = Math.round((peakTrunk / peakPelvis) * 100) / 100;
   const speedGainTa = Math.round((peakArm / peakTrunk) * 100) / 100;
   const etePct = 80;
-  const trfScore = Math.round(norm(etePct, 75, 1.5)*0.4 + norm(speedGainPt*100, 150, 0.4)*0.3
-                  + norm(speedGainTa*100, 200, 0.3)*0.3);
+  // v5.6 + v5.8: power-based ETE — V3D ME 우선, 없으면 self-calc KE_rot (de Leva 1996)
+  const tsv2 = (typeof ANALYTICS !== 'undefined' && ANALYTICS.transferScoreV2)
+    ? ANALYTICS.transferScoreV2({
+        ete_pct: etePct, speed_gain_pt: speedGainPt, speed_gain_ta: speedGainTa,
+        mech_energy_pelvis_J:  pelvisJ,
+        mech_energy_trunk_J:   trunkJ,
+        mech_energy_humerus_J: humerusJ,
+        me_basis: meBasis || 'V3D'
+      })
+    : null;
+  const trfScore = tsv2?.score ?? Math.round(
+    norm(etePct, 75, 1.5)*0.4 + norm(speedGainPt*100, 150, 0.4)*0.3
+    + norm(speedGainTa*100, 200, 0.3)*0.3);
 
   const zones = [
     ['zone1','골반→몸통→팔 시퀀스', '분절 가속 순서 결함', 88],
@@ -5104,15 +5643,26 @@ function synthesizeRecordFromTrials(pid, trials, sid){
     },
     energy: {
       generation: {
-        hip_R_W: 280, hip_L_W: 260, knee_R_W: 360, knee_L_W: 340,
-        shoulder_W: 800, elbow_W: 240, total_W: 1900,
-        mech_energy_pelvis_J: 400, mech_energy_trunk_J: 600, mech_energy_humerus_J: 590,
+        // v5.6: 실측 c3d.txt power scalar (median across trials) — fallback 기본값 OK
+        hip_R_W:    Math.round(powRHi),  hip_L_W:   Math.round(powLHi),
+        knee_R_W:   Math.round(powRKn),  knee_L_W:  Math.round(powLKn),
+        shoulder_W: Math.round(powRSho), elbow_W:   Math.round(powREl),
+        total_W:    Math.round(powRHi + powLHi + powRKn + powLKn + powRSho + powREl),
+        // v5.6: 실측 mech_energy J (없을 때만 fallback)
+        mech_energy_pelvis_J:  pelvisJ  != null ? Math.round(pelvisJ)  : 400,
+        mech_energy_trunk_J:   trunkJ   != null ? Math.round(trunkJ)   : 600,
+        mech_energy_humerus_J: humerusJ != null ? Math.round(humerusJ) : 590,
         score: genScore
       },
       transfer: {
         ete_pct: etePct, speed_gain_pt: speedGainPt, speed_gain_ta: speedGainTa,
         proper_seq: true, pelvis_to_trunk_lag_ms: 50, trunk_to_arm_lag_ms: 35,
-        score: trfScore
+        score: trfScore,
+        // v5.6: transferScoreV2 분해 결과 (combined / kinematic_only)
+        score_kinematic:             tsv2?.kinematic ?? null,
+        score_kinetic_ete:           tsv2?.kinetic_ete ?? null,
+        ratio_humerus_to_pelvis_pct: tsv2?.ratio_humerus_to_pelvis_pct ?? null,
+        basis:                       tsv2?.basis ?? 'kinematic_only'
       },
       leakage: {
         zone1_sequence: zones[0][3], zone2_x_factor: zones[1][3],
