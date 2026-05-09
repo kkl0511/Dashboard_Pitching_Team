@@ -651,39 +651,60 @@
           Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph cohort 50th percentile.
           <b>Per 1mph</b> = "1mph 향상에 필요한 변인 변화량".
           <b>차이</b> = (본인 − Median Elite) / Per 1mph (mph 환산, 양수 = elite 대비 우수).<br>
-          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block
+          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
+          <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
         </div>
       </details>
     </div>
     <div class="panel">
-      <h2>3-2. 시간축 분석 — 키네틱 시퀀스 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
+      <h2>3-2. 시간축 분석 — 키네틱 시퀀스</h2>
       <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
         <div>
           <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
                style="width:100%;max-width:300px;border-radius:6px;border:1px solid var(--line-soft)">
           <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
-            골반 → 몸통 → 팔 → 손 가속 순서 (proper sequence)
+            골반 → 몸통 → 팔 차례로 가속 (proper sequence)
           </div>
         </div>
         <div class="chart-wrap" style="height:300px"><canvas id="p-sequence"></canvas></div>
       </div>
-      <!-- v5.14: 분절별 상세 metric 표 (peak ω + KE_rot + lag) -->
-      <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:10px;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="피크 각속도 (°/s)">Peak ω</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="회전 운동에너지 (J, De Leva 1996)">KE_rot</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 대비 가속비">Speed Gain</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 피크 후 lag (ms)">Lag</th>
-          </tr>
-        </thead>
-        <tbody id="p-segment-body"></tbody>
-      </table>
-      <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
-        <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>. 4분절(골반·몸통·팔·손)이 차례로 피크 — Driveline 표준.
-        Speed Gain = 다음 분절 ω / 현재 분절 ω (proper sequence 시 1.4-2.0). Lag = 분절 간 피크 시각 차 (proper 30-60ms).
+      <!-- v5.25: 시퀀스 품질 색깔 설명 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:11px">
+        <div style="background:#dafbe1;padding:6px 10px;border-radius:4px;border-left:3px solid #1a7f37">
+          <b style="color:#1a7f37">✅ 좋은 시퀀스</b><br>
+          <span style="color:var(--muted)">두 lag 모두 정상 범위 (30-60ms / 25-45ms) — 분절 에너지 효율 전달</span>
+        </div>
+        <div style="background:#fff8c5;padding:6px 10px;border-radius:4px;border-left:3px solid #bc4c00">
+          <b style="color:#bc4c00">⚠️ 보통 시퀀스</b><br>
+          <span style="color:var(--muted)">한 lag만 정상 — 일부 단계 너무 짧거나 긺</span>
+        </div>
+        <div style="background:#ffebe9;padding:6px 10px;border-radius:4px;border-left:3px solid #cf222e">
+          <b style="color:#cf222e">❌ 시퀀스 이상</b><br>
+          <span style="color:var(--muted)">두 lag 모두 비정상 — 동시 발화 또는 단절형, 구속 손실 위험</span>
+        </div>
       </div>
+      <!-- 분석가용 details: 분절별 상세 metric 표 -->
+      <details style="margin-top:10px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 분절별 상세 변인 (Peak ω · KE_rot · Lag) · 분석가용</summary>
+        <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="피크 각속도 (°/s)">Peak ω</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="회전 운동에너지 (J, De Leva 1996)">KE_rot</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 대비 가속비">Speed Gain</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 피크 후 lag (ms)">Lag</th>
+            </tr>
+          </thead>
+          <tbody id="p-segment-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
+          <b>Peak ω (각속도)</b> — 분절 회전 빠르기 (°/s).<br>
+          <b>KE_rot (회전 운동에너지)</b> — ½·I·ω² (De Leva 1996 분절 관성). <b>분절이 얼마나 큰 회전 에너지를 만들고 있는지</b> — 큰 분절(골반·몸통)이 작은 분절(팔)에 에너지를 넘겨주는 양을 본다.<br>
+          <b>Speed Gain</b> = 다음 분절 ω / 현재 분절 ω (proper sequence 시 1.4-2.0).<br>
+          <b>Lag</b> = 분절 간 피크 시각 차 (이상적: 골반→몸통 30-60 ms, 몸통→팔 25-45 ms).
+        </div>
+      </details>
     </div>
   </div>
 
@@ -4643,6 +4664,8 @@ function renderPlayerView(pid){
     } else if(fitVeloEl){ fitVeloEl.textContent = '—'; document.getElementById('p-fitness-detail').textContent = '체력 데이터 부족'; }
   }
   // [4] ⚙️ 메카닉 향상 기대 구속 — v5.24: Driveline Mechanical Ceiling 사용
+  let mechCeilGain = null;  // [5] 통합 KPI에서 재사용
+  let ceilingKmh = null;
   if(A?.drivelineFiveModelDiagnosis && A?.drivelineMechanicalCeiling){
     const dvl5 = A.drivelineFiveModelDiagnosis({
       shoulder_er_max_deg: m.faults?.shoulder_er_max_deg,
@@ -4662,22 +4685,30 @@ function renderPlayerView(pid){
     const ceil = A.drivelineMechanicalCeiling(dvl5, measured);
     const mechVeloEl = document.getElementById('p-mech-velo');
     if(mechVeloEl && ceil && ceil.ceiling_kmh != null){
+      mechCeilGain = ceil.added_kmh_potential;
+      ceilingKmh = ceil.ceiling_kmh;
       const c = colorByGain(ceil.added_kmh_potential);
       mechVeloEl.innerHTML = `<span style="color:${c}">${ceil.ceiling_kmh}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
       document.getElementById('p-mech-detail').innerHTML =
         `현재 ${measured} → <b style="color:${c}">+${ceil.added_kmh_potential}</b> Mechanical Ceiling (Driveline)`;
     } else if(mechVeloEl){ mechVeloEl.textContent = '—'; document.getElementById('p-mech-detail').textContent = '메카닉 데이터 부족'; }
   }
-  // [5] 🎯 통합 향상 기대 구속 (체력 + 메카닉)
-  if(A?.expectedVelocityCombined){
-    const tot = A.expectedVelocityCombined(mechInput, fitInput, measured);
+  // [5] 🎯 통합 향상 기대 구속 — v5.25: 체력 + Mechanical Ceiling
+  //   - 체력: OBP fitness model 향상 잠재
+  //   - 메카닉: Driveline Mechanical Ceiling (5모델 → 150점 도달 잠재)
+  if(A?.expectedVelocityFromFitness && measured != null){
+    const fit = A.expectedVelocityFromFitness(fitInput, measured);
+    const fitGain = fit?.expected_gain ?? 0;
+    const meGain  = mechCeilGain ?? 0;
+    const totalGain = Math.round((fitGain + meGain) * 10) / 10;
+    const totalVelo = Math.round((measured + totalGain) * 10) / 10;
     const totVeloEl = document.getElementById('p-total-velo');
-    if(totVeloEl && tot && tot.expected_velo != null){
-      const c = colorByGain(tot.expected_gain);
-      totVeloEl.innerHTML = `<span style="color:${c}">${tot.expected_velo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
+    if(totVeloEl){
+      const c = colorByGain(totalGain);
+      totVeloEl.innerHTML = `<span style="color:${c}">${totalVelo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
       document.getElementById('p-total-detail').innerHTML =
-        `체력 +<b>${tot.fitness_gain}</b> · 메카닉 +<b>${tot.mechanic_gain}</b> · 합 <b style="color:${c}">+${tot.expected_gain}</b>`;
-    } else if(totVeloEl){ totVeloEl.textContent = '—'; document.getElementById('p-total-detail').textContent = '데이터 부족'; }
+        `체력 +<b>${fitGain}</b> · 메카닉 천장 +<b>${meGain}</b> · 합 <b style="color:${c}">+${totalGain}</b>`;
+    }
   }
   // 호환성: 기존 hidden span에도 값 채움 (다른 코드가 참조 시 안전)
   const out = m.energy?.generation, trf = m.energy?.transfer, leak = m.energy?.leakage;
@@ -4800,9 +4831,8 @@ function renderPlayerView(pid){
     }
   });
 
-  // 시퀀스 — v5.2: 키네틱 타이밍 시퀀스 곡선 (시간축 종모양, BR=0)
-  // 4분절(골반→몸통→팔→손)이 lag_ms 간격으로 차례로 피크 찍는 모습.
-  // 곡선은 Gaussian bell — 피크 시각/높이는 실측, 폭(σ)은 분절별 표준값.
+  // 시퀀스 — v5.25: 키네틱 타이밍 시퀀스 (3 분절: 골반→몸통→팔, 손/팀평균 제거)
+  // 시퀀스 품질을 lag으로 평가 → 색깔로 표시 (좋음/보통/나쁨)
   if(chartsP.s) chartsP.s.destroy();
   {
     const seq  = m.sequence;
@@ -4813,74 +4843,84 @@ function renderPlayerView(pid){
     const tArm    = -30;
     const tTrunk  = tArm  - taLag;
     const tPelvis = tTrunk - ptLag;
-    const tHand   = tArm  + 20;
-    // 피크 높이 — sequence dps 그대로, 손은 팔의 1.8배 (kinetic chain 표준)
+    // 피크 높이 — sequence dps 그대로
     const pkPelvis = seq.pelvis_dps;
     const pkTrunk  = seq.trunk_dps;
     const pkArm    = seq.arm_dps;
-    const pkHand   = Math.round(seq.arm_dps * 1.8);
-    // 분절별 종모양 폭 σ (큰 분절이 더 넓고 둔함)
-    const sigmas = {pelvis: 70, trunk: 55, arm: 42, hand: 38};
+    // 분절별 종모양 폭 σ
+    const sigmas = {pelvis: 70, trunk: 55, arm: 42};
     const gauss = (t, t0, peak, s) => peak * Math.exp(-Math.pow(t - t0, 2) / (2*s*s));
-    // 시간축 -300 ~ +50 ms, 5ms 간격
     const xs = []; for(let t = -300; t <= 50; t += 5) xs.push(t);
-    // 본인
     const series = (t0, pk, s) => xs.map(t => gauss(t, t0, pk, s));
-    // 팀 평균 (참고선)
-    const teamAvg = key => avg(PLAYERS.map(x => DATA[x.id][1].sequence[key]));
-    const tmTrf = (key) => avg(PLAYERS.map(x =>
-      (DATA[x.id][1].energy?.transfer?.[key]) ?? (key === 'pelvis_to_trunk_lag_ms' ? 50 : 35)
-    ));
-    const tmPtLag = tmTrf('pelvis_to_trunk_lag_ms');
-    const tmTaLag = tmTrf('trunk_to_arm_lag_ms');
-    const tmTArm  = -30, tmTTrunk = tmTArm - tmTaLag, tmTPelvis = tmTTrunk - tmPtLag, tmTHand = tmTArm + 20;
-    // BR=0 수직 점선 플러그인 (Chart.js 인라인)
-    const brLinePlugin = {
-      id: 'brLine_' + Date.now(),
+
+    // 시퀀스 품질 평가 (Driveline 표준 lag 30-60ms)
+    const inRange = (v, lo, hi) => v >= lo && v <= hi;
+    const ptOK = inRange(ptLag, 30, 60);
+    const taOK = inRange(taLag, 25, 45);
+    const okCount = (ptOK ? 1 : 0) + (taOK ? 1 : 0);
+    let quality, qColor, qLabel, qBg;
+    if(okCount === 2)      { quality = 'good';   qColor = '#1a7f37'; qLabel = '✅ 좋은 시퀀스';   qBg = '#dafbe1'; }
+    else if(okCount === 1) { quality = 'normal'; qColor = '#bc4c00'; qLabel = '⚠️ 보통 시퀀스'; qBg = '#fff8c5'; }
+    else                   { quality = 'bad';    qColor = '#cf222e'; qLabel = '❌ 시퀀스 이상'; qBg = '#ffebe9'; }
+
+    // 분절 색상 — 품질에 따라 채도 조절 (좋음=선명, 나쁨=회색조)
+    const segColors = quality === 'good'
+      ? { pelvis: '#0969da', trunk: '#1a7f37', arm: '#bc4c00' }
+      : quality === 'normal'
+        ? { pelvis: '#0969da', trunk: '#1a7f37', arm: '#bc4c00' }
+        : { pelvis: '#8b949e', trunk: '#8b949e', arm: '#cf222e' };
+    const fillAlpha = quality === 'good' ? 0.20 : quality === 'normal' ? 0.15 : 0.10;
+    const hex2rgba = (h, a) => {
+      const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+      return `rgba(${r},${g},${b},${a})`;
+    };
+
+    // 품질 배지 + BR 점선 플러그인
+    const overlayPlugin = {
+      id: 'kineticOverlay_' + Date.now(),
       afterDatasetsDraw(chart){
-        const {ctx, scales:{x, y}} = chart;
+        const {ctx, scales:{x, y}, chartArea} = chart;
+        // BR 수직 점선
         const xPos = x.getPixelForValue(0);
-        if(xPos == null || isNaN(xPos)) return;
+        if(xPos != null && !isNaN(xPos)){
+          ctx.save();
+          ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle = '#cf222e'; ctx.lineWidth = 1.4;
+          ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom); ctx.stroke();
+          ctx.fillStyle = '#cf222e'; ctx.font = '600 11px Apple SD Gothic Neo, sans-serif';
+          ctx.fillText('BR', xPos + 4, y.top + 12);
+          ctx.restore();
+        }
+        // 품질 배지 (좌상단)
         ctx.save();
-        ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle = '#cf222e'; ctx.lineWidth = 1.4;
-        ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom); ctx.stroke();
-        ctx.fillStyle = '#cf222e'; ctx.font = '600 11px Apple SD Gothic Neo, sans-serif';
-        ctx.fillText('BR', xPos + 4, y.top + 12);
+        const padX = 10, padY = 6, badgeY = chartArea.top + 6, badgeX = chartArea.left + 6;
+        ctx.font = '600 11.5px Apple SD Gothic Neo, sans-serif';
+        const txt = qLabel;
+        const wTxt = ctx.measureText(txt).width;
+        ctx.fillStyle = qBg;
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(badgeX, badgeY, wTxt + padX*2, 22, 5);
+        else ctx.rect(badgeX, badgeY, wTxt + padX*2, 22);
+        ctx.fill();
+        ctx.fillStyle = qColor;
+        ctx.fillText(txt, badgeX + padX, badgeY + 15);
         ctx.restore();
       }
     };
+
     chartsP.s = new Chart(document.getElementById('p-sequence'),{
       type:'line',
       data:{
         labels: xs,
         datasets: [
-          // 본인 — 4 분절 (진한, fill)
           { label:'골반', data: series(tPelvis, pkPelvis, sigmas.pelvis),
-            borderColor:'#0969da', backgroundColor:'rgba(9,105,218,.18)',
-            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+            borderColor: segColors.pelvis, backgroundColor: hex2rgba(segColors.pelvis, fillAlpha),
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.4 },
           { label:'몸통', data: series(tTrunk, pkTrunk, sigmas.trunk),
-            borderColor:'#1a7f37', backgroundColor:'rgba(26,127,55,.18)',
-            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
+            borderColor: segColors.trunk, backgroundColor: hex2rgba(segColors.trunk, fillAlpha),
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.4 },
           { label:'팔',   data: series(tArm, pkArm, sigmas.arm),
-            borderColor:'#bc4c00', backgroundColor:'rgba(188,76,0,.18)',
-            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
-          { label:'손',   data: series(tHand, pkHand, sigmas.hand),
-            borderColor:'#cf222e', backgroundColor:'rgba(207,34,46,.18)',
-            fill:true, tension:0.4, pointRadius:0, borderWidth:2.2, order:2 },
-          // 팀 평균 — dashed, fill 없음, 옅은 회색
-          { label:'팀 평균 (참고)', data: series(tmTPelvis, teamAvg('pelvis_dps'), sigmas.pelvis),
-            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
-            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5,
-            stack:'tm', stackKey:'tmA', skipLegend:true },
-          { label:'_tm2', data: series(tmTTrunk, teamAvg('trunk_dps'), sigmas.trunk),
-            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
-            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
-          { label:'_tm3', data: series(tmTArm, teamAvg('arm_dps'), sigmas.arm),
-            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
-            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
-          { label:'_tm4', data: series(tmTHand, teamAvg('arm_dps')*1.8, sigmas.hand),
-            borderColor:'rgba(130,80,223,.55)', borderDash:[5,4],
-            fill:false, tension:0.4, pointRadius:0, borderWidth:1.3, order:5 },
+            borderColor: segColors.arm, backgroundColor: hex2rgba(segColors.arm, fillAlpha),
+            fill:true, tension:0.4, pointRadius:0, borderWidth:2.4 }
         ]
       },
       options:{
@@ -4888,29 +4928,20 @@ function renderPlayerView(pid){
         animation: { duration: 900, easing: 'easeOutQuart' },
         interaction: { intersect:false, mode:'index' },
         plugins:{
-          legend:{
-            labels:{
-              color:'#1f2328', font:{size:11.5}, usePointStyle:true, padding:10,
-              // 팀 평균 dashed는 첫 dataset만 범례 표시 (label '_tm*' 시작은 숨김)
-              filter: (item) => !/^_tm/.test(item.text)
-            }
-          },
+          legend:{ labels:{ color:'#1f2328', font:{size:11.5}, usePointStyle:true, padding:10 } },
           tooltip:{
             intersect:false, mode:'index',
             backgroundColor:'rgba(31,35,40,.95)', titleColor:'#fff', bodyColor:'#fff',
             padding:10, cornerRadius:6,
             callbacks:{
               title: (items) => `t = ${items[0].label} ms`,
-              label: (ctx) => /^_tm/.test(ctx.dataset.label)
-                ? null
-                : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)} °/s`
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(0)} °/s`
             }
           }
         },
         scales:{
           x:{ type:'linear',
-              ticks:{color:'#656d76', font:{size:11},
-                     callback: v => v + ' ms'},
+              ticks:{color:'#656d76', font:{size:11}, callback: v => v + ' ms'},
               grid:{color:'#eaeef2'},
               title:{display:true, text:'시간 (ms · 릴리스=0)', color:'#656d76', font:{size:11}} },
           y:{ ticks:{color:'#656d76', font:{size:11}},
@@ -4918,7 +4949,7 @@ function renderPlayerView(pid){
               title:{display:true, text:'각속도 (°/s)', color:'#656d76', font:{size:11}} }
         }
       },
-      plugins: [brLinePlugin]
+      plugins: [overlayPlugin]
     });
   }
 
@@ -5499,53 +5530,73 @@ function v514_renderActionPlan(m, p){
 }
 
 function v514_renderSummaryAction(m, p){
-  // [§ 5] 종합 권장 — bigger lever 진단
+  // [§ 5] 종합 권장 — bigger lever 진단 (v5.25: Mechanical Ceiling 기반)
   const wrap = document.getElementById('p-summary-action');
   if(!wrap || typeof ANALYTICS === 'undefined') return;
   const A = ANALYTICS;
   const measured = m.velocity?.measured_kmh;
-  if(!A.expectedVelocityCombined || measured == null){
+  if(!A.expectedVelocityFromFitness || measured == null){
     wrap.innerHTML = '<span style="color:var(--muted)">실측 구속 또는 모델 데이터 부족</span>';
     return;
   }
-  const mechIn = {
-    pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
-    arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
-    stride_pct: m.faults?.stride_pct ?? 0.80,
-    mass_kg: p.weight, height_m: p.height/100
-  };
   const fitIn = {
     height_cm: p.height, weight_kg: p.weight,
     cmj_pp_bm: m.fitness?.cmj?.peak_power_bm_w_kg,
     imtp_pf_bm: m.fitness?.imtp?.peak_force_bm_n_kg,
     hop_rsi: m.fitness?.pogo?.rsi_ms, grip_kg: null
   };
-  const tot = A.expectedVelocityCombined(mechIn, fitIn, measured);
-  if(!tot) { wrap.innerHTML = '<span style="color:var(--muted)">진단 데이터 부족</span>'; return; }
+  const fit = A.expectedVelocityFromFitness(fitIn, measured);
+  const fitGain = fit?.expected_gain ?? 0;
 
-  const lever = tot.bigger_lever;
+  // v5.25: 메카닉 향상 = Driveline Mechanical Ceiling 잠재
+  let meGain = 0;
+  if(A.drivelineFiveModelDiagnosis && A.drivelineMechanicalCeiling){
+    const dvl5 = A.drivelineFiveModelDiagnosis({
+      shoulder_er_max_deg: m.faults?.shoulder_er_max_deg,
+      peak_shoulder_v: m.sequence?.peak_shoulder_v,
+      peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
+      arm_dps:         m.sequence?.arm_dps,
+      x_factor:           m.faults?.x_factor_deg,
+      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg,
+      trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      trunk_dps:  m.sequence?.trunk_dps,
+      pelvis_dps: m.sequence?.pelvis_dps,
+      lead_knee_change: m.faults?.lead_knee_change,
+      stride_length:    m.faults?.stride_length_m,
+      cog_decel:    m.cog?.decel,
+      max_cog_velo: m.cog?.max_velo
+    });
+    const ceil = A.drivelineMechanicalCeiling(dvl5, measured);
+    if(ceil && ceil.added_kmh_potential != null) meGain = ceil.added_kmh_potential;
+  }
+  const totalGain = Math.round((fitGain + meGain) * 10) / 10;
+  const lever = meGain > fitGain ? '메카닉' : '체력';
   const leverColor = lever === '체력' ? '#bc4c00' : '#1a7f37';
+  const leverMsg = totalGain < 1 ? '이미 종합 잠재 도달 — release/spin 등 기타 요인 발달' :
+                   totalGain < 5 ? '통합 향상으로 +' + totalGain + ' km/h 기대' :
+                   totalGain < 10 ? '통합 향상 잠재 +' + totalGain + ' km/h — 메카닉/체력 모두 발달 권장' :
+                                    '통합 향상 잠재 +' + totalGain + ' km/h — 큰 발달 여지';
 
   let html = `<div style="background:#f6f8fa;border-radius:6px;padding:12px;margin-bottom:10px">
     <div style="font-size:13px;font-weight:600;margin-bottom:6px">🎯 향상 시나리오 비교</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px">
       <div style="background:#fff8f0;padding:8px 10px;border-radius:4px;border-left:3px solid #bc4c00">
         <div style="font-size:11px;color:var(--muted)">💪 체력만 향상</div>
-        <div style="font-size:18px;font-weight:600;color:#bc4c00">+${tot.fitness_gain} km/h</div>
+        <div style="font-size:18px;font-weight:600;color:#bc4c00">+${fitGain} km/h</div>
       </div>
       <div style="background:#f0f9f4;padding:8px 10px;border-radius:4px;border-left:3px solid #1a7f37">
-        <div style="font-size:11px;color:var(--muted)">⚙️ 메카닉만 향상</div>
-        <div style="font-size:18px;font-weight:600;color:#1a7f37">+${tot.mechanic_gain} km/h</div>
+        <div style="font-size:11px;color:var(--muted)">⚙️ 메카닉 천장</div>
+        <div style="font-size:18px;font-weight:600;color:#1a7f37">+${meGain} km/h</div>
       </div>
       <div style="background:#f5f0ff;padding:8px 10px;border-radius:4px;border-left:3px solid #8250df">
         <div style="font-size:11px;color:var(--muted)">🎯 통합 향상</div>
-        <div style="font-size:18px;font-weight:600;color:#8250df">+${tot.expected_gain} km/h</div>
+        <div style="font-size:18px;font-weight:600;color:#8250df">+${totalGain} km/h</div>
       </div>
     </div>
   </div>`;
   html += `<div style="padding:10px;background:${leverColor}10;border-left:4px solid ${leverColor};border-radius:4px;margin-bottom:8px">
     <div style="font-size:13px;font-weight:600;color:${leverColor}">💡 더 큰 leverage: <b>${lever}</b></div>
-    <div style="font-size:11.5px;color:var(--text);margin-top:4px">${tot.message}</div>
+    <div style="font-size:11.5px;color:var(--text);margin-top:4px">${leverMsg}</div>
   </div>`;
   html += `<div style="font-size:11.5px;color:var(--muted);margin-top:8px">
     <b>📋 다음 3개월 권장 흐름:</b><br>
@@ -6853,19 +6904,20 @@ function parseC3DTxtTrial(text){
       merFrame = maxI !== null ? winStart + maxI : null;
     }
   }
-  // CoG metrics (COM_displacement_X 시계열 미분)
+  // v5.25: CoG metrics (COM_displacement_Y = mound 방향, 전후방 시계열 미분)
+  // Theia 좌표계: X=lateral, Y=anterior-posterior(mound), Z=vertical
   let maxCogVelo = null, cogDecel = null;
   {
-    const comX = colByNameWindow('COM_displacement_X');
-    const timeArr = colByNameWindow('TIME_X');
-    if(comX.length >= 5 && timeArr.length >= 5){
+    const comY = colByNameWindow('COM_displacement_Y');
+    const timeArr = colByNameWindow('TIME_X') || colByNameWindow('TIME');
+    if(comY.length >= 5 && timeArr.length >= 5){
       const velos = [];
-      for(let i = 1; i < comX.length - 1; i++){
-        if(comX[i+1] === null || comX[i-1] === null) continue;
+      for(let i = 1; i < comY.length - 1; i++){
+        if(comY[i+1] === null || comY[i-1] === null) continue;
         if(timeArr[i+1] === null || timeArr[i-1] === null) continue;
         const dt = timeArr[i+1] - timeArr[i-1];
         if(dt <= 0) continue;
-        velos.push((comX[i+1] - comX[i-1]) / dt);
+        velos.push((comY[i+1] - comY[i-1]) / dt);
       }
       if(velos.length){
         maxCogVelo = Math.max(...velos.map(v => Math.abs(v)));

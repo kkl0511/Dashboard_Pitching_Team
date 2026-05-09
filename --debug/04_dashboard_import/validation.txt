@@ -1,0 +1,17 @@
+═══ 자동 매칭 결과 ═══
+세션 폴더: --debug
+
+Roster: 0명
+
+── Theia ──
+
+── Rapsodo ──
+
+── 통합 처리 ──
+
+✓ theia_batch.json (93 bytes, 0 선수)
+✓ rapsodo_master.csv (395 bytes, 0 throws)
+
+── ForceDecks (fitness) ──
+  ℹ 02_forcedecks 폴더 없음 (fitness 스킵)
+  fitness_master.csv 미생성 (입력 없음)

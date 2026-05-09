@@ -385,19 +385,20 @@ function parseC3DTxtTrial(text){
       merFrame = maxI !== null ? winStart + maxI : null;
     }
   }
-  // CoG metrics (COM_displacement_X 시계열 미분)
+  // v5.25: CoG metrics (COM_displacement_Y = mound 방향, 전후방 시계열 미분)
+  // Theia 좌표계: X=lateral, Y=anterior-posterior(mound), Z=vertical
   let maxCogVelo = null, cogDecel = null;
   {
-    const comX = colByNameWindow('COM_displacement_X');
-    const timeArr = colByNameWindow('TIME_X');
-    if(comX.length >= 5 && timeArr.length >= 5){
+    const comY = colByNameWindow('COM_displacement_Y');
+    const timeArr = colByNameWindow('TIME_X') || colByNameWindow('TIME');
+    if(comY.length >= 5 && timeArr.length >= 5){
       const velos = [];
-      for(let i = 1; i < comX.length - 1; i++){
-        if(comX[i+1] === null || comX[i-1] === null) continue;
+      for(let i = 1; i < comY.length - 1; i++){
+        if(comY[i+1] === null || comY[i-1] === null) continue;
         if(timeArr[i+1] === null || timeArr[i-1] === null) continue;
         const dt = timeArr[i+1] - timeArr[i-1];
         if(dt <= 0) continue;
-        velos.push((comX[i+1] - comX[i-1]) / dt);
+        velos.push((comY[i+1] - comY[i-1]) / dt);
       }
       if(velos.length){
         maxCogVelo = Math.max(...velos.map(v => Math.abs(v)));

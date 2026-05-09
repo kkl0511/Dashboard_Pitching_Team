@@ -272,39 +272,60 @@
           Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph cohort 50th percentile.
           <b>Per 1mph</b> = "1mph 향상에 필요한 변인 변화량".
           <b>차이</b> = (본인 − Median Elite) / Per 1mph (mph 환산, 양수 = elite 대비 우수).<br>
-          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block
+          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
+          <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
         </div>
       </details>
     </div>
     <div class="panel">
-      <h2>3-2. 시간축 분석 — 키네틱 시퀀스 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.2 · 시간축 종모양</span></h2>
+      <h2>3-2. 시간축 분석 — 키네틱 시퀀스</h2>
       <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
         <div>
           <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
                style="width:100%;max-width:300px;border-radius:6px;border:1px solid var(--line-soft)">
           <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
-            골반 → 몸통 → 팔 → 손 가속 순서 (proper sequence)
+            골반 → 몸통 → 팔 차례로 가속 (proper sequence)
           </div>
         </div>
         <div class="chart-wrap" style="height:300px"><canvas id="p-sequence"></canvas></div>
       </div>
-      <!-- v5.14: 분절별 상세 metric 표 (peak ω + KE_rot + lag) -->
-      <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:10px;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="피크 각속도 (°/s)">Peak ω</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="회전 운동에너지 (J, De Leva 1996)">KE_rot</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 대비 가속비">Speed Gain</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 피크 후 lag (ms)">Lag</th>
-          </tr>
-        </thead>
-        <tbody id="p-segment-body"></tbody>
-      </table>
-      <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
-        <b>가로 = 시간 (ms, 릴리스=0)</b> · <b>세로 = 각속도 (°/s)</b>. 4분절(골반·몸통·팔·손)이 차례로 피크 — Driveline 표준.
-        Speed Gain = 다음 분절 ω / 현재 분절 ω (proper sequence 시 1.4-2.0). Lag = 분절 간 피크 시각 차 (proper 30-60ms).
+      <!-- v5.25: 시퀀스 품질 색깔 설명 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:11px">
+        <div style="background:#dafbe1;padding:6px 10px;border-radius:4px;border-left:3px solid #1a7f37">
+          <b style="color:#1a7f37">✅ 좋은 시퀀스</b><br>
+          <span style="color:var(--muted)">두 lag 모두 정상 범위 (30-60ms / 25-45ms) — 분절 에너지 효율 전달</span>
+        </div>
+        <div style="background:#fff8c5;padding:6px 10px;border-radius:4px;border-left:3px solid #bc4c00">
+          <b style="color:#bc4c00">⚠️ 보통 시퀀스</b><br>
+          <span style="color:var(--muted)">한 lag만 정상 — 일부 단계 너무 짧거나 긺</span>
+        </div>
+        <div style="background:#ffebe9;padding:6px 10px;border-radius:4px;border-left:3px solid #cf222e">
+          <b style="color:#cf222e">❌ 시퀀스 이상</b><br>
+          <span style="color:var(--muted)">두 lag 모두 비정상 — 동시 발화 또는 단절형, 구속 손실 위험</span>
+        </div>
       </div>
+      <!-- 분석가용 details: 분절별 상세 metric 표 -->
+      <details style="margin-top:10px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 분절별 상세 변인 (Peak ω · KE_rot · Lag) · 분석가용</summary>
+        <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="피크 각속도 (°/s)">Peak ω</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="회전 운동에너지 (J, De Leva 1996)">KE_rot</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 대비 가속비">Speed Gain</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)" title="이전 분절 피크 후 lag (ms)">Lag</th>
+            </tr>
+          </thead>
+          <tbody id="p-segment-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;line-height:1.5;margin-top:8px">
+          <b>Peak ω (각속도)</b> — 분절 회전 빠르기 (°/s).<br>
+          <b>KE_rot (회전 운동에너지)</b> — ½·I·ω² (De Leva 1996 분절 관성). <b>분절이 얼마나 큰 회전 에너지를 만들고 있는지</b> — 큰 분절(골반·몸통)이 작은 분절(팔)에 에너지를 넘겨주는 양을 본다.<br>
+          <b>Speed Gain</b> = 다음 분절 ω / 현재 분절 ω (proper sequence 시 1.4-2.0).<br>
+          <b>Lag</b> = 분절 간 피크 시각 차 (이상적: 골반→몸통 30-60 ms, 몸통→팔 25-45 ms).
+        </div>
+      </details>
     </div>
   </div>
 
