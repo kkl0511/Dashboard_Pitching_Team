@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>상동고 투구 리포트 통합 대시보드 (v1.1 · 상반기 1차 측정)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#fafbfc; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de;
+    --line-soft:#eaeef2;
+    --text:#1f2328; --text-soft:#424a53; --muted:#656d76;
+    --accent:#0969da; --accent-bg:#ddf4ff; --accent2:#8250df;
+    --good:#1a7f37; --good-bg:#dafbe1;
+    --warn:#9a6700; --warn-bg:#fff8c5;
+    --bad:#cf222e; --bad-bg:#ffebe9;
+    --neutral:#6e7781;
+    --theia:#0969da; --uplift:#8250df;
+    --shadow:0 1px 3px rgba(31,35,40,.06), 0 1px 2px rgba(31,35,40,.04);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo",
+       "Pretendard","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:1px solid var(--line);padding:18px 28px}
+  header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  header h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px;font-weight:600}
+  header .ver{color:var(--muted);font-size:13px;font-weight:400;margin-left:6px}
+  header .sub{color:var(--muted);font-size:12.5px}
+  header .meta{font-size:12px;color:var(--muted);text-align:right}
+  header .meta b{color:var(--text);font-weight:600}
+
+  nav.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);
+           background:#fff;padding:0 28px;position:sticky;top:0;z-index:10}
+  nav.tabs button{background:transparent;border:none;color:var(--muted);
+                  padding:13px 18px;font-size:13.5px;cursor:pointer;
+                  border-bottom:2px solid transparent;font-weight:500;font-family:inherit;
+                  display:flex;gap:6px;align-items:center}
+  nav.tabs button:hover{color:var(--text)}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  nav.tabs button .num{background:var(--accent-bg);color:var(--accent);font-size:11px;
+                       padding:1px 6px;border-radius:10px;font-weight:600}
+  main{padding:22px 28px;max-width:1500px;margin:0 auto}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+         padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .panel h2{margin:0 0 14px;font-size:15px;font-weight:600;
+            display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .panel h2 .badge{font-size:10.5px;background:var(--panel2);color:var(--muted);
+                   padding:3px 8px;border-radius:4px;font-weight:500;
+                   border:1px solid var(--line)}
+  .panel h3{margin:0 0 10px;font-size:13.5px;font-weight:600;color:var(--text-soft)}
+  .grid{display:grid;gap:14px}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+
+  .kpi{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
+       padding:14px 16px}
+  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;
+              letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+  .kpi .value{font-size:24px;font-weight:600;color:var(--text)}
+  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .kpi .delta.up{color:var(--good)}
+  .kpi .delta.down{color:var(--bad)}
+
+  .protocol-tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:3px;
+                font-weight:600;letter-spacing:.2px;border:1px solid}
+  .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#aacaf0}
+  .protocol-tag.uplift{background:#fbefff;color:var(--uplift);border-color:#d8b9f0}
+  .protocol-tag.empty{background:#f6f8fa;color:#959da5;border-color:var(--line-soft)}
+  .protocol-tag.fitness{background:#fff3e7;color:#bc4c00;border-color:#fbc996}
+
+  /* 진행 현황 그리드 — 선수 수에 따라 --pc 가 JS로 설정됨 */
+  .progress-grid{display:grid;grid-template-columns:160px repeat(var(--pc,20),minmax(28px,1fr));
+                 gap:3px;font-size:11px}
+  .progress-grid .row-h{font-weight:600;color:var(--muted);padding:6px 4px;
+                        text-align:left;font-size:12px}
+  .progress-grid .col-h{font-weight:600;color:var(--text);padding:6px 0;
+                        text-align:center;font-size:11px;background:var(--panel2);
+                        border-radius:3px}
+  .progress-grid .cell{padding:6px 0;text-align:center;border-radius:3px;cursor:pointer;
+                       border:1px solid transparent}
+  .progress-grid .cell.done{background:var(--good-bg);color:var(--good);font-weight:600}
+  .progress-grid .cell.partial{background:var(--warn-bg);color:var(--warn);font-weight:600}
+  .progress-grid .cell.empty{background:#f6f8fa;color:#bbb;border:1px dashed var(--line-soft)}
+  .progress-grid .cell:hover{outline:2px solid var(--accent)}
+
+  /* Heatmap 테이블 */
+  table.heatmap{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}
+  table.heatmap th{background:var(--panel2);color:var(--text-soft);font-weight:600;
+                   padding:8px 6px;text-align:center;border-radius:4px}
+  table.heatmap td{padding:7px 4px;text-align:center;border-radius:4px;
+                   font-variant-numeric:tabular-nums;font-weight:500}
+  table.heatmap td.name{background:var(--panel2);text-align:left;
+                        padding-left:10px;font-weight:500;cursor:pointer;color:var(--text)}
+  table.heatmap td.name:hover{background:var(--accent-bg);color:var(--accent)}
+  table.heatmap td.empty{background:#f6f8fa;color:#bbb;font-size:11px;border:1px dashed var(--line-soft)}
+
+  .cell-score{color:#fff;font-weight:600}
+  .s5{background:#1a7f37}
+  .s4{background:#56a64b}
+  .s3{background:#bf8700;color:#fff}
+  .s2{background:#d1452a;color:#fff}
+  .s1{background:#a40e26}
+
+  table.data{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.data thead th{background:var(--panel2);padding:9px 10px;text-align:left;
+                      border-bottom:1px solid var(--line);font-weight:600;color:var(--text-soft);
+                      cursor:pointer;user-select:none;font-size:11.5px;
+                      text-transform:uppercase;letter-spacing:.3px}
+  table.data thead th:hover{color:var(--accent)}
+  table.data thead th.sort-asc::after{content:" ▲";color:var(--accent);font-size:10px}
+  table.data thead th.sort-desc::after{content:" ▼";color:var(--accent);font-size:10px}
+  table.data tbody td{padding:9px 10px;border-bottom:1px solid var(--line-soft);
+                      font-variant-numeric:tabular-nums}
+  table.data tbody tr{cursor:pointer}
+  table.data tbody tr:hover{background:var(--panel2)}
+  table.data .num,.right{text-align:right}
+
+  /* 컨트롤 */
+  .controls{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  select, input[type=text], input[type=number]{
+    background:#fff;border:1px solid var(--line);color:var(--text);
+    padding:7px 11px;border-radius:6px;font-size:13px;font-family:inherit}
+  select:focus,input:focus{outline:none;border-color:var(--accent);
+                            box-shadow:0 0 0 3px rgba(9,105,218,.15)}
+  button.btn{background:#fff;border:1px solid var(--line);color:var(--text);
+             padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;
+             font-size:13px;font-weight:500}
+  button.btn:hover{background:var(--panel2);border-color:var(--accent)}
+  button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.btn.primary:hover{background:#0860c4}
+  button.btn.ghost{background:transparent;border-color:transparent;color:var(--accent)}
+
+  .legend{font-size:11.5px;color:var(--muted);display:flex;gap:14px;align-items:center;
+          flex-wrap:wrap}
+  .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;
+                  vertical-align:middle;margin-right:5px;border:1px solid rgba(0,0,0,.05)}
+
+  /* 선수 리포트 섹션 */
+  .player-meta{display:flex;gap:16px;color:var(--muted);font-size:12.5px;
+               margin:8px 0 16px;flex-wrap:wrap}
+  .player-meta b{color:var(--text);font-weight:600}
+
+  .scard{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
+         padding:14px}
+  .scard h3{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;
+            align-items:center;color:var(--text)}
+  .scard .row{display:flex;justify-content:space-between;font-size:12.5px;
+              padding:5px 0;border-bottom:1px dashed var(--line-soft)}
+  .scard .row:last-child{border-bottom:none}
+  .scard .row .v{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  .scard .row .v.empty{color:#aaa;font-weight:400}
+  .scard .grp-title{font-size:11px;color:var(--muted);margin:10px 0 4px;
+                    text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+
+  /* 체력 4테스트 카드 */
+  .fit-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px}
+  .fit-card .test-name{font-size:13px;font-weight:700;color:var(--text);
+                       margin-bottom:2px;display:flex;justify-content:space-between;
+                       align-items:center}
+  .fit-card .test-sub{font-size:11px;color:var(--muted);margin-bottom:10px;
+                      padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+  .fit-card .var-row{display:flex;justify-content:space-between;font-size:12px;
+                     padding:4px 0}
+  .fit-card .var-row .lbl{color:var(--text-soft)}
+  .fit-card .var-row .val{font-weight:600;font-variant-numeric:tabular-nums}
+  .fit-card .star{color:#bf8700;font-size:10px;margin-left:4px}
+  .fit-card .pct-bar{height:4px;background:var(--line-soft);border-radius:2px;
+                     margin-top:3px;overflow:hidden}
+  .fit-card .pct-bar > div{height:100%;background:var(--accent);border-radius:2px}
+
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.sm{height:220px}
+  .chart-wrap.lg{height:340px}
+  .chart-wrap.xl{height:400px}
+
+  /* 데이터 관리 탭 */
+  .upload-zone{border:2px dashed var(--line);background:var(--panel2);
+               border-radius:8px;padding:24px;text-align:center;color:var(--muted);
+               cursor:pointer;transition:all .2s}
+  .upload-zone:hover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+  .upload-zone .ico{font-size:24px;margin-bottom:8px;opacity:.6}
+  .upload-zone .hint{font-size:11.5px;margin-top:6px;color:var(--muted)}
+
+  .step-list{counter-reset:step;padding-left:0;list-style:none}
+  .step-list li{counter-increment:step;padding:10px 0 10px 36px;position:relative;
+                border-bottom:1px solid var(--line-soft)}
+  .step-list li:last-child{border-bottom:none}
+  .step-list li::before{content:counter(step);position:absolute;left:0;top:9px;
+                         width:24px;height:24px;background:var(--accent);
+                         color:#fff;border-radius:50%;text-align:center;
+                         font-weight:600;font-size:12px;line-height:24px}
+  .step-list li b{color:var(--text)}
+
+  .footnote{font-size:11.5px;color:var(--muted);margin-top:14px;padding:12px 14px;
+            background:#f6f8fa;border-radius:6px;border-left:3px solid var(--accent)}
+  .footnote b{color:var(--text)}
+  .hidden{display:none !important}
+
+  /* 향후 활성화 안내 */
+  .placeholder-box{padding:40px 20px;text-align:center;color:var(--muted);
+                   background:var(--panel2);border-radius:8px;border:1px dashed var(--line)}
+  .placeholder-box .big{font-size:28px;color:var(--neutral);margin-bottom:8px}
+  .placeholder-box .ttl{font-size:14px;font-weight:600;color:var(--text-soft);margin-bottom:4px}
+
+  details{margin-top:8px}
+  details summary{cursor:pointer;color:var(--accent);font-size:12.5px;padding:6px 0;font-weight:500}
+  details summary:hover{text-decoration:underline}
+  pre.code{background:#f6f8fa;border:1px solid var(--line);border-radius:6px;
+           padding:10px;font-size:11.5px;overflow-x:auto;font-family:"SF Mono",Consolas,monospace}
+
+  .pill{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:10px;
+        font-weight:600}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--bad-bg);color:var(--bad)}
+
+  /* 실측 데이터 마커 — 셀 우상단에 작은 점 */
+  .real-marker{position:relative}
+  .real-marker::after{
+    content:''; position:absolute; top:3px; right:3px;
+    width:6px; height:6px; border-radius:50%;
+    background:#0969da; box-shadow:0 0 0 1.5px #fff;
+    pointer-events:none;
+  }
+  /* 진행 그리드의 done 셀에서는 다른 색(이미 초록 배경) */
+  .progress-grid .real-marker::after{background:#0969da}
+  /* 히트맵 cell-score(짙은 배경)에서는 흰 점 + 진한 테두리 */
+  table.heatmap .cell-score.real-marker::after{background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.4)}
+
+  .real-legend{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+  .real-legend .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+                    background:#0969da;box-shadow:0 0 0 1.5px #fff;border:1px solid var(--line-soft)}
+
+  /* 평소: 인쇄 전용 영역 숨김 */
+  .batch-print-only, .coach-print-only{display:none}
+
+  /* 콤팩트 선수 카드 (인쇄용 1페이지 1선수) */
+  .pcard{padding:14px 16px;font-size:11.5px;page-break-after:always;break-after:page}
+  .pcard:last-child{page-break-after:auto}
+  .pcard .ph{display:flex;justify-content:space-between;align-items:flex-end;
+             padding-bottom:8px;border-bottom:2px solid #1f2328;margin-bottom:10px}
+  .pcard .ph .nm{font-size:18px;font-weight:700}
+  .pcard .ph .meta{font-size:11px;color:#444;text-align:right}
+  .pcard .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  .pcard .kpi-row > div{background:#f6f8fa;border:1px solid #d0d7de;
+                         border-radius:5px;padding:7px 9px}
+  .pcard .kpi-row .lbl{font-size:9.5px;color:#656d76;text-transform:uppercase;letter-spacing:.4px}
+  .pcard .kpi-row .val{font-size:16px;font-weight:700;margin-top:2px}
+  .pcard .sec-title{font-size:11.5px;font-weight:700;background:#0969da;color:#fff;
+                    padding:4px 8px;border-radius:3px;margin:10px 0 6px;display:inline-block}
+  .pcard .sec-title.tr{background:#1a7f37}
+  .pcard .sec-title.lk{background:#cf222e}
+  .pcard .sec-title.gr{background:#bc4c00}
+  .pcard .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+  .pcard .mini-card{background:#f6f8fa;border:1px solid #d0d7de;border-radius:5px;padding:7px 9px}
+  .pcard .mini-card .ttl{font-weight:700;font-size:11px;margin-bottom:4px}
+  .pcard .mini-card .kv{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0}
+  .pcard .mini-card .kv b{font-variant-numeric:tabular-nums}
+  .pcard .zonebar{display:flex;align-items:center;gap:5px;font-size:10px;margin:3px 0}
+  .pcard .zonebar .zlbl{flex:0 0 75px;color:#444}
+  .pcard .zonebar .zbar{flex:1;height:6px;background:#e1e4e8;border-radius:3px;overflow:hidden}
+  .pcard .zonebar .zbar > div{height:100%}
+  .pcard .zonebar .zval{flex:0 0 22px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .pcard .causal{display:flex;gap:6px;align-items:center;padding:4px 6px;
+                 background:#fff;border:1px solid #d0d7de;border-radius:4px;
+                 font-size:10.5px;margin:3px 0}
+  .pcard .causal .num{flex:0 0 18px;height:18px;border-radius:50%;color:#fff;
+                       text-align:center;line-height:18px;font-weight:700;font-size:10px}
+  .pcard .footer-line{font-size:10px;color:#666;margin-top:8px;padding-top:6px;
+                       border-top:1px dashed #d0d7de;display:flex;justify-content:space-between}
+  /* 미니 라디아 SVG 컨테이너 */
+  .pcard .mini-radar{width:100%;height:140px}
+
+  /* 코치 리포트 인쇄 카드 */
+  .coach-rep{padding:18px 20px;font-size:12px;line-height:1.55}
+  .coach-rep h1{margin:0 0 4px;font-size:20px;font-weight:700}
+  .coach-rep .doc-meta{color:#444;font-size:11px;margin-bottom:12px;
+                       padding-bottom:8px;border-bottom:2px solid #1f2328}
+  .coach-rep h2{font-size:13px;font-weight:700;background:#0969da;color:#fff;
+                padding:5px 10px;border-radius:3px;margin:14px 0 8px;display:inline-block}
+  .coach-rep h2.warn{background:#cf222e}
+  .coach-rep h2.ok{background:#1a7f37}
+  .coach-rep .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .coach-rep .gr-kpi{background:#f6f8fa;border:1px solid #d0d7de;padding:8px 10px;border-radius:5px}
+  .coach-rep .gr-kpi .lbl{font-size:10px;color:#656d76;text-transform:uppercase;letter-spacing:.3px}
+  .coach-rep .gr-kpi .val{font-size:18px;font-weight:700;margin-top:2px}
+  .coach-rep .gr-kpi .sub{font-size:10px;color:#666;margin-top:2px}
+  .coach-rep .group-row{display:flex;align-items:center;gap:8px;padding:6px 10px;
+                         background:#f6f8fa;border-left:4px solid #ccc;border-radius:4px;
+                         margin:4px 0;font-size:11.5px}
+  .coach-rep .group-row .name{font-weight:700;flex:0 0 100px}
+  .coach-rep .group-row .count{flex:0 0 50px;font-weight:700}
+  .coach-rep .group-row .members{flex:1;font-size:11px;color:#444}
+  .coach-rep table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px}
+  .coach-rep table th{background:#1f2328;color:#fff;padding:5px 7px;text-align:left}
+  .coach-rep table td{padding:5px 7px;border-bottom:1px solid #d0d7de;font-variant-numeric:tabular-nums}
+  .coach-rep .pattern{padding:8px 10px;background:#fff8f0;border:1px solid #ffd1b3;
+                       border-radius:5px;margin:5px 0;font-size:11.5px}
+  .coach-rep .pattern b{color:#bc4c00}
+  .coach-rep .action{padding:8px 10px;background:#fff;border:1px solid #d0d7de;
+                      border-radius:5px;margin:5px 0;font-size:11.5px}
+  .coach-rep .action.warn{background:#ffebe9;border-color:#ffaaa3}
+  .coach-rep .action.ok{background:#dafbe1;border-color:#74dba1}
+
+  /* ─── 인쇄 / PDF (v1.7) ─────────────────────────────────────
+     기본 동작:
+     - "선수 리포트" 탭에서 인쇄 → 해당 선수 1장만 출력
+     - 다른 탭에서 인쇄 → 해당 탭 보이는 내용 출력
+     - 모든 탭의 숨김 영역은 인쇄에서도 숨김 (탭 전환 안 보임)
+     ────────────────────────────────────────────────────────── */
+  @media print{
+    @page{ size: A4 portrait; margin: 12mm; }
+    /* 색상·배경 보존 (Chrome/Edge/Safari) */
+    *, *::before, *::after{
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    body{background:#fff;font-size:11px}
+    main{padding:0;max-width:none}
+    header{padding:8px 0;border-bottom:1px solid #999}
+    header .top{align-items:flex-start}
+    header h1{font-size:14px}
+    header .ver, header .sub, header .meta{font-size:10px}
+    /* 네비/컨트롤 숨김 */
+    nav.tabs, .controls, .upload-zone, button.btn,
+    #theia-json-result, .footnote details, details > summary{display:none !important}
+    /* details 펼친 내용은 인쇄에 노출 */
+    details[open] > *{display:block !important}
+    details[open] > summary{display:none !important}
+    /* 패널 기본 */
+    .panel{box-shadow:none;border:1px solid #bbb;padding:10px 12px;margin-bottom:10px;
+           page-break-inside:avoid;break-inside:avoid}
+    .panel h2{font-size:12px;margin-bottom:8px}
+    .panel h3{font-size:11px}
+    .kpi{padding:8px 10px}
+    .kpi .value{font-size:18px}
+    .kpi .label, .kpi .delta{font-size:10px}
+    /* 차트는 작게 고정 */
+    .chart-wrap{height:200px !important}
+    .chart-wrap.lg, .chart-wrap.xl{height:240px !important}
+    /* 테이블 */
+    table.data, table.heatmap{font-size:10px}
+    table.data thead th{padding:5px 6px;font-size:10px}
+    table.data tbody td{padding:5px 6px}
+    /* 진행 그리드는 인쇄에서 너무 좁아지므로 컬럼 크기 조정 */
+    .progress-grid{font-size:9px}
+    .progress-grid .col-h{padding:3px 0;font-size:9px}
+    .progress-grid .cell{padding:3px 0}
+    /* 새 페이지 시작 — 큰 섹션 사이 */
+    .panel.print-break{page-break-before:always;break-before:page}
+    /* 카드 4개 그리드는 인쇄에서도 4개 유지하되 좁게 */
+    .grid-4{gap:6px}
+    .grid-3, .grid-2{gap:8px}
+    /* 체력 카드 4개는 한 줄 유지 */
+    .fit-card{padding:8px 10px;page-break-inside:avoid}
+    .fit-card .test-name{font-size:11px}
+    .fit-card .test-sub{font-size:9px;margin-bottom:6px}
+    .fit-card .var-row{font-size:10px;padding:2px 0}
+    /* 선수 리포트의 회차 카드 */
+    .scard{padding:8px 10px;page-break-inside:avoid}
+    .scard h3{font-size:10.5px}
+    .scard .row{font-size:10px;padding:2px 0}
+    /* hidden 탭은 인쇄에서도 숨김 */
+    .hidden{display:none !important}
+
+    /* ─── 일괄 인쇄 모드 (선수 PDF 일괄 출력) ─── */
+    body.printing-batch header,
+    body.printing-batch nav.tabs,
+    body.printing-batch main{ display:none !important; }
+    body.printing-batch .batch-print-only{
+      display:block !important; padding:0; margin:0;
+      background:#fff; color:#000;
+    }
+    /* ─── 코치 리포트 인쇄 모드 ─── */
+    body.printing-coach header,
+    body.printing-coach nav.tabs,
+    body.printing-coach main{ display:none !important; }
+    body.printing-coach .coach-print-only{
+      display:block !important; padding:0; margin:0;
+      background:#fff; color:#000;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v1.1 · 상반기 1차 측정 중심</span></h1>
+      <div class="sub">
+        바이오모션 ↔ 상동고등학교 야구부 · 투수 <b id="hdr-pcount">—</b>명
+        × 측정 4회 &nbsp;
+        <span style="color:var(--text-soft)">상반기</span> Theia+GRF → Uplift &nbsp;·&nbsp;
+        <span style="color:var(--text-soft)">하반기</span> Theia+GRF → Uplift
+      </div>
+    </div>
+    <div class="meta">
+      <div>1차 측정 예정일: <b id="hdr-d1">—</b> (Theia+GRF + ForceDecks + Rapsodo)</div>
+      <div>현재 데이터: <b id="data-status">샘플 데이터 (실측 데이터 미입력)</b>
+        &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="m1">1차 측정 결과 <span class="num">팀</span></button>
+  <button class="tab-btn" data-tab="player">선수별 1차 리포트</button>
+  <button class="tab-btn" data-tab="data">데이터 관리</button>
+  <button class="tab-btn" data-tab="report">📋 리포트 출력 <span class="num">PDF</span></button>
+  <button class="tab-btn" data-tab="long">장기 추적 <span class="num" style="background:#f6f8fa;color:var(--muted)">상·하반기</span></button>
+</nav>
+
+<main>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 1: 1차 측정 결과 (팀 전체)                           ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-m1">
+
+  <div class="grid grid-4">
+    <div class="kpi">
+      <div class="label">측정 진행 (1차)</div>
+      <div class="value" id="kpi-progress">—</div>
+      <div class="delta" id="kpi-progress-sub">선수 × {Theia+GRF, ForceDecks, Rapsodo}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 평균 측정 구속</div>
+      <div class="value" id="kpi-velo">— km/h</div>
+      <div class="delta" id="kpi-velo-delta">최고 — / 최저 —</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 평균 종합점수</div>
+      <div class="value" id="kpi-score">—</div>
+      <div class="delta" id="kpi-score-delta">출력 — · 전달 — · 누수관리 — · GRF —</div>
+    </div>
+    <div class="kpi">
+      <div class="label">집중 관리 대상</div>
+      <div class="value" id="kpi-risk">—</div>
+      <div class="delta">부상위험 high·mid 또는 종합 &lt; 50</div>
+    </div>
+  </div>
+
+  <div style="text-align:right;margin-bottom:8px">
+    <button class="btn" onclick="window.print()" title="현재 탭 내용을 PDF로 저장">🖨 팀 개요 인쇄 / PDF</button>
+  </div>
+
+  <div class="panel">
+    <h2>1차 측정 진행 현황 <span class="badge">셀 클릭 → 데이터 관리 탭 이동</span></h2>
+    <div style="overflow-x:auto;padding-bottom:6px">
+      <div class="progress-grid" id="progress-grid"></div>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><span class="swatch" style="background:var(--good-bg);border-color:var(--good)"></span>입력 완료</span>
+      <span><span class="swatch" style="background:var(--warn-bg);border-color:var(--warn)"></span>일부만 입력</span>
+      <span><span class="swatch" style="background:#f6f8fa;border-style:dashed"></span>미입력</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>1차 측정 결과 종합 테이블 <span class="badge">컬럼 클릭 → 정렬 · 행 클릭 → 선수 리포트</span></h2>
+    <div style="overflow-x:auto">
+      <table class="data" id="m1-table">
+        <thead>
+          <tr>
+            <th data-key="name">선수</th>
+            <th data-key="arm" class="right">투구</th>
+            <th data-key="velo" class="right">구속(km/h)</th>
+            <th data-key="velo_pot" class="right">잠재</th>
+            <th data-key="score" class="right">종합</th>
+            <th data-key="gen" class="right" style="background:#ddf4ff">출력</th>
+            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
+            <th data-key="eli" class="right" style="background:#ffebe9">누수↑</th>
+            <th data-key="grf" class="right">GRF·LHEI</th>
+            <th data-key="risk" class="right">부상</th>
+            <th data-key="cons" class="right">제구SD</th>
+            <th data-key="cmj_jh" class="right" style="color:var(--muted);font-size:10.5px">체력 CMJ</th>
+            <th data-key="imtp_pf" class="right" style="color:var(--muted);font-size:10.5px">체력 IMTP</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="panel">
+      <h2>에너지 4분면 — 출력 × 전달</h2>
+      <div class="chart-wrap"><canvas id="chart-quadrant"></canvas></div>
+      <div class="footnote">
+        X축: 에너지 <b>출력</b> · Y축: 에너지 <b>전달</b> · 점 크기: <b>누수</b> (클수록 누수 큼)<br>
+        <b>우상</b>=잘 만들고 잘 전달(elite) · <b>우하</b>=만들지만 전달 안 됨 · <b>좌상</b>=전달은 좋은데 출력 부족 · <b>좌하</b>=집중 관리
+      </div>
+    </div>
+    <div class="panel">
+      <h2>구속 vs 잠재구속</h2>
+      <div class="chart-wrap"><canvas id="chart-velo-potential"></canvas></div>
+      <div class="footnote">
+        대각선 위쪽 = 잠재 미발현(메카닉/체력 발달 여지) · 대각선 아래쪽 = 측정구속이 잠재보다 높음(효율 우수)
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수별 종합점수 히트맵 <span class="badge">선수 클릭 → 상세 리포트</span></h2>
+    <div class="legend">
+      <span><span class="swatch" style="background:#1a7f37"></span>85+ 매우 우수</span>
+      <span><span class="swatch" style="background:#56a64b"></span>70–84 우수</span>
+      <span><span class="swatch" style="background:#bf8700"></span>55–69 보통</span>
+      <span><span class="swatch" style="background:#d1452a"></span>40–54 발달 필요</span>
+      <span><span class="swatch" style="background:#a40e26"></span>&lt;40 집중 관리</span>
+      <span style="margin-left:auto" class="real-legend"><span class="dot"></span>● 표시 = 실측 데이터 (점 없음 = 샘플)</span>
+    </div>
+    <div style="overflow-x:auto;margin-top:12px">
+      <table class="heatmap" id="m1-heatmap"></table>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 2: 선수별 1차 리포트 (메카닉 + 체력 통합)             ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-player" class="hidden">
+
+  <div class="panel">
+    <div class="controls">
+      <label style="color:var(--muted);font-size:12.5px;font-weight:500">선수</label>
+      <select id="player-select"></select>
+      <button class="btn ghost" id="btn-prev-player">← 이전</button>
+      <button class="btn ghost" id="btn-next-player">다음 →</button>
+      <span style="margin-left:auto">
+        <button class="btn" onclick="window.print()" title="이 선수 리포트만 PDF로 저장 (인쇄 다이얼로그에서 'PDF로 저장' 선택)">🖨 인쇄 / PDF</button>
+        <button class="btn primary" id="btn-open-theia">Theia+GRF 원본 리포트 열기 ↗</button>
+      </span>
+    </div>
+    <div id="player-meta-line" class="player-meta"></div>
+
+    <!-- 4개 헤더 카드 (구속·잠재·종합·부상) -->
+    <div class="grid grid-4">
+      <div class="kpi">
+        <div class="label">측정 구속 (평균)</div>
+        <div class="value" id="p-velo">—</div>
+        <div class="delta">최고 <b id="p-velo-max">—</b></div>
+      </div>
+      <div class="kpi">
+        <div class="label">잠재 구속</div>
+        <div class="value" id="p-velo-pot">—</div>
+        <div class="delta" id="p-velo-pot-delta">잔차 —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">종합점수</div>
+        <div class="value" id="p-score">—</div>
+        <div class="delta" id="p-score-delta">메카닉 — · 체력 — · GRF —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">부상 위험</div>
+        <div class="value" id="p-risk">—</div>
+        <div class="delta" id="p-risk-detail">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 라디아 + 4분면 -->
+  <div class="grid grid-2">
+    <div class="panel">
+      <h2>5축 에너지 라디아</h2>
+      <div class="chart-wrap lg"><canvas id="p-radar"></canvas></div>
+      <div class="footnote">
+        축: <b>출력 (Output)</b> / <b>전달 (Transfer)</b> / <b>누수관리 (역 ELI)</b> / <b>GRF·LHEI</b> / <b>제구·결함</b> (모두 0~100, 클수록 우수)
+      </div>
+    </div>
+    <div class="panel">
+      <h2>키네틱 시퀀스 (피크 회전속도)</h2>
+      <div class="chart-wrap lg"><canvas id="p-sequence"></canvas></div>
+      <div class="footnote">
+        Theia 마커리스 + Qualisys GRF 측정. 골반 → 몸통 → 팔 순서로 가속이 이어져야 정상 (proper sequence).
+        ETE = 분절 간 에너지 전달 효율(%).
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚡ 에너지 분석 — 1차 측정의 헤드라인 (출력·전달·누수) -->
+  <div class="panel">
+    <h2>⚡ 에너지 분석 — 출력 · 전달 · 누수
+        <span class="protocol-tag theia">Theia+GRF</span>
+        <span class="badge">Theia+GRF 리포트의 핵심 프레임워크</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      회전 power가 어떻게 만들어지고(<b>생성</b>) → 분절 간에 얼마나 잘 넘어가고(<b>전달</b>) → 어디서 새는지(<b>누수</b>)를 한눈에.
+    </div>
+    <div class="grid grid-3">
+      <!-- ① 에너지 생성 (Output) -->
+      <div class="scard" style="border-top:3px solid #0969da">
+        <h3>① 에너지 생성 (Output)
+          <span style="font-size:18px;font-weight:700" id="p-en-gen-score">—</span>
+        </h3>
+        <div class="grp-title">피크 회전속도 (°/s)</div>
+        <div class="row"><span>골반 / 몸통 / 팔</span><span class="v" id="p-en-omega" style="font-size:11.5px">—</span></div>
+        <div class="grp-title">관절 파워 — Joint Power Scalar (W)</div>
+        <div class="row"><span>투구 어깨 / 팔꿈치</span><span class="v" id="p-en-arm-power">—</span></div>
+        <div class="row"><span>힙 (R / L)</span><span class="v" id="p-en-hip">—</span></div>
+        <div class="row"><span>무릎 (R / L)</span><span class="v" id="p-en-knee">—</span></div>
+        <div class="row"><span>합계 (Total)</span><span class="v" id="p-en-total-w">—</span></div>
+        <div class="grp-title">분절 운동에너지 (J)</div>
+        <div class="row"><span>골반 / 몸통 / 상완</span><span class="v" id="p-en-mech" style="font-size:11.5px">—</span></div>
+      </div>
+
+      <!-- ② 에너지 전달 (Transfer) -->
+      <div class="scard" style="border-top:3px solid #1a7f37">
+        <h3>② 에너지 전달 (Transfer)
+          <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
+        </h3>
+        <div class="grp-title">전달 효율</div>
+        <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
+        <div class="grp-title">Speed Gain (분절 간 가속비)</div>
+        <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>
+        <div class="row"><span>몸통 → 팔</span><span class="v" id="p-en-sg-ta">—</span></div>
+        <div class="grp-title">시퀀스 정확성</div>
+        <div class="row"><span>Proper Sequence</span><span class="v" id="p-en-proper">—</span></div>
+        <div class="row"><span>Pelvis→Trunk lag</span><span class="v" id="p-en-lag-pt">—</span></div>
+        <div class="row"><span>Trunk→Arm lag</span><span class="v" id="p-en-lag-ta">—</span></div>
+      </div>
+
+      <!-- ③ 에너지 누수 (Leak / ELI) -->
+      <div class="scard" style="border-top:3px solid #cf222e">
+        <h3>③ 에너지 누수 (ELI 6 zones)
+          <span style="font-size:18px;font-weight:700" id="p-en-eli-score">—</span>
+        </h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">100=완벽 / 50=중간 / 0=완전누수</div>
+        <div id="p-eli-zones"></div>
+      </div>
+    </div>
+
+    <!-- 결함 인과 분석 (causal chains, top 3) -->
+    <div style="margin-top:14px;padding:14px;background:var(--panel2);
+                border:1px solid var(--line-soft);border-radius:6px">
+      <h3 style="margin:0 0 10px;font-size:13px">🔗 결함 → 힘 손실 인과 분석 (우선순위 Top 3)</h3>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. 훈련 처방 1순위.
+      </div>
+      <div id="p-causal-chains"></div>
+    </div>
+  </div>
+
+  <!-- 지면반력 (NewtForce) 단독 패널 -->
+  <div class="panel">
+    <h2>🦵 지면반력 (NewtForce 통합 분석) <span class="protocol-tag theia">Theia+GRF</span></h2>
+    <div class="grid grid-3">
+      <div class="scard">
+        <h3>하체 종합 효율 (LHEI)</h3>
+        <div class="row"><span>LHEI 점수</span><span class="v" id="p-lhei" style="font-size:18px;font-weight:700">—</span></div>
+        <div class="row"><span>투수 유형 자동 진단</span><span class="v" id="p-grf-type" style="font-size:11.5px">—</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
+          LHEI = 8개 지표 가중 평균 (NewtForce 표준)
+        </div>
+      </div>
+      <div class="scard">
+        <h3>발별 누적 힘 (% BW·s)</h3>
+        <div class="row"><span>축발(뒷발) FP2</span><span class="v" id="p-rear">—</span></div>
+        <div class="row"><span>디딤발(앞발) FP1</span><span class="v" id="p-lead">—</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
+          축발: 시작부터 정적 weight + 차고 나가기<br>디딤발: 앞발 착지 후 받쳐주기
+        </div>
+      </div>
+      <div class="scard">
+        <h3>부상위험 · 제구일관성</h3>
+        <div class="grp-title">정렬 · 분리</div>
+        <div class="row"><span>X-factor (분리각)</span><span class="v" id="p-xf">—</span></div>
+        <div class="row"><span>Lead knee (FC→BR)</span><span class="v" id="p-lk">—</span></div>
+        <div class="grp-title">제구 일관성 (trial SD)</div>
+        <div class="row"><span>Release height SD</span><span class="v" id="p-rh-sd">—</span></div>
+        <div class="row"><span>Wrist position SD</span><span class="v" id="p-wp-sd">—</span></div>
+        <div class="row"><span>Trunk tilt SD</span><span class="v" id="p-tt-sd">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기존 호환용 숨겨진 필드 (renderPlayerView가 채우는 ID, 다른 곳에서 참조 시 안전) -->
+  <span id="p-pelvis" style="display:none"></span>
+  <span id="p-trunk" style="display:none"></span>
+  <span id="p-arm" style="display:none"></span>
+  <span id="p-ete" style="display:none"></span>
+  <span id="p-sg" style="display:none"></span>
+  <span id="p-seq-binary" style="display:none"></span>
+
+  <!-- 체력 (ForceDecks) 4 카드 — 보조 측정 -->
+  <div class="panel print-break">
+    <h2>보조 측정 — 체력 (ForceDecks 4 테스트) <span class="protocol-tag fitness">ForceDecks</span>
+        <span class="badge">하지 power capacity 보조 평가 · CMJ · SJ · Pogo · IMTP</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      <b>주의</b>: 1차 측정의 헤드라인은 위 ⚡ 에너지 분석(Theia+GRF). 체력은 capacity ceiling을 보조 설명하는 용도.
+    </div>
+    <div class="grid grid-4" id="fitness-cards"></div>
+    <div class="footnote">
+      <b>SSC 스펙트럼:</b> SJ (SSC 없음) → CMJ (Slow SSC) → Pogo (Fast SSC) → IMTP (Isometric).
+      투수 메커니즘 매칭: Drive leg push-off ≈ CMJ · FC reactive ≈ Pogo · Max strength ≈ IMTP Peak · Release explosive ≈ IMTP RFD.
+      <details><summary>EUR (CMJ JH / SJ JH) 해석 — McGuigan 2018</summary>
+        EUR &gt; 1.10 우수 SSC 활용 · 1.00~1.10 정상 · &lt; 1.00 SSC 미활용 (감속 후 즉시 추진력 못 살림)
+      </details>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 3: 데이터 관리 (1차 입력 워크플로우)                   ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-data" class="hidden">
+
+  <div class="panel">
+    <h2>1차 측정 데이터 입력 워크플로우</h2>
+    <ol class="step-list">
+      <li><b>측정 직후</b> (현장): Theia+GRF 측정 → c3d → Visual3D pipeline → c3d.txt export · ForceDecks 측정 → VALD Hub 업로드 · Rapsodo 구속 export</li>
+      <li><b>VALD Hub 정리</b>: 29 컬럼 wide CSV 다운로드 (vald_hub_template.csv) — 또는 API 직접 동기화 (Phase 2)</li>
+      <li><b>이 대시보드에 로드</b>: 아래 3개 영역에 각각 파일을 끌어넣으면 자동 검증·통합 (현재 v1.0은 양식 안내만, 실제 파싱은 v1.1에서 활성화)</li>
+      <li><b>리포트 생성</b>: 선수별 통합 리포트(이 대시보드) + Theia+GRF 원본 리포트 HTML(GitHub repo의 index.html에 업로드) 두 가지를 코치·선수에게 전달</li>
+    </ol>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="panel">
+      <h2>① Theia + GRF 결과 JSON <span class="protocol-tag theia">Theia+GRF</span>
+          <span class="badge">v1.2 · 인입 활성</span></h2>
+      <input type="file" id="theia-json-input" accept=".json,application/json" multiple style="display:none">
+      <div class="upload-zone" id="theia-json-zone">
+        <div class="ico">📥</div>
+        <div><b>Theia+GRF 결과 JSON 파일을 끌어놓기 또는 클릭</b></div>
+        <div class="hint">단일 선수 또는 배치(여러 선수 묶음) 모두 가능 · 여러 파일 동시 가능</div>
+      </div>
+      <div id="theia-json-result" style="margin-top:10px;font-size:12px"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="dl-theia-template-single">📄 단일 템플릿 다운로드</button>
+        <button class="btn" id="dl-theia-template-batch">📦 배치 템플릿 다운로드</button>
+        <button class="btn ghost" id="reset-data" style="margin-left:auto">샘플 데이터로 복원</button>
+      </div>
+      <div class="footnote" style="margin-top:12px">
+        <b>워크플로우</b>:
+        <ol style="margin:6px 0 6px 18px;padding:0;font-size:11.5px">
+          <li>Theia+GRF 리포트(GitHub repo의 index.html)에서 c3d.txt 분석</li>
+          <li>리포트 우상단 "💾 대시보드 JSON 저장" 버튼으로 파일 다운로드
+            <span class="pill good">v1.5 추가</span></li>
+          <li>이 영역에 끌어놓으면 해당 선수·회차 데이터 자동 반영</li>
+        </ol>
+        <details>
+          <summary>"💾 대시보드 JSON 저장" 버튼 추가하는 방법 (Theia+GRF repo 1회 적용)</summary>
+          <div style="font-size:11.5px;margin-top:6px;line-height:1.7">
+            <b>① 작업 폴더에서 <code>theia_grf_dashboard_export.js</code> 파일을 엽니다</b>
+            (대시보드와 같은 폴더에 자동 생성됨).<br>
+            <b>② 전체 내용을 복사</b>한 뒤,
+            <a href="https://github.com/kkl0511/Theia_GRF_Pitching_Report/blob/main/index.html" target="_blank" style="color:var(--accent)">Theia+GRF repo의 index.html</a>
+            맨 아래 <code>&lt;/body&gt;</code> 바로 위에
+            <code style="background:var(--panel2);padding:1px 5px;border-radius:3px">&lt;script&gt;…&lt;/script&gt;</code> 태그 안에 붙여넣습니다.<br>
+            <b>③</b> 분석을 1회 실행한 뒤 우상단 버튼 클릭 → JSON 파일 다운로드 → 이 영역에 끌어놓기.<br>
+            <span style="color:var(--muted)">※ 스니펫 안 GETTERS 함수의 변수명은 추정값. 실제 결과가 비어 있으면 변수명만 수정하면 됩니다.</span>
+          </div>
+        </details>
+        <details>
+          <summary>스키마 요약 (단일 선수 1회 측정)</summary>
+          <pre class="code">{
+  "athlete_external_id": "P01",   // 필수 — PLAYERS의 id와 일치
+  "session_id": 1,                 // 필수 — 1·2·3·4 중 하나
+  "test_date": "2026-05-15",
+  "protocol": "Theia+GRF",
+  "velocity": {
+    "measured_kmh": 132.5,
+    "potential_kmh": 138.0,
+    "score": 75
+  },
+  "sequence": {
+    "pelvis_dps": 510, "trunk_dps": 850, "arm_dps": 1380,
+    "ete_pct": 78, "speed_gain": 1.65,
+    "proper_seq": true, "score": 80
+  },
+  "energy": {                      // ⚡ 1차 측정 헤드라인 — 출력·전달·누수
+    "generation": {                // 에너지 생성 (출력)
+      "hip_R_W": 280, "hip_L_W": 260, "knee_R_W": 360, "knee_L_W": 340,
+      "shoulder_W": 420, "elbow_W": 240, "total_W": 1900,
+      "mech_energy_pelvis_J": 460, "mech_energy_trunk_J": 720, "mech_energy_humerus_J": 290,
+      "score": 78
+    },
+    "transfer": {                  // 에너지 전달
+      "ete_pct": 78, "speed_gain_pt": 1.65, "speed_gain_ta": 1.45,
+      "proper_seq": true, "pelvis_to_trunk_lag_ms": 65, "trunk_to_arm_lag_ms": 50,
+      "score": 80
+    },
+    "leakage": {                   // 에너지 누수 (ELI 6 zones)
+      "zone1_sequence": 85, "zone2_x_factor": 70, "zone3_lead_block": 65,
+      "zone4_trunk_at_fc": 78, "zone5_shoulder_align": 82, "zone6_pelvis_brake": 68,
+      "eli_score": 75,             // 6 zone 가중 평균
+      "causal_chains": [           // 결함 → 손실 인과 (top 3, 우선순위)
+        { "zone":"zone3", "zone_label":"앞발 받쳐주기 약함", "defect":"Lead knee collapse",  "impact_kmh": -2.9 },
+        { "zone":"zone6", "zone_label":"골반 감속 부족",     "defect":"Pelvis braking 부족", "impact_kmh": -2.7 },
+        { "zone":"zone2", "zone_label":"X-팩터 분리 부족",   "defect":"X-factor 미달",       "impact_kmh": -2.5 }
+      ]
+    }
+  },
+  "grf": {                         // Theia+GRF 회차에만
+    "lhei": 72, "rear_force_pct": 88, "lead_force_pct": 92,
+    "type": "균형형"               // 균형형/뒤에 처지는/앞으로 쏟아지는/잠깐만 미는/좌우로 새는
+  },
+  "faults": {
+    "x_factor_deg": 38, "lead_knee_change": -8,
+    "release_height_sd_cm": 4.2, "wrist_pos_sd_cm": 5.1,
+    "trunk_tilt_sd_deg": 1.8,
+    "consistency_score": 82, "fault_score": 75,
+    "injury_risk": "low",          // low | mid | high
+    "fault_count": 2
+  },
+  "fitness": {                     // 선택 — ForceDecks 결과 함께 (Theia+GRF 회차 + 체력측정 회차)
+    "cmj":  { "jump_height_cm": 41, "peak_power_w": 3460, "peak_power_bm_w_kg": 42, "rsi_modified_ms": 0.50, "conc_peak_force_bm_n_kg": 40.5, "ecc_conc_force_ratio": 1.05 },
+    "sj":   { "jump_height_cm": 39.3, "peak_power_bm_w_kg": 32.7, "conc_peak_force_bm_n_kg": 35.2 },
+    "eur": 1.04,
+    "pogo": { "rsi_ms": 1.85, "mean_contact_time_ms": 148, "mean_jump_height_cm": 26.5 },
+    "imtp": { "peak_force_n": 2117, "peak_force_bm_n_kg": 25.71, "rfd_0_100ms_n_s": 8240, "force_at_100ms_bm_n_kg": 21.8, "asymmetry_pct": 3.2 }
+  }
+}</pre>
+        </details>
+        <details>
+          <summary>배치 형식 (한 회차에 여러 선수)</summary>
+          <pre class="code">{
+  "session": { "id": 1, "date": "2026-05-15", "protocol": "Theia+GRF" },
+  "results": [
+    { "athlete_external_id": "P01", "velocity": {...}, "sequence": {...}, "grf": {...}, "faults": {...} },
+    { "athlete_external_id": "P02", ... },
+    ...
+  ]
+}</pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>② ForceDecks (VALD Hub CSV) <span class="protocol-tag fitness">체력 16변인</span></h2>
+      <div class="upload-zone" data-kind="vald">
+        <div class="ico">📊</div>
+        <div><b>vald_hub_template.csv 파일을 끌어놓기</b></div>
+        <div class="hint">29 컬럼 wide format · 1행 = 1선수/1세션</div>
+      </div>
+      <div class="footnote" style="margin-top:12px">
+        <b>표준 컬럼 (29개)</b> — 식별 8 + 세션 2 + CMJ 5 + SJ 3 + EUR 1 + Pogo 3 + IMTP 5
+        <details>
+          <summary>1행 샘플 (정예준 가상 데이터)</summary>
+          <pre class="code">athlete_external_id,athlete_name,date_of_birth,sex,height_cm,weight_kg,bmi,handedness,
+test_date,session_id,
+cmj_jump_height_cm,cmj_peak_power_w,cmj_peak_power_bm_w_kg,cmj_rsi_modified_ms,cmj_concentric_peak_force_bm_n_kg,cmj_eccentric_concentric_force_ratio,
+sj_jump_height_cm,sj_peak_power_bm_w_kg,sj_concentric_peak_force_bm_n_kg,eur,
+pogo_rsi_ms,pogo_mean_contact_time_ms,pogo_mean_jump_height_cm,
+imtp_peak_vertical_force_n,imtp_peak_vertical_force_bm_n_kg,imtp_rfd_0_100ms_n_s,imtp_force_at_100ms_bm_n_kg,imtp_asymmetry_pct
+
+P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
+2026-05-15,SES_20260515_001,
+41.0,3460,42.0,0.50,40.5,1.05,
+39.3,32.7,35.2,1.04,
+1.85,148,26.5,
+2117,25.71,8240,21.8,3.2</pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>③ Rapsodo 구속 (CSV) <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo</span></h2>
+      <div class="upload-zone" data-kind="rapsodo">
+        <div class="ico">⚾</div>
+        <div><b>rapsodo_velocity.csv 파일을 끌어놓기</b></div>
+        <div class="hint">선수ID, 구속(km/h or mph), 구종, 회전수 등</div>
+      </div>
+      <div class="footnote" style="margin-top:12px">
+        <b>최소 컬럼</b>: athlete_external_id, pitch_type(FB/CB/SL/CH 등), velocity_kmh, spin_rpm, release_height_m
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수 명단 관리 <span class="badge">총 <span id="roster-count">—</span>명</span></h2>
+    <div class="controls">
+      <input type="text" id="roster-search" placeholder="선수 검색..." style="min-width:200px">
+      <button class="btn" id="roster-add">+ 선수 추가</button>
+      <button class="btn" id="roster-export">CSV 다운로드</button>
+      <span style="color:var(--muted);font-size:11.5px;margin-left:auto">
+        ※ 명단을 영구 저장하려면 dashboard.html의 <code>PLAYERS</code> 배열을 직접 수정하세요.
+      </span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data" id="roster-table">
+        <thead>
+          <tr>
+            <th>외부ID</th><th>이름</th><th>투구</th><th>신장</th><th>체중</th>
+            <th>1차 메카닉</th><th>1차 체력</th><th>1차 구속</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 5: 리포트 출력 (선수 개별 + 코치 종합)                   ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-report" class="hidden">
+
+  <div class="panel">
+    <h2>📋 리포트 출력 메뉴</h2>
+    <div style="font-size:13px;color:var(--text-soft);line-height:1.7">
+      두 종류의 리포트를 PDF로 생성합니다 — <b>① 선수별 개별 리포트</b>(선수에게 배포)와
+      <b>② 코치 종합 리포트</b>(코치·감독 미팅 자료).<br>
+      <span style="color:var(--muted);font-size:12px">※ 브라우저 인쇄 다이얼로그에서 "PDF로 저장" 선택. Chrome/Edge 권장. 여백·머리글 모두 자동 처리.</span>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- ① 선수별 개별 리포트 -->
+    <div class="panel">
+      <h2>👤 선수별 개별 리포트</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+        각 선수당 1페이지. 선택한 선수만 일괄 PDF로 출력 → 한 번에 인쇄·저장 후 코치/선수에게 배포.
+      </div>
+      <div class="controls">
+        <label style="font-size:12.5px">측정 회차</label>
+        <select id="rep-session-pl">
+          <option value="1">1차 (Theia+GRF · 상반기)</option>
+        </select>
+        <button class="btn ghost" id="rep-pl-all">전체 선택</button>
+        <button class="btn ghost" id="rep-pl-none">전체 해제</button>
+      </div>
+
+      <div id="rep-player-checks" style="max-height:340px;overflow-y:auto;
+           border:1px solid var(--line-soft);border-radius:6px;padding:8px;
+           background:var(--panel2);margin-bottom:12px"></div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn primary" id="rep-pl-print">🖨 선택 선수 일괄 PDF 출력</button>
+        <span style="font-size:12px;color:var(--muted)">선택 <b id="rep-pl-count">0</b>명</span>
+      </div>
+
+      <div class="footnote" style="margin-top:14px">
+        <b>출력 항목</b> (1페이지/선수): 헤더 + 4 KPI · 5축 라디아 · 키네틱 시퀀스 막대 ·
+        에너지 분석(생성·전달·누수) · 결함 인과 Top 3 · GRF · 부상위험·제구 · 체력 보조
+      </div>
+    </div>
+
+    <!-- ② 코치 종합 리포트 -->
+    <div class="panel">
+      <h2>📊 코치 종합 리포트</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+        팀 전체 결과를 코치 시각으로 정리 — 우선순위 행동, 부상위험 알림, 결함 패턴, 그룹 훈련 추천까지.
+      </div>
+      <div class="controls">
+        <label style="font-size:12.5px">측정 회차</label>
+        <select id="rep-session-co">
+          <option value="1">1차 (Theia+GRF · 상반기)</option>
+        </select>
+        <button class="btn primary" id="rep-co-print" style="margin-left:auto">🖨 코치 리포트 PDF 출력</button>
+      </div>
+
+      <div class="footnote" style="margin-top:14px">
+        <b>리포트 구성</b>: 측정 진행 요약 · 팀 평균 KPI · 선수 그룹 분포 (Elite/Solid/Developing/Focus/Critical 5단계)
+        · ⚠ 부상 위험 알림 · 팀 결함 패턴 (취약 ELI zone Top 3 + 그룹 훈련 추천) · 우선순위 행동 (잠재력·향상도·즉시 관리) · 부록 표
+      </div>
+    </div>
+  </div>
+
+  <!-- 코치 리포트 미리보기 -->
+  <div class="panel">
+    <h2>👀 코치 리포트 미리보기 <span class="badge">실시간 데이터 기반 자동 생성</span></h2>
+    <div id="coach-report-preview" style="background:#fff;padding:0;border:none"></div>
+  </div>
+
+</section>
+
+<!-- 인쇄 전용 영역: 일괄 선수 인쇄 모드에서만 노출 -->
+<div id="batch-print-area" class="batch-print-only"></div>
+<!-- 인쇄 전용 영역: 코치 리포트 인쇄 모드 -->
+<div id="coach-print-area" class="coach-print-only"></div>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  TAB 4: 장기 추적 (4회 측정)                                ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="tab-long" class="hidden">
+
+  <div class="panel">
+    <h2>연간 측정 일정 (상반기 · 하반기 각 2회)</h2>
+    <div id="schedule-halves"></div>
+  </div>
+
+  <div class="panel">
+    <h2>상·하반기 비교 분석 <span class="badge">상반기(1·2차) ↔ 하반기(3·4차)</span></h2>
+    <div class="controls">
+      <label style="color:var(--muted);font-size:12.5px;font-weight:500">비교 지표</label>
+      <select id="hc-metric">
+        <option value="score">종합점수 (0~100, 시스템 차이 보정)</option>
+        <option value="velo">측정 구속 (km/h)</option>
+        <option value="velo_pot">잠재 구속 (km/h)</option>
+        <option value="sequence">시퀀스 점수 (0~100)</option>
+        <option value="consistency">제구 일관성 점수 (0~100)</option>
+        <option value="fault">결함 관리 점수 (0~100)</option>
+      </select>
+      <span style="color:var(--muted);font-size:11.5px;margin-left:auto">
+        ※ 골반·몸통·팔 절대 회전속도는 Theia↔Uplift 시스템 차이가 커서 비교에서 제외 — 0~100 정규화 점수계 위주.
+      </span>
+    </div>
+
+    <!-- 팀 평균 KPI 4개 -->
+    <div class="grid grid-4" id="hc-team-kpi" style="margin-top:6px"></div>
+
+    <!-- 향상도 막대 차트 -->
+    <div style="margin-top:18px">
+      <h3 id="hc-bar-title" style="margin:0 0 8px">선수별 향상도 (Δ = 하반기 − 상반기)</h3>
+      <div class="chart-wrap lg"><canvas id="hc-bar"></canvas></div>
+    </div>
+
+    <!-- 향상도 테이블 -->
+    <div style="margin-top:18px">
+      <h3 style="margin:0 0 8px">선수별 향상도 정렬 테이블 <span class="badge" style="font-weight:400">컬럼 클릭 → 정렬 · 행 클릭 → 선수 리포트</span></h3>
+      <div style="overflow-x:auto">
+        <table class="data" id="hc-table">
+          <thead>
+            <tr>
+              <th data-key="name">선수</th>
+              <th data-key="arm" class="right">투구</th>
+              <th data-key="h1" class="right">상반기 평균</th>
+              <th data-key="h2" class="right">하반기 평균</th>
+              <th data-key="delta" class="right">Δ (향상도)</th>
+              <th data-key="grade" class="right">등급</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <b>등급 기준</b> (점수계 지표): Δ &ge; +5 매우 향상 / +2~+5 향상 / -2~+2 유지 / &lt; -2 정체·하락.
+      구속 지표(km/h)는 Δ &ge; +3 / +1~+3 / -1~+1 / &lt; -1 기준 적용.
+      <br>※ 한 회차라도 데이터 누락 시 해당 선수는 — 처리.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>회차별 팀 평균 변화</h2>
+    <div class="chart-wrap lg"><canvas id="long-trend"></canvas></div>
+    <div class="footnote">
+      두 프로토콜이 교차로 진행되므로 시스템 차이 감안 — 특히 골반 회전속도 절대값은 시스템 간 직접 비교 부적절
+      (Uplift는 카메라 markerless 특성상 골반 약 2× 과대측정 경향. <b>참조</b>: BBL v33.14 cross-system calibration).
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>선수별 4회 추적 (선수 클릭 시 활성)</h2>
+    <div class="placeholder-box">
+      <div class="big">📈</div>
+      <div class="ttl">2~4차 측정 후 활성화</div>
+      <div>현재는 1차 측정 중심 운영 단계입니다. 2차(Uplift) 측정이 들어오면 자동으로 시계열 비교 차트가 활성화됩니다.</div>
+      <div style="margin-top:14px;font-size:12px">
+        <button class="btn primary" onclick="switchTab('m1')">1차 결과 탭으로 이동</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+<script>
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  1. 데이터 스키마 + 샘플 데이터                              ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+/* 측정 일정 — 상반기/하반기 각 2회씩, Theia+GRF → Uplift 순.
+   날짜는 임시값. 실제 일정 확정 시 date 필드만 수정하면 헤더·KPI·일정 카드 모두 자동 반영. */
+const SESSIONS = [
+  {id:1, label:'1차', date:'2026-05-15', protocol:'Theia+GRF', hasFitness:true,  half:'상반기'},
+  {id:2, label:'2차', date:'2026-07-10', protocol:'Uplift',     hasFitness:false, half:'상반기'},
+  {id:3, label:'3차', date:'2026-09-25', protocol:'Theia+GRF', hasFitness:true,  half:'하반기'},
+  {id:4, label:'4차', date:'2026-11-20', protocol:'Uplift',     hasFitness:false, half:'하반기'},
+];
+
+/* 선수 명단 — 행을 자유롭게 추가/삭제. 대시보드 모든 화면이 자동으로 인원수에 맞게 재배치됨.
+   필수 필드: id(외부ID), name, arm('R'|'L'), height(cm), weight(kg), dob(YYYY-MM-DD).
+   현재는 샘플 20명. 실제 명단 확정 시 이 배열만 갱신. */
+const PLAYERS = [
+  {id:'P01', name:'선수01', arm:'R', height:178, weight:75, dob:'2007-03-15'},
+  {id:'P02', name:'선수02', arm:'R', height:182, weight:80, dob:'2007-06-22'},
+  {id:'P03', name:'선수03', arm:'L', height:176, weight:72, dob:'2008-01-10'},
+  {id:'P04', name:'선수04', arm:'R', height:180, weight:78, dob:'2007-09-04'},
+  {id:'P05', name:'선수05', arm:'R', height:174, weight:70, dob:'2008-04-18'},
+  {id:'P06', name:'선수06', arm:'L', height:185, weight:82, dob:'2007-11-30'},
+  {id:'P07', name:'선수07', arm:'R', height:179, weight:76, dob:'2008-02-25'},
+  {id:'P08', name:'선수08', arm:'R', height:177, weight:73, dob:'2007-07-12'},
+  {id:'P09', name:'선수09', arm:'R', height:181, weight:79, dob:'2007-12-08'},
+  {id:'P10', name:'선수10', arm:'L', height:175, weight:71, dob:'2008-05-19'},
+  {id:'P11', name:'선수11', arm:'R', height:183, weight:81, dob:'2007-10-03'},
+  {id:'P12', name:'선수12', arm:'R', height:178, weight:74, dob:'2008-03-27'},
+  {id:'P13', name:'선수13', arm:'R', height:172, weight:68, dob:'2008-08-15'},
+  {id:'P14', name:'선수14', arm:'R', height:180, weight:77, dob:'2007-04-09'},
+  {id:'P15', name:'선수15', arm:'L', height:184, weight:83, dob:'2007-08-21'},
+  {id:'P16', name:'선수16', arm:'R', height:176, weight:72, dob:'2008-06-14'},
+  {id:'P17', name:'선수17', arm:'R', height:179, weight:75, dob:'2007-05-30'},
+  {id:'P18', name:'선수18', arm:'R', height:181, weight:78, dob:'2007-09-11'},
+  {id:'P19', name:'선수19', arm:'R', height:177, weight:74, dob:'2008-07-25'},
+  {id:'P20', name:'선수20', arm:'L', height:182, weight:80, dob:'2008-01-19'},
+];
+
+function seedRand(seed){let s=seed;return ()=>{s=(s*9301+49297)%233280;return s/233280}}
+function r1(x){return Math.round(x*10)/10}
+function r2(x){return Math.round(x*100)/100}
+
+function genMeasurements(){
+  const out = {};
+  PLAYERS.forEach((p, idx) => {
+    const rng = seedRand(idx*131+7);
+    const baseVelo = 118 + rng()*22;
+    const trend  = -2 + rng()*8;
+    const baseScore = 50 + rng()*35;
+    const scoreTrend = -3 + rng()*15;
+    const armVelBase = 1100 + rng()*500;
+    const baseFitness = 0.4 + rng()*0.5;  // 0.4~0.9
+    out[p.id] = {};
+    SESSIONS.forEach((s, si) => {
+      const f = si/3;
+      const noise = (rng()-0.5)*4;
+      const velo = baseVelo + trend*f + noise;
+      const score = Math.max(20,Math.min(98, baseScore + scoreTrend*f + (rng()-0.5)*6));
+      const seqScore = Math.max(20,Math.min(98, baseScore - 5 + scoreTrend*f*0.8 + (rng()-0.5)*8));
+      const consScore = Math.max(20,Math.min(98, baseScore + 5 + scoreTrend*f*0.5 + (rng()-0.5)*10));
+      const faultScore = Math.max(20,Math.min(98, 100 - (baseScore*0.3) + scoreTrend*f - (rng()-0.5)*8));
+
+      const isTheia = s.protocol === 'Theia+GRF';
+      const sysScale = isTheia ? 1.0 : 1.9;
+
+      const m = {
+        protocol: s.protocol, date: s.date,
+        velocity: {
+          measured_kmh: r1(velo),
+          potential_kmh: r1(velo + 6 + (score-60)/10),
+          score: Math.round(score)
+        },
+        sequence: {
+          pelvis_dps: Math.round((480 + rng()*80) * sysScale),
+          trunk_dps:  Math.round((780 + rng()*180) * sysScale * 0.8),
+          arm_dps:    Math.round(armVelBase + rng()*400),
+          ete_pct:    Math.round(60 + rng()*30 + scoreTrend*f),
+          speed_gain: r2(1.4 + rng()*0.4),
+          proper_seq: rng() > 0.15,
+          score:      Math.round(seqScore)
+        },
+        // 1차 측정(Theia+GRF)의 헤드라인 — 에너지 생성·전달·누수 (v1.8)
+        // Uplift 회차에서는 generation·transfer 일부만, leakage(GRF 의존)는 null
+        energy: (function(){
+          const gen = {
+            // Joint Power Scalar (W) — 8 관절 (Lehman·Aguinaldo 등 표준)
+            hip_R_W:      Math.round((220 + rng()*180) * (1+scoreTrend*f*0.01)),
+            hip_L_W:      Math.round((220 + rng()*180) * (1+scoreTrend*f*0.01)),
+            knee_R_W:     Math.round((280 + rng()*220) * (1+scoreTrend*f*0.01)),
+            knee_L_W:     Math.round((280 + rng()*220) * (1+scoreTrend*f*0.01)),
+            shoulder_W:   Math.round((320 + rng()*260) * (1+scoreTrend*f*0.01)),  // 투구 측만
+            elbow_W:      Math.round((180 + rng()*180) * (1+scoreTrend*f*0.01)),
+            // Mechanical Energy 분절 (J)
+            mech_energy_pelvis_J:   Math.round(380 + rng()*160),
+            mech_energy_trunk_J:    Math.round(620 + rng()*220),
+            mech_energy_humerus_J:  Math.round(220 + rng()*140),
+            score: Math.round(seqScore + (rng()-0.5)*8)
+          };
+          gen.total_W = gen.hip_R_W+gen.hip_L_W+gen.knee_R_W+gen.knee_L_W+gen.shoulder_W+gen.elbow_W;
+          const trf = {
+            ete_pct:                Math.round(60 + rng()*30 + scoreTrend*f),
+            speed_gain_pt:          r2(1.40 + rng()*0.35),    // 골반→몸통
+            speed_gain_ta:          r2(1.30 + rng()*0.30),    // 몸통→팔
+            proper_seq:             rng() > 0.15,
+            pelvis_to_trunk_lag_ms: Math.round(40 + rng()*60),
+            trunk_to_arm_lag_ms:    Math.round(30 + rng()*50),
+            score: Math.round(seqScore + (rng()-0.5)*6)
+          };
+          // 누수 ELI 6 zones (점수 100=완벽, 0=완전누수) — Theia+GRF 회차에만
+          const leak = isTheia ? (function(){
+            const z1 = Math.max(20,Math.min(98, 65 + rng()*30 + scoreTrend*f));
+            const z2 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
+            const z3 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
+            const z4 = Math.max(20,Math.min(98, 65 + rng()*28 + scoreTrend*f));
+            const z5 = Math.max(20,Math.min(98, 70 + rng()*25 + scoreTrend*f));
+            const z6 = Math.max(20,Math.min(98, 60 + rng()*30 + scoreTrend*f));
+            const eli = Math.round((z1+z2+z3+z4+z5+z6)/6);
+            // 인과 분석 — 가장 점수 낮은 zone 3개를 우선순위 결함으로
+            const zones = [
+              {key:'zone1', label:'골반→몸통→팔 시퀀스 어긋남',  defect:'분절 가속 순서 결함',          score: Math.round(z1)},
+              {key:'zone2', label:'골반-상체 분리 (X-팩터) 부족', defect:'X-factor 미달',                score: Math.round(z2)},
+              {key:'zone3', label:'앞발 받쳐주기 (블로킹) 약함',  defect:'Lead knee collapse',           score: Math.round(z3)},
+              {key:'zone4', label:'앞발 착지 시 몸통 자세 불량',  defect:'FC 시 트렁크 기울기 부적절',   score: Math.round(z4)},
+              {key:'zone5', label:'어깨 정렬 (외전·외회전) 부족', defect:'Shoulder alignment 결함',      score: Math.round(z5)},
+              {key:'zone6', label:'골반 감속 (브레이크) 부족',    defect:'Pelvis braking 부족',          score: Math.round(z6)}
+            ];
+            const sorted = [...zones].sort((a,b)=>a.score-b.score);
+            const causal = sorted.slice(0,3).map(z=>({
+              zone: z.key, zone_label: z.label, defect: z.defect,
+              impact_kmh: r1(-((100-z.score)/12 + rng()*0.8))   // 추정 손실 km/h
+            }));
+            return {
+              zone1_sequence: zones[0].score, zone2_x_factor: zones[1].score,
+              zone3_lead_block: zones[2].score, zone4_trunk_at_fc: zones[3].score,
+              zone5_shoulder_align: zones[4].score, zone6_pelvis_brake: zones[5].score,
+              eli_score: eli, causal_chains: causal
+            };
+          })() : null;
+          return { generation: gen, transfer: trf, leakage: leak };
+        })(),
+        grf: isTheia ? {
+          lhei: Math.max(20,Math.min(98, 50 + rng()*40 + scoreTrend*f)),
+          rear_force_pct: Math.round(70 + rng()*25),
+          lead_force_pct: Math.round(75 + rng()*22),
+          type: ['균형형','뒤에 처지는','앞으로 쏟아지는','잠깐만 미는','좌우로 새는'][Math.floor(rng()*5)]
+        } : null,
+        faults: {
+          x_factor_deg: r1(20 + rng()*22),
+          lead_knee_change: r1(-15 + rng()*25),
+          release_height_sd_cm: r1(2 + rng()*4 - scoreTrend*f*0.05),
+          wrist_pos_sd_cm: r1(2.5 + rng()*5),
+          trunk_tilt_sd_deg: r1(0.8 + rng()*2.5),
+          consistency_score: Math.round(consScore),
+          fault_score: Math.round(faultScore),
+          injury_risk: ['low','low','mid','low','high'][Math.floor(rng()*5)],
+          fault_count: Math.floor(rng()*5)
+        }
+      };
+      // 체력 (Theia+GRF 회차에만)
+      if(s.hasFitness){
+        const ff = baseFitness + (rng()-0.5)*0.2;
+        m.fitness = {
+          cmj: {
+            jump_height_cm: r1(28 + ff*22),                 // 28~50
+            peak_power_w: Math.round(2400 + ff*1700),       // 2400~4100
+            peak_power_bm_w_kg: r1(28 + ff*20),             // 28~48
+            rsi_modified_ms: r2(0.30 + ff*0.32),            // 0.30~0.62
+            conc_peak_force_bm_n_kg: r1(28 + ff*16),
+            ecc_conc_force_ratio: r2(0.85 + rng()*0.35)
+          },
+          sj: {
+            jump_height_cm: r1(26 + ff*20),
+            peak_power_bm_w_kg: r1(25 + ff*16),
+            conc_peak_force_bm_n_kg: r1(26 + ff*14)
+          },
+          eur: r2(1.0 + (rng()-0.3)*0.2),                   // 0.94~1.14
+          pogo: {
+            rsi_ms: r2(1.2 + ff*1.2),                       // 1.2~2.4
+            mean_contact_time_ms: Math.round(190 - ff*60),  // 130~190
+            mean_jump_height_cm: r1(18 + ff*14)
+          },
+          imtp: {
+            peak_force_n: Math.round(1700 + ff*900),
+            peak_force_bm_n_kg: r1(20 + ff*12),
+            rfd_0_100ms_n_s: Math.round(5500 + ff*4500),
+            force_at_100ms_bm_n_kg: r1(15 + ff*12),
+            asymmetry_pct: r1(1 + rng()*7)
+          }
+        };
+        // 체력 종합점수 (CMJ JH + IMTP PF/BM 정규화 평균)
+        const cmjN = Math.min(100, (m.fitness.cmj.jump_height_cm-25)/25 * 100);
+        const imtpN = Math.min(100, (m.fitness.imtp.peak_force_bm_n_kg-15)/20 * 100);
+        m.fitness.score = Math.round((cmjN + imtpN)/2);
+      } else {
+        m.fitness = null;
+      }
+      out[p.id][s.id] = m;
+    });
+  });
+  return out;
+}
+
+const DATA = genMeasurements();
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  2. 헬퍼                                                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+function avg(arr){const v=arr.filter(x=>x!=null&&!isNaN(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+function fmt(x,dec=1){return x==null||isNaN(x)?'—':Number(x).toFixed(dec)}
+function fmt0(x){return x==null||isNaN(x)?'—':Math.round(x)}
+function scoreClass(s){
+  if(s==null||isNaN(s)) return '';
+  if(s>=85) return 's5'; if(s>=70) return 's4';
+  if(s>=55) return 's3'; if(s>=40) return 's2'; return 's1';
+}
+function scoreColor(s){
+  if(s==null) return 'var(--muted)';
+  return s>=70?'var(--good)':s>=50?'var(--warn)':'var(--bad)';
+}
+function riskLabel(r){return {low:'낮음',mid:'중간',high:'높음'}[r]||'—'}
+function riskPill(r){return `<span class="pill ${r==='high'?'bad':r==='mid'?'warn':'good'}">${riskLabel(r)}</span>`}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  3. TAB 1: 1차 측정 결과                                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+function renderM1KPI(){
+  const m1 = PLAYERS.map(p=>DATA[p.id][1]);
+  // 진행: 메카닉(velocity 있음), 체력(fitness 있음), 구속(measured 있음) 셋 — 더미는 모두 채움
+  const total = PLAYERS.length * 3;
+  let done = 0;
+  m1.forEach(m=>{
+    if(m.velocity) done++;        // 메카닉
+    if(m.fitness) done++;          // 체력
+    if(m.velocity?.measured_kmh!=null) done++;  // 구속
+  });
+  document.getElementById('kpi-progress').textContent = `${done} / ${total}`;
+  document.getElementById('kpi-progress-sub').textContent =
+    `${PLAYERS.length}명 × {Theia+GRF, ForceDecks, Rapsodo}`;
+
+  const velos = m1.map(m=>m.velocity.measured_kmh);
+  const va = avg(velos);
+  document.getElementById('kpi-velo').textContent = `${fmt(va,1)} km/h`;
+  document.getElementById('kpi-velo-delta').textContent =
+    `최고 ${fmt(Math.max(...velos),1)} / 최저 ${fmt(Math.min(...velos),1)}`;
+
+  const sc = avg(m1.map(m=>m.velocity.score));
+  document.getElementById('kpi-score').textContent = fmt(sc,1);
+  const gen = avg(m1.map(m=>m.energy?.generation?.score).filter(x=>x!=null));
+  const trf = avg(m1.map(m=>m.energy?.transfer?.score).filter(x=>x!=null));
+  const eli = avg(m1.map(m=>m.energy?.leakage?.eli_score).filter(x=>x!=null));
+  const grf = avg(m1.map(m=>m.grf?.lhei).filter(x=>x!=null));
+  document.getElementById('kpi-score-delta').textContent =
+    `출력 ${fmt(gen,1)} · 전달 ${fmt(trf,1)} · 누수관리 ${fmt(eli,1)} · GRF ${fmt(grf,1)}`;
+
+  const focus = m1.filter(m=>m.faults.injury_risk==='high'||m.faults.injury_risk==='mid'||m.velocity.score<50).length;
+  const elr = document.getElementById('kpi-risk');
+  elr.textContent = `${focus}명`;
+  elr.style.color = focus>5?'var(--bad)':focus>2?'var(--warn)':'var(--good)';
+}
+
+function renderProgressGrid(){
+  const g = document.getElementById('progress-grid');
+  g.style.setProperty('--pc', PLAYERS.length);   // CSS grid 컬럼 수 동적
+  let html = '<div class="row-h">데이터 종류</div>';
+  PLAYERS.forEach(p=>{ html += `<div class="col-h" title="${p.name}">${p.name.replace('선수','P')}</div>`; });
+
+  const kinds = [
+    {label:'메카닉 (Theia+GRF)', test:m=>m && m.velocity},
+    {label:'체력 (ForceDecks)',  test:m=>m && m.fitness},
+    {label:'구속 (Rapsodo)',     test:m=>m && m.velocity?.measured_kmh!=null},
+  ];
+  kinds.forEach(k=>{
+    html += `<div class="row-h">${k.label}</div>`;
+    PLAYERS.forEach(p=>{
+      const m = DATA[p.id][1];
+      const ok = k.test(m);
+      const isReal = REAL_DATA_KEYS.has(`${p.id}:1`);
+      const cls = (ok ? 'cell done' : 'cell empty') + (isReal ? ' real-marker' : '');
+      const sym = ok ? '✓' : '·';
+      const tip = `${p.name} · ${k.label} · ${ok?'완료':'미입력'}${isReal?' (실측)':' (샘플)'}`;
+      html += `<div class="${cls}" title="${tip}" data-pid="${p.id}">${sym}</div>`;
+    });
+  });
+  g.innerHTML = html;
+  g.querySelectorAll('.cell').forEach(c=>{
+    c.addEventListener('click', ()=>switchTab('data'));
+  });
+}
+
+let m1Sort = {key:'score', dir:'desc'};
+function buildM1Table(){
+  const rows = PLAYERS.map(p=>{
+    const m = DATA[p.id][1];
+    return {
+      pid:p.id, name:p.name, arm:p.arm, height:p.height,
+      velo: m.velocity.measured_kmh, velo_pot: m.velocity.potential_kmh,
+      score: m.velocity.score,
+      gen: m.energy?.generation?.score ?? null,
+      trf: m.energy?.transfer?.score ?? null,
+      eli: m.energy?.leakage?.eli_score ?? null,
+      grf: m.grf ? m.grf.lhei : null,
+      cmj_jh: m.fitness?.cmj.jump_height_cm ?? null,
+      imtp_pf: m.fitness?.imtp.peak_force_bm_n_kg ?? null,
+      risk: m.faults.injury_risk,
+      cons: m.faults.release_height_sd_cm
+    };
+  });
+  const k=m1Sort.key, dir=m1Sort.dir==='asc'?1:-1;
+  const riskOrder={low:1,mid:2,high:3};
+  rows.sort((a,b)=>{
+    let av=a[k], bv=b[k];
+    if(k==='risk'){av=riskOrder[av];bv=riskOrder[bv]}
+    if(av==null) return 1; if(bv==null) return -1;
+    if(typeof av==='string') return dir*av.localeCompare(bv);
+    return dir*(av-bv);
+  });
+  const tb = document.querySelector('#m1-table tbody');
+  tb.innerHTML = rows.map(r=>{
+    const isReal = REAL_DATA_KEYS.has(`${r.pid}:1`);
+    const realDot = isReal ? ' <span title="실측 데이터" style="color:var(--accent);font-size:10px">●</span>' : '';
+    // 누수는 점수가 낮을수록 누수 큼 → "누수↑" 컬럼은 100-eli 로 표시 (값 클수록 누수 심각)
+    const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
+    return `
+    <tr data-pid="${r.pid}">
+      <td><b>${r.name}</b>${realDot}</td>
+      <td class="right">${r.arm}</td>
+      <td class="right">${fmt(r.velo,1)}</td>
+      <td class="right">${fmt(r.velo_pot,1)}</td>
+      <td class="right"><b style="color:${scoreColor(r.score)}">${fmt0(r.score)}</b></td>
+      <td class="right" style="background:#ddf4ff20"><b style="color:${scoreColor(r.gen)}">${fmt0(r.gen)}</b></td>
+      <td class="right" style="background:#dafbe120"><b style="color:${scoreColor(r.trf)}">${fmt0(r.trf)}</b></td>
+      <td class="right" style="background:#ffebe920"><b style="color:${r.eli==null?'var(--muted)':r.eli<55?'var(--bad)':r.eli<70?'var(--warn)':'var(--good)'}">${leakDisplay}</b></td>
+      <td class="right">${fmt0(r.grf)}</td>
+      <td class="right">${riskPill(r.risk)}</td>
+      <td class="right">${fmt(r.cons,1)} cm</td>
+      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.cmj_jh,1)}</td>
+      <td class="right" style="color:var(--muted);font-size:11px">${fmt(r.imtp_pf,1)}</td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('#m1-table thead th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.key===m1Sort.key) th.classList.add(m1Sort.dir==='asc'?'sort-asc':'sort-desc');
+  });
+  tb.querySelectorAll('tr').forEach(tr=>{
+    tr.addEventListener('click',()=>{
+      switchTab('player');
+      document.getElementById('player-select').value = tr.dataset.pid;
+      renderPlayerView(tr.dataset.pid);
+    });
+  });
+}
+document.addEventListener('click', e=>{
+  const th = e.target.closest('#m1-table thead th');
+  if(!th) return;
+  const k = th.dataset.key;
+  if(m1Sort.key===k){m1Sort.dir = m1Sort.dir==='asc'?'desc':'asc'}
+  else{m1Sort.key=k; m1Sort.dir = (k==='name'||k==='arm')?'asc':'desc'}
+  buildM1Table();
+});
+
+function renderM1Heatmap(){
+  // 1차 5축 — 에너지 프레임워크: 구속·출력·전달·누수관리·GRF
+  const tb = document.getElementById('m1-heatmap');
+  const axes = ['구속','출력 (Output)','전달 (Transfer)','누수관리 (역ELI)','GRF/LHEI'];
+  let html = '<thead><tr><th style="text-align:left;padding-left:10px">선수</th>';
+  axes.forEach(a=>{ html += `<th>${a}</th>`; });
+  html += '<th>평균</th></tr></thead><tbody>';
+  PLAYERS.forEach(p=>{
+    const m = DATA[p.id][1];
+    const isReal = REAL_DATA_KEYS.has(`${p.id}:1`);
+    const realCls = isReal ? ' real-marker' : '';
+    const sc = [
+      m.velocity.score,
+      m.energy?.generation?.score ?? null,
+      m.energy?.transfer?.score ?? null,
+      m.energy?.leakage?.eli_score ?? null,
+      m.grf ? Math.round(m.grf.lhei) : null
+    ];
+    const nameSuffix = isReal ? ' <span style="font-size:9px;color:var(--accent)">●</span>' : '';
+    html += `<tr><td class="name" data-pid="${p.id}">${p.name} <span style="color:var(--muted);font-size:10.5px">(${p.arm})</span>${nameSuffix}</td>`;
+    sc.forEach(s=>{
+      if(s==null){ html += '<td class="empty">—</td>'; }
+      else { html += `<td class="cell-score ${scoreClass(s)}${realCls}">${s}</td>`; }
+    });
+    const av = avg(sc);
+    html += `<td class="cell-score ${scoreClass(av)}${realCls}">${fmt0(av)}</td></tr>`;
+  });
+  tb.innerHTML = html + '</tbody>';
+  tb.querySelectorAll('td.name').forEach(td=>{
+    td.addEventListener('click', ()=>{
+      switchTab('player');
+      document.getElementById('player-select').value = td.dataset.pid;
+      renderPlayerView(td.dataset.pid);
+    });
+  });
+}
+
+let chartsM1 = {};
+function renderM1Charts(){
+  // 4분면: x = 출력(generation), y = 전달(transfer), 점 크기 = 누수(역 ELI)
+  if(chartsM1.q) chartsM1.q.destroy();
+  const points = PLAYERS.map(p=>{
+    const m = DATA[p.id][1];
+    const gen = m.energy?.generation?.score ?? 0;
+    const trf = m.energy?.transfer?.score ?? 0;
+    const eli = m.energy?.leakage?.eli_score ?? 100;  // 데이터 없으면 누수 0
+    return {
+      x: gen, y: trf,
+      label: p.name, pid: p.id,
+      r: 4 + (100 - eli) / 8   // 누수 큰 선수일수록 큰 점 (4~16)
+    };
+  });
+  const colors = points.map(p=>{
+    if(p.x>=70 && p.y>=70) return '#1a7f37';        // 균형 elite
+    if(p.x>=70 && p.y<70)  return '#bf8700';        // 출력 OK 전달 부족
+    if(p.x<70  && p.y>=70) return '#0969da';        // 전달 OK 출력 부족
+    return '#cf222e';                               // 둘 다 부족
+  });
+  chartsM1.q = new Chart(document.getElementById('chart-quadrant'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'선수', data:points,
+      backgroundColor: colors.map(c=>c+'cc'),
+      borderColor: colors, pointRadius: points.map(p=>p.r),
+      pointHoverRadius: 14
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>{
+          const p = points[c.dataIndex];
+          const m = DATA[p.pid][1];
+          const eli = m.energy?.leakage?.eli_score ?? '—';
+          return `${p.label} · 출력 ${Math.round(p.x)} · 전달 ${Math.round(p.y)} · ELI ${eli} (누수↑ 클수록 점 큼)`;
+        }}}
+      },
+      scales:{
+        x:{min:20,max:100,title:{display:true,text:'에너지 출력 (Generation, 0~100)',color:'#656d76'},
+           grid:{color:'#eaeef2'},ticks:{color:'#656d76'}},
+        y:{min:20,max:100,title:{display:true,text:'에너지 전달 (Transfer, 0~100)',color:'#656d76'},
+           grid:{color:'#eaeef2'},ticks:{color:'#656d76'}}
+      },
+      onClick:(evt, elems)=>{
+        if(elems.length){
+          const pid = points[elems[0].index].pid;
+          switchTab('player');
+          document.getElementById('player-select').value = pid;
+          renderPlayerView(pid);
+        }
+      }
+    }
+  });
+
+  // 구속 vs 잠재
+  if(chartsM1.vp) chartsM1.vp.destroy();
+  const vp = PLAYERS.map(p=>({
+    x: DATA[p.id][1].velocity.measured_kmh,
+    y: DATA[p.id][1].velocity.potential_kmh,
+    label: p.name, pid: p.id
+  }));
+  const minV = Math.floor(Math.min(...vp.map(p=>Math.min(p.x,p.y)))/5)*5;
+  const maxV = Math.ceil(Math.max(...vp.map(p=>Math.max(p.x,p.y)))/5)*5;
+  chartsM1.vp = new Chart(document.getElementById('chart-velo-potential'), {
+    type:'scatter',
+    data:{datasets:[
+      {label:'선수', data:vp, backgroundColor:'rgba(9,105,218,.7)', borderColor:'#0969da', pointRadius:6},
+      {label:'대각선 (측정=잠재)', type:'line', data:[{x:minV,y:minV},{x:maxV,y:maxV}],
+       borderColor:'#cf222e', borderDash:[5,4], pointRadius:0, showLine:true, fill:false}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#1f2328'}},
+        tooltip:{callbacks:{label:c=>{
+          if(c.datasetIndex===1) return '대각선';
+          const p = vp[c.dataIndex];
+          return `${p.label} · 측정 ${p.x} → 잠재 ${p.y} (잔차 ${(p.y-p.x).toFixed(1)})`;
+        }}}
+      },
+      scales:{
+        x:{min:minV,max:maxV,title:{display:true,text:'측정 구속 (km/h)',color:'#656d76'},grid:{color:'#eaeef2'},ticks:{color:'#656d76'}},
+        y:{min:minV,max:maxV,title:{display:true,text:'잠재 구속 (km/h)',color:'#656d76'},grid:{color:'#eaeef2'},ticks:{color:'#656d76'}}
+      },
+      onClick:(evt, elems)=>{
+        if(elems.length && elems[0].datasetIndex===0){
+          const pid = vp[elems[0].index].pid;
+          switchTab('player'); document.getElementById('player-select').value = pid; renderPlayerView(pid);
+        }
+      }
+    }
+  });
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  4. TAB 2: 선수별 1차 리포트                                 ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+let chartsP = {};
+function renderPlayerSelect(){
+  const sel = document.getElementById('player-select');
+  sel.innerHTML = PLAYERS.map(p=>`<option value="${p.id}">${p.name} (${p.arm}, ${p.height}cm)</option>`).join('');
+  sel.addEventListener('change', e=>renderPlayerView(e.target.value));
+  document.getElementById('btn-prev-player').addEventListener('click',()=>{
+    const i = PLAYERS.findIndex(p=>p.id===sel.value);
+    const ni = (i-1+PLAYERS.length)%PLAYERS.length;
+    sel.value = PLAYERS[ni].id; renderPlayerView(sel.value);
+  });
+  document.getElementById('btn-next-player').addEventListener('click',()=>{
+    const i = PLAYERS.findIndex(p=>p.id===sel.value);
+    const ni = (i+1)%PLAYERS.length;
+    sel.value = PLAYERS[ni].id; renderPlayerView(sel.value);
+  });
+  document.getElementById('btn-open-theia').addEventListener('click',()=>{
+    window.open('https://kkl0511.github.io/Theia_GRF_Pitching_Report/','_blank');
+  });
+}
+
+function renderPlayerView(pid){
+  const p = PLAYERS.find(x=>x.id===pid);
+  const m = DATA[p.id][1]; // 1차
+
+  const isReal = REAL_DATA_KEYS.has(`${p.id}:1`);
+  const dataBadge = isReal
+    ? `<span class="pill good" title="JSON 인입된 실측 데이터">● 실측</span>`
+    : `<span class="pill warn" title="샘플 데이터 — JSON 인입 시 자동 교체">샘플</span>`;
+  document.getElementById('player-meta-line').innerHTML =
+    `<span><b>${p.name}</b> (${p.id}) ${dataBadge}</span>` +
+    `<span>투구손: <b>${p.arm==='R'?'우투':'좌투'}</b></span>` +
+    `<span>신장: <b>${p.height} cm</b></span>` +
+    `<span>체중: <b>${p.weight} kg</b></span>` +
+    `<span>BMI: <b>${(p.weight/(p.height/100)**2).toFixed(1)}</b></span>` +
+    `<span>측정일: <b>${m.date}</b> <span class="protocol-tag theia">${m.protocol}</span></span>`;
+
+  // 4 헤더 카드
+  document.getElementById('p-velo').textContent = `${m.velocity.measured_kmh} km/h`;
+  document.getElementById('p-velo-max').textContent = `${(m.velocity.measured_kmh+1.5).toFixed(1)} km/h`;
+  document.getElementById('p-velo-pot').textContent = `${m.velocity.potential_kmh} km/h`;
+  const resid = m.velocity.measured_kmh - m.velocity.potential_kmh;
+  document.getElementById('p-velo-pot-delta').innerHTML =
+    `잔차 <b style="color:${resid>=0?'var(--good)':'var(--bad)'}">${resid>=0?'+':''}${resid.toFixed(1)} km/h</b> ${resid>=0?'(효율 우수)':'(잠재 미발현)'}`;
+  const elsc = document.getElementById('p-score');
+  elsc.textContent = m.velocity.score;
+  elsc.style.color = scoreColor(m.velocity.score);
+  document.getElementById('p-score-delta').textContent =
+    `메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
+  const elrk = document.getElementById('p-risk');
+  elrk.innerHTML = riskPill(m.faults.injury_risk);
+  document.getElementById('p-risk-detail').textContent =
+    `결함 ${m.faults.fault_count}개 검출 · IMTP 비대칭 ${m.fitness?.imtp.asymmetry_pct ?? '—'}%`;
+
+  // 5축 에너지 라디아 — 출력 / 전달 / 누수관리 / GRF·LHEI / 제구·결함
+  if(chartsP.r) chartsP.r.destroy();
+  const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
+  chartsP.r = new Chart(document.getElementById('p-radar'),{
+    type:'radar',
+    data:{
+      labels:['출력 (Output)','전달 (Transfer)','누수관리 (역 ELI)','GRF / LHEI','제구·결함'],
+      datasets:[{
+        label: p.name,
+        data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0, m.grf?.lhei ?? 0,
+              avg([m.faults.fault_score, m.faults.consistency_score])],
+        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2, pointRadius:4,
+        pointBackgroundColor:'#0969da'
+      },{
+        label:'팀 평균',
+        data:[
+          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.generation?.score).filter(v=>v!=null)),
+          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.transfer?.score).filter(v=>v!=null)),
+          avg(PLAYERS.map(x=>DATA[x.id][1].energy?.leakage?.eli_score).filter(v=>v!=null)),
+          avg(PLAYERS.map(x=>DATA[x.id][1].grf?.lhei).filter(v=>v!=null)),
+          avg(PLAYERS.map(x=>avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
+        ],
+        backgroundColor:'rgba(130,80,223,.10)', borderColor:'#8250df', borderWidth:1.5,
+        borderDash:[4,3], pointRadius:3
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#1f2328',font:{size:11.5}}}},
+      scales:{r:{
+        suggestedMin:0, suggestedMax:100,
+        grid:{color:'#eaeef2'}, angleLines:{color:'#eaeef2'},
+        pointLabels:{color:'#1f2328',font:{size:12}},
+        ticks:{color:'#656d76',backdropColor:'transparent',font:{size:10},stepSize:20}
+      }}
+    }
+  });
+
+  // 시퀀스
+  if(chartsP.s) chartsP.s.destroy();
+  chartsP.s = new Chart(document.getElementById('p-sequence'),{
+    type:'bar',
+    data:{
+      labels:['골반','몸통','팔'],
+      datasets:[{
+        label: p.name + ' (°/s)',
+        data:[m.sequence.pelvis_dps, m.sequence.trunk_dps, m.sequence.arm_dps],
+        backgroundColor:['#0969da','#1a7f37','#bc4c00']
+      },{
+        label:'팀 평균',
+        data:[
+          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.pelvis_dps)),
+          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.trunk_dps)),
+          avg(PLAYERS.map(x=>DATA[x.id][1].sequence.arm_dps))
+        ],
+        backgroundColor:'rgba(130,80,223,.4)', borderColor:'#8250df', borderWidth:1
+      }]
+    },
+    options:chartOpts({yTitle:'피크 각속도 (°/s)'})
+  });
+
+  // ⚡ 에너지 분석 — 생성·전달·누수 (v1.8 헤드라인)
+  const e = m.energy;
+  if(e){
+    // 생성 (Output)
+    const gen = e.generation;
+    document.getElementById('p-en-gen-score').innerHTML = `<span style="color:${scoreColor(gen.score)}">${fmt0(gen.score)}</span>`;
+    document.getElementById('p-en-omega').textContent = `${m.sequence.pelvis_dps} / ${m.sequence.trunk_dps} / ${m.sequence.arm_dps}`;
+    document.getElementById('p-en-arm-power').textContent = `${gen.shoulder_W} / ${gen.elbow_W} W`;
+    document.getElementById('p-en-hip').textContent = `${gen.hip_R_W} / ${gen.hip_L_W} W`;
+    document.getElementById('p-en-knee').textContent = `${gen.knee_R_W} / ${gen.knee_L_W} W`;
+    document.getElementById('p-en-total-w').innerHTML = `<b>${gen.total_W} W</b>`;
+    document.getElementById('p-en-mech').textContent = `${gen.mech_energy_pelvis_J} / ${gen.mech_energy_trunk_J} / ${gen.mech_energy_humerus_J} J`;
+
+    // 전달 (Transfer)
+    const trf = e.transfer;
+    document.getElementById('p-en-trf-score').innerHTML = `<span style="color:${scoreColor(trf.score)}">${fmt0(trf.score)}</span>`;
+    document.getElementById('p-en-ete').innerHTML = `<b>${trf.ete_pct}%</b>`;
+    document.getElementById('p-en-sg-pt').textContent = `${trf.speed_gain_pt}×`;
+    document.getElementById('p-en-sg-ta').textContent = `${trf.speed_gain_ta}×`;
+    document.getElementById('p-en-proper').innerHTML = trf.proper_seq
+      ? '<span class="pill good">정상</span>' : '<span class="pill bad">결함</span>';
+    document.getElementById('p-en-lag-pt').textContent = `${trf.pelvis_to_trunk_lag_ms} ms`;
+    document.getElementById('p-en-lag-ta').textContent = `${trf.trunk_to_arm_lag_ms} ms`;
+
+    // 누수 (Leakage / ELI)
+    const leak = e.leakage;
+    if(leak){
+      document.getElementById('p-en-eli-score').innerHTML = `<span style="color:${scoreColor(leak.eli_score)}">${fmt0(leak.eli_score)}</span>`;
+      const zones = [
+        {key:'zone1', label:'시퀀스',         val: leak.zone1_sequence},
+        {key:'zone2', label:'X-팩터 분리',    val: leak.zone2_x_factor},
+        {key:'zone3', label:'앞발 블로킹',    val: leak.zone3_lead_block},
+        {key:'zone4', label:'FC 몸통자세',    val: leak.zone4_trunk_at_fc},
+        {key:'zone5', label:'어깨 정렬',      val: leak.zone5_shoulder_align},
+        {key:'zone6', label:'골반 감속',      val: leak.zone6_pelvis_brake},
+      ];
+      document.getElementById('p-eli-zones').innerHTML = zones.map(z=>{
+        const c = z.val>=85?'#1a7f37':z.val>=70?'#56a64b':z.val>=55?'#bf8700':z.val>=40?'#d1452a':'#a40e26';
+        return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11.5px">
+          <span style="flex:0 0 95px;color:var(--text-soft)">${z.label}</span>
+          <div style="flex:1;height:8px;background:var(--line-soft);border-radius:4px;overflow:hidden;position:relative">
+            <div style="height:100%;width:${z.val}%;background:${c}"></div>
+          </div>
+          <span style="flex:0 0 32px;text-align:right;font-weight:600;color:${c}">${z.val}</span>
+        </div>`;
+      }).join('');
+
+      // 인과 분석 — top 3
+      const cw = document.getElementById('p-causal-chains');
+      if(leak.causal_chains && leak.causal_chains.length){
+        cw.innerHTML = leak.causal_chains.map((c,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                      background:#fff;border:1px solid var(--line-soft);border-radius:5px;margin-bottom:6px">
+            <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'#0969da'};
+                         color:#fff;border-radius:50%;text-align:center;font-weight:700;
+                         line-height:22px;font-size:11px">${i+1}</span>
+            <span style="flex:1;font-size:12.5px"><b>${c.defect}</b>
+              <span style="color:var(--muted);font-size:11px"> → ${c.zone_label || c.zone}</span></span>
+            <span class="pill bad" style="flex:0 0 auto">추정 ${c.impact_kmh} km/h</span>
+          </div>
+        `).join('');
+      } else {
+        cw.innerHTML = '<div style="color:var(--muted);font-size:12px">인과 분석 데이터 없음</div>';
+      }
+    } else {
+      document.getElementById('p-en-eli-score').textContent = '—';
+      document.getElementById('p-eli-zones').innerHTML =
+        '<div style="color:var(--muted);font-size:12px;padding:8px 0">GRF 데이터 없음 (Uplift 회차)</div>';
+      document.getElementById('p-causal-chains').innerHTML =
+        '<div style="color:var(--muted);font-size:12px">GRF 기반 인과 분석 미가용</div>';
+    }
+  }
+
+  // (호환) 기존 ID도 채워둠 — 다른 곳에서 참조 시 안전
+  document.getElementById('p-pelvis').textContent = m.sequence.pelvis_dps;
+  document.getElementById('p-trunk').textContent = m.sequence.trunk_dps;
+  document.getElementById('p-arm').textContent = m.sequence.arm_dps;
+  document.getElementById('p-ete').textContent = m.sequence.ete_pct + '%';
+  document.getElementById('p-sg').textContent = m.sequence.speed_gain + '×';
+  document.getElementById('p-seq-binary').textContent = m.sequence.proper_seq ? '정상' : '결함';
+
+  // GRF + 결함
+  document.getElementById('p-lhei').innerHTML =
+    `<span style="color:${scoreColor(m.grf.lhei)}">${fmt0(m.grf.lhei)}</span>`;
+  document.getElementById('p-grf-type').textContent = m.grf.type;
+  document.getElementById('p-rear').textContent = m.grf.rear_force_pct + '%';
+  document.getElementById('p-lead').textContent = m.grf.lead_force_pct + '%';
+
+  document.getElementById('p-xf').textContent = m.faults.x_factor_deg + '°';
+  document.getElementById('p-lk').textContent = m.faults.lead_knee_change + '°';
+  document.getElementById('p-rh-sd').textContent = m.faults.release_height_sd_cm + ' cm';
+  document.getElementById('p-wp-sd').textContent = m.faults.wrist_pos_sd_cm + ' cm';
+  document.getElementById('p-tt-sd').textContent = m.faults.trunk_tilt_sd_deg + '°';
+
+  // 체력 4 카드 (보조)
+  renderFitnessCards(m.fitness);
+}
+
+function renderFitnessCards(fit){
+  const wrap = document.getElementById('fitness-cards');
+  if(!fit){ wrap.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">체력 측정 데이터 없음</div>'; return; }
+  const teamCMJ_JH = avg(PLAYERS.map(p=>DATA[p.id][1].fitness?.cmj.jump_height_cm).filter(v=>v!=null));
+  const teamIMTP_PF = avg(PLAYERS.map(p=>DATA[p.id][1].fitness?.imtp.peak_force_bm_n_kg).filter(v=>v!=null));
+  function bar(val, max){return Math.min(100, (val/max)*100)}
+  const eurClass = fit.eur >= 1.10 ? 'good' : fit.eur >= 1.00 ? 'warn' : 'bad';
+  const eurLabel = fit.eur >= 1.10 ? '우수 SSC' : fit.eur >= 1.00 ? '정상' : 'SSC 미활용';
+  wrap.innerHTML = `
+    <div class="fit-card">
+      <div class="test-name">CMJ <span style="font-size:11px;color:var(--muted)">Slow SSC</span></div>
+      <div class="test-sub">Counter-Movement Jump · 카운터무브 후 폭발</div>
+      <div class="var-row"><span class="lbl">Jump Height<span class="star">★★★</span></span><span class="val">${fit.cmj.jump_height_cm} cm</span></div>
+        <div class="pct-bar"><div style="width:${bar(fit.cmj.jump_height_cm,55)}%"></div></div>
+      <div class="var-row"><span class="lbl">Peak Power / BM<span class="star">★★★</span></span><span class="val">${fit.cmj.peak_power_bm_w_kg} W/kg</span></div>
+      <div class="var-row"><span class="lbl">RSI-mod<span class="star">★★</span></span><span class="val">${fit.cmj.rsi_modified_ms} m/s</span></div>
+      <div class="var-row"><span class="lbl">Conc PF / BM<span class="star">★★</span></span><span class="val">${fit.cmj.conc_peak_force_bm_n_kg} N/kg</span></div>
+      <div class="var-row"><span class="lbl">Ecc:Conc Ratio<span class="star">★</span></span><span class="val">${fit.cmj.ecc_conc_force_ratio}</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted)">
+        팀 평균 JH: ${fmt(teamCMJ_JH,1)} cm
+      </div>
+    </div>
+
+    <div class="fit-card">
+      <div class="test-name">SJ <span style="font-size:11px;color:var(--muted)">Pure Concentric</span></div>
+      <div class="test-sub">Squat Jump · 90° hold 후 폭발 (SSC 없음)</div>
+      <div class="var-row"><span class="lbl">Jump Height<span class="star">★★</span></span><span class="val">${fit.sj.jump_height_cm} cm</span></div>
+        <div class="pct-bar"><div style="width:${bar(fit.sj.jump_height_cm,50)}%;background:#1a7f37"></div></div>
+      <div class="var-row"><span class="lbl">Peak Power / BM<span class="star">★★</span></span><span class="val">${fit.sj.peak_power_bm_w_kg} W/kg</span></div>
+      <div class="var-row"><span class="lbl">Conc PF / BM<span class="star">★★</span></span><span class="val">${fit.sj.conc_peak_force_bm_n_kg} N/kg</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)">
+        <div class="var-row"><span class="lbl"><b>EUR (CMJ JH / SJ JH)<span class="star">★★</span></b></span>
+          <span class="val">${fit.eur} <span class="pill ${eurClass}">${eurLabel}</span></span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">McGuigan 2018 · &gt;1.10 우수 / 1.00~1.10 정상 / &lt;1.00 미활용</div>
+      </div>
+    </div>
+
+    <div class="fit-card">
+      <div class="test-name">Pogo <span style="font-size:11px;color:var(--muted)">Fast SSC</span></div>
+      <div class="test-sub">Repeated Hops · 발목·아킬레스 stiffness</div>
+      <div class="var-row"><span class="lbl">RSI<span class="star">★★★</span></span><span class="val">${fit.pogo.rsi_ms} m/s</span></div>
+        <div class="pct-bar"><div style="width:${bar(fit.pogo.rsi_ms,3.0)}%;background:#bc4c00"></div></div>
+      <div class="var-row"><span class="lbl">Mean Contact Time<span class="star">★★</span></span><span class="val">${fit.pogo.mean_contact_time_ms} ms</span></div>
+      <div class="var-row"><span class="lbl">Mean JH<span class="star">★★</span></span><span class="val">${fit.pogo.mean_jump_height_cm} cm</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted)">
+        Flanagan & Comyns 2008 · fast SSC 표준 — 투수 FC reactive와 매칭
+      </div>
+    </div>
+
+    <div class="fit-card">
+      <div class="test-name">IMTP <span style="font-size:11px;color:var(--muted)">Isometric</span></div>
+      <div class="test-sub">Isometric Mid-Thigh Pull · 최대 정적 힘 + RFD</div>
+      <div class="var-row"><span class="lbl">Peak Force<span class="star">★★★</span></span><span class="val">${fit.imtp.peak_force_n} N</span></div>
+      <div class="var-row"><span class="lbl">Peak Force / BM<span class="star">★★★</span></span><span class="val">${fit.imtp.peak_force_bm_n_kg} N/kg</span></div>
+        <div class="pct-bar"><div style="width:${bar(fit.imtp.peak_force_bm_n_kg,32)}%;background:#cf222e"></div></div>
+      <div class="var-row"><span class="lbl">RFD 0-100ms<span class="star">★★</span></span><span class="val">${fit.imtp.rfd_0_100ms_n_s} N/s</span></div>
+      <div class="var-row"><span class="lbl">Force at 100ms / BM<span class="star">★★</span></span><span class="val">${fit.imtp.force_at_100ms_bm_n_kg} N/kg</span></div>
+      <div class="var-row"><span class="lbl">Asymmetry<span class="star">★★</span></span>
+        <span class="val ${fit.imtp.asymmetry_pct>5?'':'good'}">${fit.imtp.asymmetry_pct}%
+        <span class="pill ${fit.imtp.asymmetry_pct<5?'good':fit.imtp.asymmetry_pct<10?'warn':'bad'}">${fit.imtp.asymmetry_pct<5?'정상':fit.imtp.asymmetry_pct<10?'경계':'위험'}</span></span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted)">
+        팀 평균 PF/BM: ${fmt(teamIMTP_PF,1)} N/kg · Lehman 2013 · pitching velocity와 r≈0.30~0.40
+      </div>
+    </div>
+  `;
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  5. TAB 3: 데이터 관리                                       ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+function renderRoster(){
+  const tb = document.querySelector('#roster-table tbody');
+  const search = document.getElementById('roster-search').value.trim();
+  const rows = PLAYERS.filter(p=>!search||p.name.includes(search)||p.id.includes(search));
+  tb.innerHTML = rows.map(p=>{
+    const m = DATA[p.id][1];
+    const mech = m.velocity ? '<span class="pill good">완료</span>' : '<span class="pill bad">미입력</span>';
+    const fit = m.fitness ? '<span class="pill good">완료</span>' : '<span class="pill bad">미입력</span>';
+    const velo = m.velocity?.measured_kmh!=null ? '<span class="pill good">완료</span>' : '<span class="pill bad">미입력</span>';
+    return `<tr><td><code>${p.id}</code></td><td><b>${p.name}</b></td><td>${p.arm}</td>
+      <td class="right">${p.height}</td><td class="right">${p.weight}</td>
+      <td>${mech}</td><td>${fit}</td><td>${velo}</td>
+      <td><button class="btn ghost" onclick="switchTab('player');document.getElementById('player-select').value='${p.id}';renderPlayerView('${p.id}')">리포트 →</button></td></tr>`;
+  }).join('');
+  document.getElementById('roster-count').textContent = rows.length;
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  6. TAB 4: 장기 추적                                         ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+function renderScheduleHalves(){
+  const wrap = document.getElementById('schedule-halves');
+  const halves = [...new Set(SESSIONS.map(s=>s.half))];   // ['상반기','하반기']
+  wrap.innerHTML = halves.map(h=>{
+    const ss = SESSIONS.filter(s=>s.half===h);
+    return `
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);
+                    text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;
+                    padding-bottom:6px;border-bottom:1px solid var(--line-soft)">
+          ${h} <span style="color:var(--text);margin-left:6px">${ss.length}회 측정</span>
+        </div>
+        <div class="grid" style="grid-template-columns:repeat(${ss.length},1fr);gap:12px">
+          ${ss.map(s=>{
+            const isTheia = s.protocol==='Theia+GRF';
+            const color = isTheia?'var(--theia)':'var(--uplift)';
+            const tag = isTheia?'theia':'uplift';
+            const desc = isTheia
+              ? '메카닉 + GRF + 체력(ForceDecks) + 구속'
+              : '메카닉(스마트폰 markerless) + 구속';
+            return `
+              <div class="kpi" style="border-left:4px solid ${color}">
+                <div class="label">${s.label} <span class="protocol-tag ${tag}">${s.protocol}</span></div>
+                <div style="font-size:14px;font-weight:600;margin:6px 0">${s.date}</div>
+                <div class="delta">${desc}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* 상·하반기 비교 분석 — 지표 추출, 등급, 정렬 */
+const METRIC_DEFS = {
+  score:       {label:'종합점수',     unit:'pt', fmtDec:1, isScore:true,  pick:m=>m.velocity.score},
+  velo:        {label:'측정 구속',    unit:'km/h', fmtDec:1, isScore:false, pick:m=>m.velocity.measured_kmh},
+  velo_pot:    {label:'잠재 구속',    unit:'km/h', fmtDec:1, isScore:false, pick:m=>m.velocity.potential_kmh},
+  sequence:    {label:'시퀀스 점수',  unit:'pt', fmtDec:1, isScore:true,  pick:m=>m.sequence.score},
+  consistency: {label:'제구 일관성',  unit:'pt', fmtDec:1, isScore:true,  pick:m=>m.faults.consistency_score},
+  fault:       {label:'결함 관리',    unit:'pt', fmtDec:1, isScore:true,  pick:m=>m.faults.fault_score},
+};
+
+function halfAvg(pid, half, def){
+  const ss = SESSIONS.filter(s=>s.half===half);
+  const vals = ss.map(s=>def.pick(DATA[pid][s.id])).filter(v=>v!=null && !isNaN(v));
+  return vals.length === ss.length ? avg(vals) : null;   // 한 회차라도 누락 → null
+}
+function gradeOf(delta, isScore){
+  if(delta==null||isNaN(delta)) return {pill:'', label:'—'};
+  if(isScore){
+    if(delta >=  5) return {pill:'good', label:'★★★ 매우 향상'};
+    if(delta >=  2) return {pill:'good', label:'★★ 향상'};
+    if(delta >= -2) return {pill:'warn', label:'★ 유지'};
+    return                  {pill:'bad',  label:'↓ 정체·하락'};
+  } else {
+    if(delta >=  3) return {pill:'good', label:'★★★ 매우 향상'};
+    if(delta >=  1) return {pill:'good', label:'★★ 향상'};
+    if(delta >= -1) return {pill:'warn', label:'★ 유지'};
+    return                  {pill:'bad',  label:'↓ 정체·하락'};
+  }
+}
+
+let chartHC = null;
+let hcSort = {key:'delta', dir:'desc'};
+function renderHalfComparison(){
+  const key = document.getElementById('hc-metric').value;
+  const def = METRIC_DEFS[key];
+
+  // 선수별 행
+  const rows = PLAYERS.map(p=>{
+    const h1 = halfAvg(p.id, '상반기', def);
+    const h2 = halfAvg(p.id, '하반기', def);
+    const delta = (h1!=null && h2!=null) ? (h2 - h1) : null;
+    return {pid:p.id, name:p.name, arm:p.arm, h1, h2, delta, grade: gradeOf(delta, def.isScore)};
+  });
+
+  // 팀 KPI: 상반기 평균 / 하반기 평균 / Δ / 향상자 비율
+  const teamH1 = avg(rows.map(r=>r.h1));
+  const teamH2 = avg(rows.map(r=>r.h2));
+  const teamD  = (teamH1!=null && teamH2!=null) ? teamH2 - teamH1 : null;
+  const improved = rows.filter(r=>r.delta!=null && r.delta>0).length;
+  const declined = rows.filter(r=>r.delta!=null && r.delta<0).length;
+  const validN = rows.filter(r=>r.delta!=null).length;
+  const dColor = teamD==null ? 'var(--muted)' : teamD>=0 ? 'var(--good)' : 'var(--bad)';
+
+  document.getElementById('hc-team-kpi').innerHTML = `
+    <div class="kpi">
+      <div class="label">팀 평균 — 상반기</div>
+      <div class="value">${fmt(teamH1, def.fmtDec)} <span style="font-size:13px;color:var(--muted)">${def.unit}</span></div>
+      <div class="delta">1차·2차 평균</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 평균 — 하반기</div>
+      <div class="value">${fmt(teamH2, def.fmtDec)} <span style="font-size:13px;color:var(--muted)">${def.unit}</span></div>
+      <div class="delta">3차·4차 평균</div>
+    </div>
+    <div class="kpi">
+      <div class="label">팀 Δ (하반기 − 상반기)</div>
+      <div class="value" style="color:${dColor}">
+        ${teamD==null ? '—' : (teamD>=0?'+':'') + fmt(teamD, def.fmtDec)}
+        <span style="font-size:13px;color:var(--muted)">${def.unit}</span>
+      </div>
+      <div class="delta">${def.label} 기준</div>
+    </div>
+    <div class="kpi">
+      <div class="label">향상 / 유지 / 정체</div>
+      <div class="value">
+        <span style="color:var(--good)">${improved}</span> /
+        <span style="color:var(--warn)">${validN - improved - declined}</span> /
+        <span style="color:var(--bad)">${declined}</span>
+      </div>
+      <div class="delta">유효 ${validN}명 기준 (Δ &gt; 0 / -2~+2 / &lt; 0)</div>
+    </div>
+  `;
+
+  document.getElementById('hc-bar-title').textContent =
+    `선수별 향상도 (Δ ${def.label}, ${def.unit}) — 큰 순 정렬`;
+
+  // 막대 차트 (Δ 큰 순)
+  const sortedForBar = [...rows].filter(r=>r.delta!=null).sort((a,b)=>b.delta-a.delta);
+  const barColors = sortedForBar.map(r=>{
+    const d = r.delta, isS = def.isScore;
+    if(isS ? d>=2 : d>=1) return '#1a7f37';        // 향상
+    if(isS ? d>=-2 : d>=-1) return '#bf8700';      // 유지
+    return '#cf222e';                              // 정체
+  });
+  if(chartHC) chartHC.destroy();
+  chartHC = new Chart(document.getElementById('hc-bar'),{
+    type:'bar',
+    data:{
+      labels: sortedForBar.map(r=>r.name),
+      datasets:[{label:`Δ ${def.label}`, data: sortedForBar.map(r=>r.delta),
+                 backgroundColor: barColors}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>{
+          const r = sortedForBar[c.dataIndex];
+          return `${r.name} · 상반기 ${fmt(r.h1,def.fmtDec)} → 하반기 ${fmt(r.h2,def.fmtDec)} (Δ ${r.delta>=0?'+':''}${r.delta.toFixed(def.fmtDec)})`;
+        }}}
+      },
+      scales:{
+        x:{ticks:{color:'#656d76',font:{size:10}},grid:{display:false}},
+        y:{title:{display:true,text:`Δ ${def.unit}`,color:'#656d76'},
+           grid:{color:'#eaeef2'},ticks:{color:'#656d76'},
+           // 0 기준선 강조
+           grace:'5%'}
+      },
+      onClick:(evt, elems)=>{
+        if(elems.length){
+          const pid = sortedForBar[elems[0].index].pid;
+          switchTab('player'); document.getElementById('player-select').value = pid; renderPlayerView(pid);
+        }
+      }
+    }
+  });
+
+  // 정렬 테이블
+  const k = hcSort.key, dir = hcSort.dir==='asc'?1:-1;
+  const sortedTable = [...rows].sort((a,b)=>{
+    let av = k==='grade' ? (a.delta ?? -999) : a[k];
+    let bv = k==='grade' ? (b.delta ?? -999) : b[k];
+    if(av==null) return 1; if(bv==null) return -1;
+    if(typeof av === 'string') return dir*av.localeCompare(bv);
+    return dir*(av-bv);
+  });
+  const tb = document.querySelector('#hc-table tbody');
+  tb.innerHTML = sortedTable.map(r=>{
+    const dColor = r.delta==null?'var(--muted)':r.delta>=0?'var(--good)':'var(--bad)';
+    const sign = r.delta>=0?'+':'';
+    return `<tr data-pid="${r.pid}">
+      <td><b>${r.name}</b></td>
+      <td class="right">${r.arm}</td>
+      <td class="right">${fmt(r.h1, def.fmtDec)}</td>
+      <td class="right">${fmt(r.h2, def.fmtDec)}</td>
+      <td class="right" style="color:${dColor};font-weight:600">${r.delta==null?'—':sign+r.delta.toFixed(def.fmtDec)}</td>
+      <td class="right">${r.grade.pill ? `<span class="pill ${r.grade.pill}">${r.grade.label}</span>` : '—'}</td>
+    </tr>`;
+  }).join('');
+  // 정렬 표시
+  document.querySelectorAll('#hc-table thead th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.key===hcSort.key) th.classList.add(hcSort.dir==='asc'?'sort-asc':'sort-desc');
+  });
+  // 행 클릭 → 선수 리포트
+  tb.querySelectorAll('tr').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      switchTab('player'); document.getElementById('player-select').value = tr.dataset.pid; renderPlayerView(tr.dataset.pid);
+    });
+  });
+}
+
+// 헤더 정렬 클릭
+document.addEventListener('click', e=>{
+  const th = e.target.closest('#hc-table thead th');
+  if(!th) return;
+  const k = th.dataset.key;
+  if(hcSort.key===k){hcSort.dir = hcSort.dir==='asc'?'desc':'asc'}
+  else{hcSort.key=k; hcSort.dir = (k==='name'||k==='arm')?'asc':'desc'}
+  renderHalfComparison();
+});
+
+let chartLong = null;
+function renderLongTab(){
+  renderScheduleHalves();
+  renderHalfComparison();
+  if(chartLong) chartLong.destroy();
+  chartLong = new Chart(document.getElementById('long-trend'),{
+    type:'line',
+    data:{
+      labels: SESSIONS.map(s=>`${s.label}\n(${s.protocol==='Theia+GRF'?'T+GRF':'Uplift'})`),
+      datasets:[
+        {label:'평균 구속 (km/h)', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].velocity.measured_kmh))),
+         borderColor:'#0969da', backgroundColor:'rgba(9,105,218,.1)', tension:.3, yAxisID:'y', pointRadius:5},
+        {label:'평균 종합점수', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].velocity.score))),
+         borderColor:'#8250df', tension:.3, yAxisID:'y2', pointRadius:5},
+        {label:'평균 시퀀스', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].sequence.score))),
+         borderColor:'#1a7f37', tension:.3, yAxisID:'y2', pointRadius:4},
+        {label:'평균 일관성', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].faults.consistency_score))),
+         borderColor:'#bf8700', tension:.3, yAxisID:'y2', pointRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#1f2328'}}},
+      scales:{
+        x:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'}},
+        y:{position:'left',title:{display:true,text:'구속 (km/h)',color:'#0969da'},
+           ticks:{color:'#0969da'},grid:{color:'#eaeef2'}},
+        y2:{position:'right',title:{display:true,text:'점수 (0~100)',color:'#8250df'},
+            ticks:{color:'#8250df'},grid:{drawOnChartArea:false},min:0,max:100}
+      }
+    }
+  });
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  7. 공통 차트 옵션 + 탭 전환                                  ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+function chartOpts(opts={}){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#1f2328',font:{size:11.5}}},
+             tooltip:{intersect:false,mode:'index'}},
+    scales:{
+      x:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'}},
+      y:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'},
+         title:opts.yTitle?{display:true,text:opts.yTitle,color:'#656d76'}:undefined}
+    }
+  };
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  ['m1','player','data','long','report'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
+  });
+  if(name==='long') renderLongTab();
+  if(name==='data') renderRoster();
+  if(name==='report'){ renderPlayerChecks(); renderCoachPreview(); }
+}
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>switchTab(b.dataset.tab));
+});
+document.getElementById('roster-search')?.addEventListener('input', renderRoster);
+
+// + 선수 추가 — 임시 추가 (페이지 reload 시 사라짐. 영구 저장은 PLAYERS 배열 직접 수정)
+document.getElementById('roster-add')?.addEventListener('click', ()=>{
+  const name = prompt('선수 이름?'); if(!name) return;
+  const arm = (prompt('투구손 (R 또는 L)?', 'R')||'R').toUpperCase();
+  const height = parseInt(prompt('신장 (cm)?', '178'),10) || 178;
+  const weight = parseInt(prompt('체중 (kg)?', '75'),10)  || 75;
+  const dob = prompt('생년월일 (YYYY-MM-DD)?', '2008-01-01') || '2008-01-01';
+  const newId = 'P' + String(PLAYERS.length+1).padStart(2,'0');
+  const np = {id:newId, name, arm, height, weight, dob};
+  PLAYERS.push(np);
+  // 새 선수 측정값(샘플) 생성 — 실측 들어오면 DATA 직접 갱신
+  Object.assign(DATA, genMeasurementsFor([np]));
+  renderHeaderDynamic(); renderM1KPI(); renderProgressGrid();
+  buildM1Table(); renderM1Heatmap(); renderM1Charts();
+  renderPlayerSelect(); renderRoster();
+  if(typeof saveToStorage === 'function') saveToStorage();
+});
+
+// CSV 다운로드 — 현재 명단을 9컬럼 CSV로 내보내기
+document.getElementById('roster-export')?.addEventListener('click', ()=>{
+  const head = 'athlete_external_id,athlete_name,handedness,height_cm,weight_kg,date_of_birth';
+  const rows = PLAYERS.map(p=>[p.id,p.name,p.arm,p.height,p.weight,p.dob].join(','));
+  const blob = new Blob(['﻿'+head+'\n'+rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'roster.csv'; a.click();
+});
+
+// 새 선수 1명만 측정값 생성 (genMeasurements와 동일 로직, 한 명용)
+function genMeasurementsFor(arr){
+  const out = {};
+  arr.forEach((p, idx)=>{
+    const baseIdx = PLAYERS.findIndex(x=>x.id===p.id);  // 시드 안정화
+    const rng = seedRand(baseIdx*131+7);
+    const baseVelo = 118+rng()*22, trend = -2+rng()*8;
+    const baseScore = 50+rng()*35, scoreTrend = -3+rng()*15;
+    const armVelBase = 1100+rng()*500, baseFitness = 0.4+rng()*0.5;
+    out[p.id] = {};
+    SESSIONS.forEach((s, si)=>{
+      const f = si/3, noise = (rng()-0.5)*4;
+      const velo = baseVelo+trend*f+noise;
+      const score = Math.max(20,Math.min(98, baseScore+scoreTrend*f+(rng()-0.5)*6));
+      const seqScore = Math.max(20,Math.min(98, baseScore-5+scoreTrend*f*0.8+(rng()-0.5)*8));
+      const consScore = Math.max(20,Math.min(98, baseScore+5+scoreTrend*f*0.5+(rng()-0.5)*10));
+      const faultScore = Math.max(20,Math.min(98, 100-(baseScore*0.3)+scoreTrend*f-(rng()-0.5)*8));
+      const isTheia = s.protocol==='Theia+GRF', sysScale = isTheia?1.0:1.9;
+      const m = {
+        protocol:s.protocol, date:s.date,
+        velocity:{measured_kmh:r1(velo), potential_kmh:r1(velo+6+(score-60)/10), score:Math.round(score)},
+        sequence:{
+          pelvis_dps:Math.round((480+rng()*80)*sysScale),
+          trunk_dps:Math.round((780+rng()*180)*sysScale*0.8),
+          arm_dps:Math.round(armVelBase+rng()*400),
+          ete_pct:Math.round(60+rng()*30+scoreTrend*f),
+          speed_gain:r2(1.4+rng()*0.4), proper_seq:rng()>0.15, score:Math.round(seqScore)
+        },
+        // 에너지 블록 (간이 — 신규 추가 선수용. 풀 스키마는 genMeasurements 참조)
+        energy: {
+          generation: {
+            shoulder_W: Math.round(320+rng()*260), elbow_W: Math.round(180+rng()*180),
+            hip_R_W: Math.round(220+rng()*180), hip_L_W: Math.round(220+rng()*180),
+            knee_R_W: Math.round(280+rng()*220), knee_L_W: Math.round(280+rng()*220),
+            mech_energy_pelvis_J: Math.round(380+rng()*160),
+            mech_energy_trunk_J:  Math.round(620+rng()*220),
+            mech_energy_humerus_J:Math.round(220+rng()*140),
+            score: Math.round(seqScore), total_W: 0
+          },
+          transfer: {
+            ete_pct: Math.round(60+rng()*30), speed_gain_pt: r2(1.40+rng()*0.35),
+            speed_gain_ta: r2(1.30+rng()*0.30), proper_seq: rng()>0.15,
+            pelvis_to_trunk_lag_ms: Math.round(40+rng()*60),
+            trunk_to_arm_lag_ms: Math.round(30+rng()*50),
+            score: Math.round(seqScore)
+          },
+          leakage: isTheia ? {
+            zone1_sequence: 70, zone2_x_factor: 70, zone3_lead_block: 70,
+            zone4_trunk_at_fc: 70, zone5_shoulder_align: 70, zone6_pelvis_brake: 70,
+            eli_score: 70, causal_chains: []
+          } : null
+        },
+        grf: isTheia ? {
+          lhei:Math.max(20,Math.min(98, 50+rng()*40+scoreTrend*f)),
+          rear_force_pct:Math.round(70+rng()*25), lead_force_pct:Math.round(75+rng()*22),
+          type:['균형형','뒤에 처지는','앞으로 쏟아지는','잠깐만 미는','좌우로 새는'][Math.floor(rng()*5)]
+        } : null,
+        faults:{
+          x_factor_deg:r1(20+rng()*22), lead_knee_change:r1(-15+rng()*25),
+          release_height_sd_cm:r1(2+rng()*4-scoreTrend*f*0.05),
+          wrist_pos_sd_cm:r1(2.5+rng()*5), trunk_tilt_sd_deg:r1(0.8+rng()*2.5),
+          consistency_score:Math.round(consScore), fault_score:Math.round(faultScore),
+          injury_risk:['low','low','mid','low','high'][Math.floor(rng()*5)],
+          fault_count:Math.floor(rng()*5)
+        }
+      };
+      m.energy.generation.total_W = m.energy.generation.hip_R_W+m.energy.generation.hip_L_W
+        +m.energy.generation.knee_R_W+m.energy.generation.knee_L_W
+        +m.energy.generation.shoulder_W+m.energy.generation.elbow_W;
+      if(s.hasFitness){
+        const ff = baseFitness+(rng()-0.5)*0.2;
+        m.fitness = {
+          cmj:{jump_height_cm:r1(28+ff*22), peak_power_w:Math.round(2400+ff*1700),
+               peak_power_bm_w_kg:r1(28+ff*20), rsi_modified_ms:r2(0.30+ff*0.32),
+               conc_peak_force_bm_n_kg:r1(28+ff*16), ecc_conc_force_ratio:r2(0.85+rng()*0.35)},
+          sj:{jump_height_cm:r1(26+ff*20), peak_power_bm_w_kg:r1(25+ff*16), conc_peak_force_bm_n_kg:r1(26+ff*14)},
+          eur:r2(1.0+(rng()-0.3)*0.2),
+          pogo:{rsi_ms:r2(1.2+ff*1.2), mean_contact_time_ms:Math.round(190-ff*60), mean_jump_height_cm:r1(18+ff*14)},
+          imtp:{peak_force_n:Math.round(1700+ff*900), peak_force_bm_n_kg:r1(20+ff*12),
+                rfd_0_100ms_n_s:Math.round(5500+ff*4500), force_at_100ms_bm_n_kg:r1(15+ff*12),
+                asymmetry_pct:r1(1+rng()*7)}
+        };
+        const cmjN = Math.min(100, (m.fitness.cmj.jump_height_cm-25)/25*100);
+        const imtpN = Math.min(100, (m.fitness.imtp.peak_force_bm_n_kg-15)/20*100);
+        m.fitness.score = Math.round((cmjN+imtpN)/2);
+      } else m.fitness = null;
+      out[p.id][s.id] = m;
+    });
+  });
+  return out;
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  8. Theia+GRF 결과 JSON 인입 (v1.2)                          ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+// 어떤 (선수, 세션) 셀이 실측 데이터인지 추적 — 헤더 상태 + 향후 시각 구분에 사용
+const REAL_DATA_KEYS = new Set();   // "P01:1" 형식
+
+function parseTheiaJson(obj){
+  // 단일 형식 또는 배치 형식 모두 → 표준 [{pid, sid, body}, ...]로 정규화
+  const out = [];
+  if(Array.isArray(obj)){
+    obj.forEach(o => out.push(...parseTheiaJson(o)));
+    return out;
+  }
+  if(obj.results && Array.isArray(obj.results)){           // 배치 형식
+    const sid = obj.session?.id;
+    const date = obj.session?.date;
+    const proto = obj.session?.protocol;
+    obj.results.forEach(r => {
+      out.push({
+        pid: r.athlete_external_id,
+        sid: r.session_id ?? sid,
+        body: {...r, test_date: r.test_date ?? date, protocol: r.protocol ?? proto}
+      });
+    });
+    return out;
+  }
+  if(obj.athlete_external_id && obj.session_id){           // 단일 형식
+    out.push({pid: obj.athlete_external_id, sid: obj.session_id, body: obj});
+  }
+  return out;
+}
+
+function validateRecord(rec){
+  const errs = [];
+  if(!rec.pid) errs.push('athlete_external_id 누락');
+  if(rec.sid==null) errs.push('session_id 누락');
+  if(rec.pid && !PLAYERS.find(p=>p.id===rec.pid)) errs.push(`PLAYERS에 ${rec.pid} 없음 (선수 명단 먼저 추가 필요)`);
+  if(rec.sid && !SESSIONS.find(s=>s.id===rec.sid)) errs.push(`SESSIONS에 id ${rec.sid} 없음 (1·2·3·4만 가능)`);
+  return errs;
+}
+
+function applyTheiaRecord(rec){
+  const b = rec.body;
+  const session = SESSIONS.find(s=>s.id===rec.sid);
+  // 기존 DATA[pid][sid]를 덮어쓰되, 누락된 섹션은 기존값 유지
+  const cur = DATA[rec.pid][rec.sid] || {};
+  const merged = {
+    ...cur,
+    protocol: b.protocol ?? session.protocol,
+    date: b.test_date ?? session.date,
+    velocity: b.velocity ? {...cur.velocity, ...b.velocity} : cur.velocity,
+    sequence: b.sequence ? {...cur.sequence, ...b.sequence} : cur.sequence,
+    energy:   b.energy   ? mergeEnergy(cur.energy, b.energy) : cur.energy,
+    grf:      b.grf      ? {...(cur.grf||{}), ...b.grf}      : cur.grf,
+    faults:   b.faults   ? {...cur.faults, ...b.faults}   : cur.faults,
+    fitness:  b.fitness  ? mergeFitness(cur.fitness, b.fitness) : cur.fitness,
+  };
+  DATA[rec.pid][rec.sid] = merged;
+  REAL_DATA_KEYS.add(`${rec.pid}:${rec.sid}`);
+}
+function mergeFitness(cur, n){
+  if(!cur) return n;
+  return {
+    cmj:  n.cmj  ? {...cur.cmj,  ...n.cmj}  : cur.cmj,
+    sj:   n.sj   ? {...cur.sj,   ...n.sj}   : cur.sj,
+    eur:  n.eur  ?? cur.eur,
+    pogo: n.pogo ? {...cur.pogo, ...n.pogo} : cur.pogo,
+    imtp: n.imtp ? {...cur.imtp, ...n.imtp} : cur.imtp,
+    score: n.score ?? cur.score
+  };
+}
+function mergeEnergy(cur, n){
+  if(!cur) return n;
+  return {
+    generation: n.generation ? {...cur.generation, ...n.generation} : cur.generation,
+    transfer:   n.transfer   ? {...cur.transfer,   ...n.transfer}   : cur.transfer,
+    leakage:    n.leakage    ? {...(cur.leakage||{}), ...n.leakage} : cur.leakage,
+  };
+}
+
+function refreshAllAfterImport(){
+  renderM1KPI(); renderProgressGrid(); buildM1Table();
+  renderM1Heatmap(); renderM1Charts();
+  renderPlayerView(document.getElementById('player-select').value);
+  renderRoster();
+  // 장기 추적 탭 비교 분석도 갱신 (탭이 active 아니어도 갱신해 두기)
+  if(document.getElementById('hc-metric')) renderHalfComparison();
+  // localStorage에 자동 저장
+  if(typeof saveToStorage === 'function') saveToStorage();
+  // 데이터 상태 헤더 갱신
+  const realCount = REAL_DATA_KEYS.size;
+  const total = PLAYERS.length * SESSIONS.length;
+  const el = document.getElementById('data-status');
+  if(realCount === 0){
+    el.textContent = '샘플 데이터 (실측 데이터 미입력)';
+    el.style.color = 'var(--muted)';
+  } else {
+    el.innerHTML = `실측 ${realCount}/${total} 셀 + 샘플 ${total-realCount}`;
+    el.style.color = 'var(--good)';
+  }
+}
+
+async function handleJsonFiles(fileList){
+  const result = document.getElementById('theia-json-result');
+  const all = [];
+  const messages = [];
+  for(const file of fileList){
+    try {
+      const text = await file.text();
+      const obj = JSON.parse(text);
+      const recs = parseTheiaJson(obj);
+      if(!recs.length){ messages.push(`⚠ ${file.name}: 인식 가능한 레코드 없음`); continue; }
+      let ok = 0;
+      recs.forEach(rec => {
+        const errs = validateRecord(rec);
+        if(errs.length){ messages.push(`✗ ${file.name} [${rec.pid||'?'} · S${rec.sid||'?'}]: ${errs.join(', ')}`); }
+        else { applyTheiaRecord(rec); ok++; all.push(rec); }
+      });
+      if(ok) messages.push(`✓ ${file.name}: ${ok}개 레코드 적용`);
+    } catch(e){
+      messages.push(`✗ ${file.name}: JSON 파싱 실패 — ${e.message}`);
+    }
+  }
+  if(all.length) refreshAllAfterImport();
+  result.innerHTML = messages.map(m=>{
+    const cls = m.startsWith('✓') ? 'good' : m.startsWith('⚠') ? 'warn' : 'bad';
+    return `<div class="pill ${cls}" style="display:block;padding:6px 10px;margin:3px 0;font-weight:500">${m}</div>`;
+  }).join('');
+}
+
+// 드래그 & 클릭 둘 다 지원
+function setupJsonZone(){
+  const zone = document.getElementById('theia-json-zone');
+  const input = document.getElementById('theia-json-input');
+  zone?.addEventListener('click', ()=>input.click());
+  input?.addEventListener('change', e=>{
+    if(e.target.files.length) handleJsonFiles([...e.target.files]);
+  });
+  ['dragenter','dragover'].forEach(ev=>zone?.addEventListener(ev, e=>{
+    e.preventDefault(); zone.style.borderColor='var(--accent)'; zone.style.background='var(--accent-bg)';
+  }));
+  ['dragleave','drop'].forEach(ev=>zone?.addEventListener(ev, e=>{
+    e.preventDefault(); zone.style.borderColor=''; zone.style.background='';
+  }));
+  zone?.addEventListener('drop', e=>{
+    if(e.dataTransfer.files.length) handleJsonFiles([...e.dataTransfer.files]);
+  });
+}
+
+// 템플릿 다운로드 (단일·배치 두 가지)
+function downloadTemplate(kind){
+  const single = {
+    athlete_external_id: PLAYERS[0]?.id || 'P01',
+    session_id: 1,
+    test_date: SESSIONS[0]?.date || '2026-05-15',
+    protocol: 'Theia+GRF',
+    velocity: { measured_kmh: 132.5, potential_kmh: 138.0, score: 75 },
+    sequence: { pelvis_dps: 510, trunk_dps: 850, arm_dps: 1380, ete_pct: 78, speed_gain: 1.65, proper_seq: true, score: 80 },
+    // ⚡ 에너지 프레임워크 (1차 측정 헤드라인) — Theia+GRF 리포트의 핵심
+    energy: {
+      generation: {
+        hip_R_W: 280, hip_L_W: 260, knee_R_W: 360, knee_L_W: 340,
+        shoulder_W: 420, elbow_W: 240, total_W: 1900,
+        mech_energy_pelvis_J: 460, mech_energy_trunk_J: 720, mech_energy_humerus_J: 290,
+        score: 78
+      },
+      transfer: {
+        ete_pct: 78, speed_gain_pt: 1.65, speed_gain_ta: 1.45, proper_seq: true,
+        pelvis_to_trunk_lag_ms: 65, trunk_to_arm_lag_ms: 50, score: 80
+      },
+      leakage: {
+        zone1_sequence: 85, zone2_x_factor: 70, zone3_lead_block: 65,
+        zone4_trunk_at_fc: 78, zone5_shoulder_align: 82, zone6_pelvis_brake: 68,
+        eli_score: 75,
+        causal_chains: [
+          { zone:'zone3', zone_label:'앞발 받쳐주기 (블로킹) 약함', defect:'Lead knee collapse',  impact_kmh: -2.9 },
+          { zone:'zone6', zone_label:'골반 감속 (브레이크) 부족',   defect:'Pelvis braking 부족', impact_kmh: -2.7 },
+          { zone:'zone2', zone_label:'골반-상체 분리 (X-팩터) 부족', defect:'X-factor 미달',     impact_kmh: -2.5 }
+        ]
+      }
+    },
+    grf: { lhei: 72, rear_force_pct: 88, lead_force_pct: 92, type: '균형형' },
+    faults: { x_factor_deg: 38, lead_knee_change: -8, release_height_sd_cm: 4.2,
+              wrist_pos_sd_cm: 5.1, trunk_tilt_sd_deg: 1.8,
+              consistency_score: 82, fault_score: 75, injury_risk: 'low', fault_count: 2 },
+    fitness: {
+      cmj:  { jump_height_cm: 41.0, peak_power_w: 3460, peak_power_bm_w_kg: 42.0,
+              rsi_modified_ms: 0.50, conc_peak_force_bm_n_kg: 40.5, ecc_conc_force_ratio: 1.05 },
+      sj:   { jump_height_cm: 39.3, peak_power_bm_w_kg: 32.7, conc_peak_force_bm_n_kg: 35.2 },
+      eur: 1.04,
+      pogo: { rsi_ms: 1.85, mean_contact_time_ms: 148, mean_jump_height_cm: 26.5 },
+      imtp: { peak_force_n: 2117, peak_force_bm_n_kg: 25.71,
+              rfd_0_100ms_n_s: 8240, force_at_100ms_bm_n_kg: 21.8, asymmetry_pct: 3.2 }
+    }
+  };
+  const batch = {
+    session: { id: 1, date: SESSIONS[0]?.date || '2026-05-15', protocol: 'Theia+GRF' },
+    results: PLAYERS.slice(0,3).map((p,i)=>({
+      athlete_external_id: p.id,
+      velocity: { measured_kmh: 130 + i*2, potential_kmh: 138 + i*2, score: 70 + i*3 },
+      sequence: { pelvis_dps: 500 + i*10, trunk_dps: 830 + i*10, arm_dps: 1350 + i*15,
+                  ete_pct: 75 + i, speed_gain: 1.6 + i*0.05, proper_seq: true, score: 75 + i*2 },
+      grf: { lhei: 70 + i*3, rear_force_pct: 85, lead_force_pct: 90, type: '균형형' },
+      faults: { x_factor_deg: 36 + i, lead_knee_change: -5,
+                release_height_sd_cm: 4.0, wrist_pos_sd_cm: 5.0, trunk_tilt_sd_deg: 1.5,
+                consistency_score: 80, fault_score: 75, injury_risk: 'low', fault_count: 1 }
+    }))
+  };
+  const data = kind === 'single' ? single : batch;
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = kind === 'single' ? 'theia_grf_template_single.json' : 'theia_grf_template_batch.json';
+  a.click();
+}
+
+function resetToSampleData(){
+  if(!confirm('실측 데이터 인입분을 모두 버리고 샘플로 되돌립니다.\n저장된 localStorage도 함께 삭제됩니다. 진행할까요?')) return;
+  // 새 샘플 데이터 생성
+  Object.keys(DATA).forEach(k => delete DATA[k]);
+  Object.assign(DATA, genMeasurements());
+  REAL_DATA_KEYS.clear();
+  clearStorage();
+  refreshAllAfterImport();
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  8b. localStorage 자동 저장/복원 (v1.6)                       ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+const STORAGE_KEY = 'sangdong_dashboard_v1';
+let __saveTimer = null;
+
+function saveToStorage(){
+  // 디바운스 — 짧은 시간 내 여러 변경은 한 번만 저장
+  clearTimeout(__saveTimer);
+  __saveTimer = setTimeout(()=>{
+    try {
+      // REAL_DATA_KEYS만 있는 셀(실측)만 저장. 샘플은 페이지 reload 시 재생성.
+      const realData = {};
+      REAL_DATA_KEYS.forEach(key=>{
+        const [pid, sid] = key.split(':');
+        if(!realData[pid]) realData[pid] = {};
+        realData[pid][sid] = DATA[pid][sid];
+      });
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        players: PLAYERS,
+        realData,
+        realKeys: [...REAL_DATA_KEYS]
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      updateStorageBadge('saved');
+    } catch(e){
+      console.warn('localStorage 저장 실패:', e);
+      updateStorageBadge('error');
+    }
+  }, 400);
+}
+
+function loadFromStorage(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const payload = JSON.parse(raw);
+    // 선수 명단 복원 (저장된 게 더 최신이라 가정)
+    if(Array.isArray(payload.players) && payload.players.length){
+      PLAYERS.length = 0;
+      payload.players.forEach(p=>PLAYERS.push(p));
+    }
+    // 샘플 데이터 먼저 생성
+    Object.keys(DATA).forEach(k=>delete DATA[k]);
+    Object.assign(DATA, genMeasurements());
+    // 실측 셀만 덮어쓰기
+    if(payload.realData){
+      Object.entries(payload.realData).forEach(([pid, sessions])=>{
+        if(!DATA[pid]) return;
+        Object.entries(sessions).forEach(([sid, body])=>{
+          DATA[pid][sid] = body;
+        });
+      });
+    }
+    if(Array.isArray(payload.realKeys)){
+      payload.realKeys.forEach(k=>REAL_DATA_KEYS.add(k));
+    }
+    return true;
+  } catch(e){
+    console.warn('localStorage 복원 실패:', e);
+    return false;
+  }
+}
+
+function clearStorage(){
+  try { localStorage.removeItem(STORAGE_KEY); updateStorageBadge('cleared'); }
+  catch(e){ console.warn(e); }
+}
+
+function updateStorageBadge(state){
+  const el = document.getElementById('storage-badge');
+  if(!el) return;
+  const map = {
+    saved:   {txt:'💾 자동 저장됨', cls:'good'},
+    cleared: {txt:'저장소 비움', cls:'warn'},
+    error:   {txt:'⚠ 저장 실패', cls:'bad'},
+    loaded:  {txt:'💾 저장된 데이터 복원됨', cls:'good'},
+    none:    {txt:'저장된 데이터 없음', cls:'warn'}
+  };
+  const m = map[state] || map.none;
+  el.textContent = m.txt;
+  el.className = 'pill ' + m.cls;
+}
+
+/* refreshAllAfterImport()의 마지막 줄에서 saveToStorage()가 호출됨 (아래 함수 정의 참고) */
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  8c. 리포트 출력 — 선수 개별 + 코치 종합 (v1.9)               ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+function compactPlayerCard(pid, sid){
+  const p = PLAYERS.find(x=>x.id===pid); if(!p) return '';
+  const m = DATA[pid][sid]; if(!m) return '';
+  const e = m.energy || {};
+  const eg = e.generation || {}, et = e.transfer || {}, el = e.leakage || {};
+  const session = SESSIONS.find(s=>s.id===sid);
+  const isReal = REAL_DATA_KEYS.has(`${pid}:${sid}`);
+  const dataMark = isReal ? '● 실측' : '○ 샘플';
+
+  // 5축 mini-radar (SVG, Chart.js 의존성 없이 인쇄 안정)
+  const axes = [
+    {lbl:'출력', v:eg.score ?? 0},
+    {lbl:'전달', v:et.score ?? 0},
+    {lbl:'누수관리', v:el.eli_score ?? 0},
+    {lbl:'GRF', v:m.grf?.lhei ?? 0},
+    {lbl:'결함·제구', v: avg([m.faults.fault_score, m.faults.consistency_score]) || 0}
+  ];
+  const cx=80, cy=70, R=55;
+  const angle = i => -Math.PI/2 + (i*2*Math.PI/5);
+  const point = (i, v) => {
+    const r = R * (v/100);
+    return [cx + r*Math.cos(angle(i)), cy + r*Math.sin(angle(i))];
+  };
+  const polyPts = axes.map((a,i)=>point(i, a.v).join(',')).join(' ');
+  const ringPts = (frac) => axes.map((a,i)=>{
+    const r = R*frac;
+    return [cx + r*Math.cos(angle(i)), cy + r*Math.sin(angle(i))].join(',');
+  }).join(' ');
+  const labels = axes.map((a,i)=>{
+    const [x,y] = point(i, 115);
+    return `<text x="${x}" y="${y}" font-size="9" fill="#333" text-anchor="middle">${a.lbl}</text>`;
+  }).join('');
+  const radar = `<svg class="mini-radar" viewBox="0 0 220 150" xmlns="http://www.w3.org/2000/svg">
+    <g>
+      ${[0.2,0.4,0.6,0.8,1.0].map(f=>`<polygon points="${ringPts(f)}" fill="none" stroke="#d0d7de" stroke-width="0.5"/>`).join('')}
+      ${axes.map((a,i)=>{const [x,y] = point(i, 100); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#d0d7de" stroke-width="0.5"/>`;}).join('')}
+      <polygon points="${polyPts}" fill="#0969da" fill-opacity="0.2" stroke="#0969da" stroke-width="2"/>
+      ${labels}
+    </g>
+  </svg>`;
+
+  // ELI 6 zone 막대
+  const zoneList = el.zone1_sequence != null ? [
+    {l:'시퀀스',     v:el.zone1_sequence},
+    {l:'X-팩터',     v:el.zone2_x_factor},
+    {l:'앞발 블록',  v:el.zone3_lead_block},
+    {l:'FC 몸통',    v:el.zone4_trunk_at_fc},
+    {l:'어깨 정렬',  v:el.zone5_shoulder_align},
+    {l:'골반 감속',  v:el.zone6_pelvis_brake}
+  ] : [];
+  const zoneBars = zoneList.map(z=>{
+    const c = z.v>=85?'#1a7f37':z.v>=70?'#56a64b':z.v>=55?'#bf8700':z.v>=40?'#d1452a':'#a40e26';
+    return `<div class="zonebar"><span class="zlbl">${z.l}</span>
+      <div class="zbar"><div style="width:${z.v}%;background:${c}"></div></div>
+      <span class="zval" style="color:${c}">${z.v}</span></div>`;
+  }).join('') || '<div style="font-size:10px;color:#666">GRF 데이터 없음</div>';
+
+  // causal chains
+  const causal = (el.causal_chains || []).map((c,i)=>{
+    const bg = i===0 ? '#cf222e' : i===1 ? '#bf8700' : '#0969da';
+    return `<div class="causal">
+      <span class="num" style="background:${bg}">${i+1}</span>
+      <span style="flex:1"><b>${c.defect}</b> · ${c.zone_label||c.zone}</span>
+      <span style="color:#cf222e;font-weight:700">${c.impact_kmh} km/h</span>
+    </div>`;
+  }).join('') || '<div style="font-size:10px;color:#666">인과 분석 데이터 없음</div>';
+
+  // 부상위험 색상
+  const riskColor = m.faults.injury_risk==='high' ? '#cf222e' : m.faults.injury_risk==='mid' ? '#bf8700' : '#1a7f37';
+  const riskTxt = riskLabel(m.faults.injury_risk);
+
+  // 체력 보조
+  const fit = m.fitness;
+  const fitLine = fit ? `CMJ JH <b>${fit.cmj.jump_height_cm} cm</b> · IMTP PF/BM <b>${fit.imtp.peak_force_bm_n_kg} N/kg</b> · EUR <b>${fit.eur}</b> · Pogo RSI <b>${fit.pogo.rsi_ms}</b>` : '체력 측정 데이터 없음';
+
+  return `
+  <div class="pcard">
+    <div class="ph">
+      <div>
+        <div class="nm">${p.name} <span style="font-size:11px;color:#666;font-weight:400">(${p.id})</span></div>
+        <div style="font-size:11px;color:#444">${p.arm==='R'?'우투':'좌투'} · ${p.height}cm / ${p.weight}kg · BMI ${(p.weight/(p.height/100)**2).toFixed(1)}</div>
+      </div>
+      <div class="meta">
+        <div><b>${session.label} 측정 (${session.protocol})</b> · ${m.date}</div>
+        <div style="margin-top:2px">${dataMark} · 상동고등학교 야구부 · 바이오모션 베이스볼 랩</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div><div class="lbl">측정 구속</div><div class="val">${m.velocity.measured_kmh} <span style="font-size:11px">km/h</span></div></div>
+      <div><div class="lbl">잠재 구속</div><div class="val">${m.velocity.potential_kmh} <span style="font-size:11px">km/h</span></div></div>
+      <div><div class="lbl">종합점수</div><div class="val" style="color:${scoreColor(m.velocity.score)}">${m.velocity.score}</div></div>
+      <div><div class="lbl">부상 위험</div><div class="val" style="color:${riskColor}">${riskTxt}</div></div>
+    </div>
+
+    <div class="row3" style="grid-template-columns:170px 1fr 1fr;align-items:start">
+      <div>${radar}</div>
+      <div class="mini-card">
+        <div class="ttl">키네틱 시퀀스 (피크 °/s)</div>
+        <div class="kv"><span>골반</span><b>${m.sequence.pelvis_dps}</b></div>
+        <div class="kv"><span>몸통</span><b>${m.sequence.trunk_dps}</b></div>
+        <div class="kv"><span>팔</span><b>${m.sequence.arm_dps}</b></div>
+        <div class="kv" style="border-top:1px dashed #ccc;margin-top:3px;padding-top:3px"><span>Speed Gain P→T / T→A</span><b>${et.speed_gain_pt}× / ${et.speed_gain_ta}×</b></div>
+      </div>
+      <div class="mini-card">
+        <div class="ttl">🦵 GRF (NewtForce)</div>
+        <div class="kv"><span>LHEI</span><b>${fmt0(m.grf?.lhei)}</b></div>
+        <div class="kv"><span>유형</span><b>${m.grf?.type || '—'}</b></div>
+        <div class="kv"><span>축발 / 디딤발</span><b>${m.grf?.rear_force_pct}% / ${m.grf?.lead_force_pct}%</b></div>
+      </div>
+    </div>
+
+    <div class="sec-title">⚡ 에너지 분석 — 출력·전달·누수</div>
+    <div class="row3">
+      <div class="mini-card">
+        <div class="ttl" style="color:#0969da">① 생성 (Output) <span style="float:right">${eg.score ?? '—'}</span></div>
+        <div class="kv"><span>투구 어깨 / 팔꿈치 (W)</span><b>${eg.shoulder_W ?? '—'} / ${eg.elbow_W ?? '—'}</b></div>
+        <div class="kv"><span>힙 R/L (W)</span><b>${eg.hip_R_W ?? '—'} / ${eg.hip_L_W ?? '—'}</b></div>
+        <div class="kv"><span>무릎 R/L (W)</span><b>${eg.knee_R_W ?? '—'} / ${eg.knee_L_W ?? '—'}</b></div>
+        <div class="kv"><span>합계 (Total W)</span><b>${eg.total_W ?? '—'}</b></div>
+        <div class="kv"><span>Mech E (P/T/H, J)</span><b>${eg.mech_energy_pelvis_J}/${eg.mech_energy_trunk_J}/${eg.mech_energy_humerus_J}</b></div>
+      </div>
+      <div class="mini-card">
+        <div class="ttl" style="color:#1a7f37">② 전달 (Transfer) <span style="float:right">${et.score ?? '—'}</span></div>
+        <div class="kv"><span>ETE 전달율</span><b>${et.ete_pct}%</b></div>
+        <div class="kv"><span>Speed Gain P→T</span><b>${et.speed_gain_pt}×</b></div>
+        <div class="kv"><span>Speed Gain T→A</span><b>${et.speed_gain_ta}×</b></div>
+        <div class="kv"><span>Proper Sequence</span><b>${et.proper_seq?'정상':'결함'}</b></div>
+        <div class="kv"><span>P→T / T→A lag (ms)</span><b>${et.pelvis_to_trunk_lag_ms} / ${et.trunk_to_arm_lag_ms}</b></div>
+      </div>
+      <div class="mini-card">
+        <div class="ttl" style="color:#cf222e">③ 누수 ELI <span style="float:right">${el.eli_score ?? '—'}</span></div>
+        ${zoneBars}
+      </div>
+    </div>
+
+    <div class="sec-title lk">🔗 결함 → 손실 인과 (우선순위 Top 3)</div>
+    ${causal}
+
+    <div class="sec-title gr">🩹 부상위험 · 제구 일관성</div>
+    <div class="mini-card">
+      <div class="kv"><span>X-factor (분리각)</span><b>${m.faults.x_factor_deg}°</b></div>
+      <div class="kv"><span>Lead knee (FC→BR)</span><b>${m.faults.lead_knee_change}°</b></div>
+      <div class="kv"><span>Release SD / Wrist SD / Trunk tilt SD</span><b>${m.faults.release_height_sd_cm}cm / ${m.faults.wrist_pos_sd_cm}cm / ${m.faults.trunk_tilt_sd_deg}°</b></div>
+      <div class="kv"><span>제구 일관성 점수</span><b style="color:${scoreColor(m.faults.consistency_score)}">${m.faults.consistency_score}</b></div>
+    </div>
+
+    <div class="footer-line">
+      <span>보조 측정 — 체력 (ForceDecks): ${fitLine}</span>
+      <span>v1.9 · ${new Date().toISOString().slice(0,10)}</span>
+    </div>
+  </div>`;
+}
+
+// 코치 리포트 (팀 종합)
+function coachReport(sid){
+  const session = SESSIONS.find(s=>s.id===sid);
+  const meas = PLAYERS.map(p=>({p, m: DATA[p.id][sid]}));
+  const total = meas.length;
+
+  const team = {
+    velo: avg(meas.map(x=>x.m.velocity.measured_kmh)),
+    veloMax: Math.max(...meas.map(x=>x.m.velocity.measured_kmh)),
+    veloMin: Math.min(...meas.map(x=>x.m.velocity.measured_kmh)),
+    score: avg(meas.map(x=>x.m.velocity.score)),
+    gen:   avg(meas.map(x=>x.m.energy?.generation?.score).filter(v=>v!=null)),
+    trf:   avg(meas.map(x=>x.m.energy?.transfer?.score).filter(v=>v!=null)),
+    eli:   avg(meas.map(x=>x.m.energy?.leakage?.eli_score).filter(v=>v!=null)),
+    grf:   avg(meas.map(x=>x.m.grf?.lhei).filter(v=>v!=null)),
+  };
+
+  // 그룹화
+  const groups = [
+    {name:'⭐⭐⭐ Elite',   color:'#1a7f37', range:'85+',     test:s=>s>=85},
+    {name:'⭐⭐ Solid',     color:'#56a64b', range:'70~84',   test:s=>s>=70 && s<85},
+    {name:'⭐ Developing', color:'#bf8700', range:'55~69',   test:s=>s>=55 && s<70},
+    {name:'발달 필요',      color:'#d1452a', range:'40~54',   test:s=>s>=40 && s<55},
+    {name:'집중 관리',      color:'#a40e26', range:'<40',     test:s=>s<40}
+  ];
+  const grouped = groups.map(g=>{
+    const list = meas.filter(x=>g.test(x.m.velocity.score)).map(x=>x.p);
+    return {...g, list};
+  });
+
+  // 부상위험 알림
+  const high = meas.filter(x=>x.m.faults.injury_risk==='high');
+  const mid  = meas.filter(x=>x.m.faults.injury_risk==='mid');
+
+  // 팀 결함 패턴 — ELI zone별 평균 점수, 가장 낮은 3개
+  const zoneKeys = [
+    {k:'zone1_sequence',       lbl:'시퀀스 어긋남',          drill:'골반→몸통→팔 순차 가속 드릴 (towel drill, walking windup)'},
+    {k:'zone2_x_factor',       lbl:'X-팩터 분리 부족',       drill:'골반-상체 분리 강화 (medball rotational throw, hip-shoulder separation)'},
+    {k:'zone3_lead_block',     lbl:'앞발 받쳐주기 약함',     drill:'앞발 착지 안정화 (knee extension hold, single-leg landing)'},
+    {k:'zone4_trunk_at_fc',    lbl:'FC 몸통 자세 불량',      drill:'트렁크 컨트롤 (FC 시점 plank hold, trunk lateral tilt drill)'},
+    {k:'zone5_shoulder_align', lbl:'어깨 정렬·외회전 부족',  drill:'어깨 가동성·정렬 (sleeper stretch, throwers ten)'},
+    {k:'zone6_pelvis_brake',   lbl:'골반 감속(브레이크) 부족', drill:'골반 감속 강화 (anti-rotation hold, follow-through 안정화)'},
+  ];
+  const zoneAvgs = zoneKeys.map(z=>{
+    const vals = meas.map(x=>x.m.energy?.leakage?.[z.k]).filter(v=>v!=null);
+    return {...z, avg: avg(vals), under70: vals.filter(v=>v<70).length, n: vals.length};
+  }).sort((a,b)=>a.avg-b.avg);
+  const weakZones = zoneAvgs.slice(0,3);
+
+  // 우선순위 행동
+  const byPotentialGap = [...meas].map(x=>({...x, gap: x.m.velocity.potential_kmh - x.m.velocity.measured_kmh}))
+    .sort((a,b)=>b.gap-a.gap).slice(0,3);
+  const lowELI = [...meas].filter(x=>x.m.energy?.leakage?.eli_score!=null)
+    .sort((a,b)=>a.m.energy.leakage.eli_score - b.m.energy.leakage.eli_score).slice(0,3);
+  const focusList = [...meas].filter(x=>x.m.faults.injury_risk!=='low' || x.m.velocity.score<50)
+    .sort((a,b)=>{
+      const ra = {high:3,mid:2,low:1}[a.m.faults.injury_risk] || 1;
+      const rb = {high:3,mid:2,low:1}[b.m.faults.injury_risk] || 1;
+      if(rb!==ra) return rb-ra;
+      return a.m.velocity.score - b.m.velocity.score;
+    }).slice(0,5);
+
+  // 부록 표 행
+  const tableRows = [...meas].sort((a,b)=>b.m.velocity.score - a.m.velocity.score).map(x=>{
+    const m = x.m;
+    return `<tr>
+      <td><b>${x.p.name}</b></td>
+      <td>${x.p.arm}</td>
+      <td>${m.velocity.measured_kmh}</td>
+      <td>${m.velocity.potential_kmh}</td>
+      <td><b style="color:${scoreColor(m.velocity.score)}">${m.velocity.score}</b></td>
+      <td>${fmt0(m.energy?.generation?.score)}</td>
+      <td>${fmt0(m.energy?.transfer?.score)}</td>
+      <td>${fmt0(m.energy?.leakage?.eli_score)}</td>
+      <td>${fmt0(m.grf?.lhei)}</td>
+      <td style="color:${m.faults.injury_risk==='high'?'#cf222e':m.faults.injury_risk==='mid'?'#bf8700':'#1a7f37'}">${riskLabel(m.faults.injury_risk)}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="coach-rep">
+    <h1>🏟 상동고등학교 야구부 투수 ${session.label} 측정 종합 리포트</h1>
+    <div class="doc-meta">
+      바이오모션 베이스볼 랩 (BBL) · ${session.protocol} · ${session.date} · ${session.half}<br>
+      대상: 투수 ${total}명 · 발행일: ${new Date().toISOString().slice(0,10)} · 발행: 국민대학교 바이오메카닉스 연구실
+    </div>
+
+    <h2>📊 팀 평균 (헤드라인)</h2>
+    <div class="grid4">
+      <div class="gr-kpi"><div class="lbl">평균 측정 구속</div><div class="val">${fmt(team.velo,1)} <span style="font-size:11px">km/h</span></div><div class="sub">${fmt(team.veloMin,1)}~${fmt(team.veloMax,1)} 범위</div></div>
+      <div class="gr-kpi"><div class="lbl">평균 종합점수</div><div class="val" style="color:${scoreColor(team.score)}">${fmt(team.score,1)}</div><div class="sub">출력 ${fmt(team.gen,0)} · 전달 ${fmt(team.trf,0)} · 누수관리 ${fmt(team.eli,0)}</div></div>
+      <div class="gr-kpi"><div class="lbl">평균 GRF·LHEI</div><div class="val">${fmt(team.grf,1)}</div><div class="sub">하체 종합 효율</div></div>
+      <div class="gr-kpi"><div class="lbl">부상위험 알림</div><div class="val" style="color:${(high.length+mid.length)>5?'#cf222e':(high.length+mid.length)>2?'#bf8700':'#1a7f37'}">${high.length + mid.length}명</div><div class="sub">High ${high.length} · Mid ${mid.length}</div></div>
+    </div>
+
+    <h2>🏆 선수 그룹 분포</h2>
+    ${grouped.map(g=>`
+      <div class="group-row" style="border-left-color:${g.color}">
+        <span class="name" style="color:${g.color}">${g.name}</span>
+        <span style="color:#666;font-size:11px">${g.range}</span>
+        <span class="count">${g.list.length}명</span>
+        <span class="members">${g.list.length ? g.list.map(p=>p.name).join(' · ') : '<i style="color:#999">해당 없음</i>'}</span>
+      </div>
+    `).join('')}
+
+    <h2 class="warn">⚠ 부상 위험 알림</h2>
+    ${high.length===0 && mid.length===0 ? '<div class="action ok">현재 high·mid 위험 선수 없음 — 정기 모니터링 유지.</div>' : ''}
+    ${high.map(x=>`<div class="action warn"><b style="color:#cf222e">[High] ${x.p.name}</b> · X-factor ${x.m.faults.x_factor_deg}° · Lead knee ${x.m.faults.lead_knee_change}° · 결함 ${x.m.faults.fault_count}개 검출 → 즉시 의료진 상담 + 투구량 조절 권고</div>`).join('')}
+    ${mid.map(x=>`<div class="action" style="background:#fff8c5;border-color:#d4a72c"><b style="color:#9a6700">[Mid] ${x.p.name}</b> · X-factor ${x.m.faults.x_factor_deg}° · 결함 ${x.m.faults.fault_count}개 → 메카닉 교정 우선</div>`).join('')}
+
+    <h2>🔍 팀 결함 패턴 — 취약 ELI zone Top 3 + 그룹 훈련 추천</h2>
+    ${weakZones.map((z,i)=>`
+      <div class="pattern">
+        <b>${i+1}. ${z.lbl}</b> · 팀 평균 점수 ${fmt(z.avg,1)} (낮을수록 누수 큼) · ${z.under70}/${z.n}명에서 70 미만<br>
+        <span style="color:#666;font-size:11px">→ <b>그룹 훈련 추천:</b> ${z.drill}</span>
+      </div>
+    `).join('')}
+
+    <h2 class="ok">✅ 우선순위 행동 — 코치 액션 아이템</h2>
+    <div class="action ok"><b>잠재력 큼 (구속 향상 여지 가장 큰 3명)</b><br>
+      ${byPotentialGap.map(x=>`${x.p.name}: 측정 ${x.m.velocity.measured_kmh} → 잠재 ${x.m.velocity.potential_kmh} (gap +${x.gap.toFixed(1)} km/h)`).join(' · ')}
+      <br><span style="color:#666;font-size:11px">→ 메카닉 교정 + 체력 발달로 잠재 구속 도달 가능. 위 결함 패턴 우선 적용.</span>
+    </div>
+    <div class="action"><b>누수 가장 심한 3명 (ELI 낮은 순)</b><br>
+      ${lowELI.map(x=>`${x.p.name} (ELI ${x.m.energy.leakage.eli_score})`).join(' · ')}
+      <br><span style="color:#666;font-size:11px">→ 개별 인과 분석 카드 참고. 결함 1순위부터 단계 교정.</span>
+    </div>
+    ${focusList.length ? `<div class="action warn"><b>즉시 관리 필요 (${focusList.length}명)</b><br>
+      ${focusList.map(x=>`${x.p.name}: 종합 ${x.m.velocity.score} · 부상위험 ${riskLabel(x.m.faults.injury_risk)}`).join(' · ')}
+      <br><span style="color:#666;font-size:11px">→ 다음 ${SESSIONS.find(s=>s.id>sid)?.label || '회차'} 측정 전 1:1 면담 + 훈련 처방 권고.</span>
+    </div>` : ''}
+
+    <h2>📋 부록 — 선수별 핵심 지표 (종합점수 내림차순)</h2>
+    <table>
+      <thead><tr>
+        <th>선수</th><th>투구</th><th>구속</th><th>잠재</th><th>종합</th>
+        <th>출력</th><th>전달</th><th>누수↑</th><th>GRF</th><th>부상</th>
+      </tr></thead>
+      <tbody>${tableRows.replace(/누수\s*\(역ELI\)/g,'누수↑')}</tbody>
+    </table>
+
+    <div style="margin-top:14px;padding-top:8px;border-top:1px dashed #999;font-size:10px;color:#666">
+      ※ 종합점수: Theia+GRF 분석 기반. 출력·전달·누수관리: ELI 6 zone 기반 0~100 정규화.
+      누수↑ 컬럼은 100 - eli_score (값 클수록 누수 심각).<br>
+      ※ 본 리포트는 ${session.protocol} 측정값 기반. 다음 회차(${SESSIONS.find(s=>s.id>sid)?.label||'TBD'})에서 향상도 자동 계산.
+    </div>
+  </div>`;
+}
+
+// 회차 셀렉트 옵션 채우기
+function fillReportSessionSelects(){
+  const opts = SESSIONS.map(s=>`<option value="${s.id}">${s.label} (${s.protocol} · ${s.half})</option>`).join('');
+  ['rep-session-pl','rep-session-co'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.innerHTML = opts;
+  });
+}
+
+// 선수 체크박스 렌더
+function renderPlayerChecks(){
+  const wrap = document.getElementById('rep-player-checks');
+  if(!wrap) return;
+  wrap.innerHTML = PLAYERS.map(p=>{
+    const isReal = REAL_DATA_KEYS.has(`${p.id}:1`);
+    const dot = isReal ? '<span style="color:var(--accent)">●</span>' : '<span style="color:var(--muted)">○</span>';
+    return `<label style="display:inline-flex;align-items:center;gap:6px;
+                          padding:5px 10px;margin:3px;background:#fff;
+                          border:1px solid var(--line-soft);border-radius:5px;
+                          cursor:pointer;font-size:12px">
+      <input type="checkbox" class="rep-pl-cb" data-pid="${p.id}" checked>
+      ${dot} <b>${p.name}</b> <span style="color:var(--muted);font-size:10.5px">(${p.arm})</span>
+    </label>`;
+  }).join('');
+  wrap.querySelectorAll('.rep-pl-cb').forEach(cb=>cb.addEventListener('change', updateRepPlCount));
+  updateRepPlCount();
+}
+function updateRepPlCount(){
+  const n = document.querySelectorAll('.rep-pl-cb:checked').length;
+  const el = document.getElementById('rep-pl-count');
+  if(el) el.textContent = n;
+}
+
+function renderCoachPreview(){
+  const sid = parseInt(document.getElementById('rep-session-co')?.value || '1', 10);
+  const wrap = document.getElementById('coach-report-preview');
+  if(wrap) wrap.innerHTML = coachReport(sid);
+}
+
+// 일괄 인쇄 — 선택 선수
+function printSelectedPlayers(){
+  const sid = parseInt(document.getElementById('rep-session-pl').value, 10);
+  const pids = [...document.querySelectorAll('.rep-pl-cb:checked')].map(cb=>cb.dataset.pid);
+  if(!pids.length){ alert('선수를 1명 이상 선택하세요.'); return; }
+  const area = document.getElementById('batch-print-area');
+  area.innerHTML = pids.map(pid => compactPlayerCard(pid, sid)).join('');
+  document.body.classList.add('printing-batch');
+  setTimeout(()=>{ window.print(); }, 80);
+}
+// 인쇄 종료 후 클래스 제거
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing-batch','printing-coach');
+});
+
+// 코치 리포트 인쇄
+function printCoachReport(){
+  const sid = parseInt(document.getElementById('rep-session-co').value, 10);
+  document.getElementById('coach-print-area').innerHTML = coachReport(sid);
+  document.body.classList.add('printing-coach');
+  setTimeout(()=>{ window.print(); }, 80);
+}
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  9. 초기 렌더                                                ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+// 헤더의 동적 정보(선수 수 · 1차 측정일) — SESSIONS/PLAYERS 변경 시 자동 반영
+function renderHeaderDynamic(){
+  document.getElementById('hdr-pcount').textContent = PLAYERS.length;
+  const s1 = SESSIONS.find(s=>s.id===1);
+  document.getElementById('hdr-d1').textContent = s1 ? s1.date : '—';
+}
+
+// localStorage에 저장된 게 있으면 먼저 복원 (없으면 그대로 샘플 데이터 사용)
+const __loaded = loadFromStorage();
+updateStorageBadge(__loaded ? 'loaded' : 'none');
+
+renderHeaderDynamic();
+renderM1KPI();
+renderProgressGrid();
+buildM1Table();
+renderM1Heatmap();
+renderM1Charts();
+renderPlayerSelect();
+renderPlayerView(PLAYERS[0].id);
+renderScheduleHalves();   // 장기 추적 탭 들어가기 전에도 카드는 미리 렌더해두기 (가벼움)
+// 복원된 실측 데이터가 있으면 헤더 데이터 상태도 갱신
+if(__loaded && REAL_DATA_KEYS.size > 0){
+  const realCount = REAL_DATA_KEYS.size;
+  const total = PLAYERS.length * SESSIONS.length;
+  const el = document.getElementById('data-status');
+  el.innerHTML = `실측 ${realCount}/${total} 셀 + 샘플 ${total-realCount}`;
+  el.style.color = 'var(--good)';
+}
+
+// JSON 인입 와이어업
+setupJsonZone();
+document.getElementById('dl-theia-template-single')?.addEventListener('click', ()=>downloadTemplate('single'));
+document.getElementById('dl-theia-template-batch')?.addEventListener('click', ()=>downloadTemplate('batch'));
+document.getElementById('reset-data')?.addEventListener('click', resetToSampleData);
+
+// 상·하반기 비교 — 지표 드롭다운
+document.getElementById('hc-metric')?.addEventListener('change', renderHalfComparison);
+
+// 리포트 출력 — 와이어업
+fillReportSessionSelects();
+document.getElementById('rep-pl-all')?.addEventListener('click', ()=>{
+  document.querySelectorAll('.rep-pl-cb').forEach(cb=>cb.checked=true); updateRepPlCount();
+});
+document.getElementById('rep-pl-none')?.addEventListener('click', ()=>{
+  document.querySelectorAll('.rep-pl-cb').forEach(cb=>cb.checked=false); updateRepPlCount();
+});
+document.getElementById('rep-pl-print')?.addEventListener('click', printSelectedPlayers);
+document.getElementById('rep-co-print')?.addEventListener('click', printCoachReport);
+document.getElementById('rep-session-co')?.addEventListener('change', renderCoachPreview);
+
+</script>
+</body>
+</html>

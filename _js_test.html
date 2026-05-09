@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JS 작동 확인</title>
+<style>body{font-family:-apple-system,sans-serif;padding:24px;line-height:1.6;background:#fafbfc}
+h1{font-size:20px;margin:0 0 16px}
+.box{padding:18px;border-radius:10px;margin:14px 0;font-size:15px;font-weight:600}
+.bad{background:#ffebe9;color:#cf222e;border:1px solid #ffaaa3}
+.ok{background:#dafbe1;color:#1a7f37;border:1px solid #74dba1}
+button{padding:14px 22px;font-size:15px;background:#0969da;color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:600}</style>
+</head><body>
+<h1>📱 모바일 JS 작동 확인</h1>
+<div id="r" class="box bad">⚠ JavaScript가 실행되지 않음 (이 빨간 메시지가 보이면 JS 비활성)</div>
+<div id="t" class="box bad">시간 표시 안됨 (JS 미작동)</div>
+<button id="b">버튼 클릭 테스트</button>
+<div id="bm" class="box bad" style="margin-top:14px">버튼을 누르면 여기 결과가 바뀜</div>
+<p style="color:#666;font-size:13px;margin-top:24px">위 3개 박스 모두 초록색으로 바뀌면 이 폰의 브라우저에서 JavaScript가 정상 동작합니다. 그러면 dashboard_mobile.html도 정상 작동해야 합니다.</p>
+<script>
+document.getElementById('r').className='box ok';
+document.getElementById('r').textContent='✓ JavaScript 작동 OK';
+document.getElementById('t').className='box ok';
+document.getElementById('t').textContent='✓ 시간: '+new Date().toLocaleString('ko-KR');
+document.getElementById('b').onclick=function(){
+  var bm=document.getElementById('bm');bm.className='box ok';
+  bm.textContent='✓ 버튼 클릭 작동 ('+new Date().toLocaleTimeString('ko-KR')+')';
+};
+</script></body></html>
