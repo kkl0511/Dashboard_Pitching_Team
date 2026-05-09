@@ -297,53 +297,80 @@ function addPlayerSlide(p){
     fontSize: 10, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo', align: 'right', margin: 0
   });
 
-  // KPI 카드 4개 (가로)
+  // v4.1: 5 KPI 카드 (측정 / 체력 / 출력 / 전달 / 누수) + 부상·AE 인라인
+  const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
   const kpis = [
-    { label: '측정 구속', val: m.velocity.measured_kmh.toFixed(1), unit: 'km/h', color: C.midnight },
-    { label: '잠재 구속', val: m.velocity.potential_kmh.toFixed(1), unit: 'km/h', color: C.teal,
-      sub: `gap ${m.velocity.gap_kmh > 0 ? '+' : ''}${m.velocity.gap_kmh.toFixed(1)}` },
-    { label: 'ELI', val: m.energy?.leakage?.eli_score ?? '—', unit: '/100',
-      color: scoreColor(m.energy?.leakage?.eli_score) },
-    { label: '부상위험', val: ({low:'낮음',mid:'중간',high:'높음'})[m.faults.injury_risk] || '—',
-      unit: '', color: m.faults.injury_risk === 'high' ? C.bad : m.faults.injury_risk === 'mid' ? C.warn : C.good }
+    { label: '측정 구속', val: m.velocity.measured_kmh.toFixed(1), unit: 'km/h', color: '#0969da',
+      sub: m.velocity.velo_group ? `${m.velocity.velo_group} 그룹` : '' },
+    { label: '체력 Ceiling', val: (m.velocity.predicted_kmh ?? m.velocity.potential_kmh).toFixed(1), unit: 'km/h', color: '#bc4c00',
+      sub: 'Predicted Velo' },
+    { label: '⚡ 힘 만들기', val: eg?.score ?? '—', unit: '/100', color: '#1a7f37',
+      sub: '출력 (Output)' },
+    { label: '🔗 힘 전달', val: et?.score ?? '—', unit: '/100', color: '#8250df',
+      sub: '전달 (Transfer)' },
+    { label: '💧 힘 보존', val: el?.eli_score ?? '—', unit: '/100', color: '#cf222e',
+      sub: '누수 관리 (역 ELI)' }
   ];
+  // 5개 카드: 폭 1.85, 간격 0.05 → 5*1.85 + 4*0.05 = 9.45 + 좌우 여백 0.275
   kpis.forEach((k, i) => {
-    const x = 0.4 + i * 2.4;
+    const x = 0.275 + i * 1.90;
     s.addShape(pres.shapes.RECTANGLE, {
-      x, y: 1.05, w: 2.25, h: 0.95,
+      x, y: 1.05, w: 1.85, h: 0.95,
       fill: { color: C.white }, line: { color: C.line, width: 0.5 }
     });
+    s.addShape(pres.shapes.RECTANGLE, {
+      x, y: 1.05, w: 0.05, h: 0.95,
+      fill: { color: k.color }, line: { type: 'none' }
+    });
     s.addText(k.label, {
-      x: x + 0.15, y: 1.1, w: 2.0, h: 0.22,
-      fontSize: 9.5, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
+      x: x + 0.12, y: 1.10, w: 1.7, h: 0.22,
+      fontSize: 9, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(k.val + '', {
-      x: x + 0.15, y: 1.32, w: 1.6, h: 0.5,
-      fontSize: 24, bold: true, color: k.color, fontFace: 'Apple SD Gothic Neo', margin: 0
+      x: x + 0.12, y: 1.32, w: 1.4, h: 0.45,
+      fontSize: 22, bold: true, color: k.color, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(k.unit, {
-      x: x + 1.3, y: 1.55, w: 0.85, h: 0.3,
-      fontSize: 10, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
+      x: x + 1.15, y: 1.50, w: 0.65, h: 0.25,
+      fontSize: 9, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
-    if(k.sub){
-      s.addText(k.sub, {
-        x: x + 0.15, y: 1.78, w: 2.0, h: 0.2,
-        fontSize: 9, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
-      });
-    }
+    s.addText(k.sub, {
+      x: x + 0.12, y: 1.78, w: 1.7, h: 0.20,
+      fontSize: 8, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
+    });
   });
 
-  // 좌측 — 시퀀스 차트
+  // 부상위험 + AE 인라인 (5 KPI 아래 작은 박스)
+  const aeColor = (m.velocity.ae_kmh ?? 0) >= 3 ? C.good : (m.velocity.ae_kmh ?? 0) >= -3 ? C.primary : C.bad;
+  const riskTxt = ({low:'낮음',mid:'중간',high:'높음'})[m.faults.injury_risk] || '—';
+  const aeText = m.velocity.ae_label
+    ? `${m.velocity.ae_label}  (${m.velocity.ae_kmh >= 0 ? '+' : ''}${m.velocity.ae_kmh} km/h)`
+    : '—';
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.275, y: 2.10, w: 9.45, h: 0.30,
+    fill: { color: '#f6f8fa' }, line: { color: C.line, width: 0.4 }
+  });
+  s.addText([
+    { text: '부상위험: ', options: { bold: true } },
+    { text: riskTxt + '  |  ', options: { color: m.faults.injury_risk === 'high' ? C.bad : m.faults.injury_risk === 'mid' ? C.warn : C.good } },
+    { text: '메카닉 효율 (AE): ', options: { bold: true } },
+    { text: aeText, options: { color: aeColor, bold: true } }
+  ], {
+    x: 0.4, y: 2.13, w: 9.2, h: 0.25,
+    fontSize: 10, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0
+  });
+
+  // 좌측 — 시퀀스 차트 (y 위치 조정: 5 KPI + 부상/AE 인라인 아래)
   s.addText('관절 분절 시퀀스 (피크 회전속도)', {
-    x: 0.4, y: 2.15, w: 4.6, h: 0.3,
-    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
+    x: 0.4, y: 2.50, w: 4.6, h: 0.25,
+    fontSize: 10.5, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addChart(pres.charts.BAR, [{
     name: p.name,
     labels: ['골반', '몸통', '팔'],
     values: [m.sequence.pelvis_dps, m.sequence.trunk_dps, m.sequence.arm_dps]
   }], {
-    x: 0.4, y: 2.45, w: 4.6, h: 2.5,
+    x: 0.4, y: 2.78, w: 4.6, h: 1.55,
     barDir: 'col',
     chartColors: [C.primary, C.teal, '4D9DB8'],
     chartArea: { fill: { color: C.white }, roundedCorners: false },
@@ -356,10 +383,31 @@ function addPlayerSlide(p){
     showLegend: false
   });
 
-  // 우측 — 인과 chains + 권장
-  s.addText('잠재 구속 손실 원인 (Top 3) — analytics v2.1', {
-    x: 5.2, y: 2.15, w: 4.4, h: 0.3,
-    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
+  // 좌측 하단 — 자동 진단 (체력 vs 메카닉 효율, v4.1 신규)
+  if(m.velocity.diagnosis){
+    const d = m.velocity.diagnosis;
+    s.addShape(pres.shapes.RECTANGLE, {
+      x: 0.4, y: 4.45, w: 4.6, h: 0.85,
+      fill: { color: '#fafbfc' }, line: { color: aeColor, width: 1.5 }
+    });
+    s.addText('📊 자동 진단', {
+      x: 0.5, y: 4.50, w: 4.4, h: 0.22,
+      fontSize: 10, bold: true, color: aeColor, fontFace: 'Apple SD Gothic Neo', margin: 0
+    });
+    s.addText(d.primary_finding, {
+      x: 0.5, y: 4.72, w: 4.4, h: 0.22,
+      fontSize: 9, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
+    });
+    s.addText('권장: ' + d.recommendation, {
+      x: 0.5, y: 4.94, w: 4.4, h: 0.32,
+      fontSize: 8.5, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0
+    });
+  }
+
+  // 우측 — 인과 chains + 권장 (y 조정)
+  s.addText('💧 누수 인과 분석 (Top 3) — Per 1 km/h', {
+    x: 5.2, y: 2.50, w: 4.4, h: 0.25,
+    fontSize: 10.5, bold: true, color: C.bad, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const causal = m.energy?.leakage?.causal_chains || [];
   const tipMap = {
@@ -371,7 +419,7 @@ function addPlayerSlide(p){
     zone6: 'Pelvis brake — 단일하지 RFE 스플릿 스쿼트, 디셀러레이션 드릴'
   };
   causal.slice(0, 3).forEach((c, i) => {
-    const y = 2.45 + i * 0.85;
+    const y = 2.78 + i * 0.85;
     const colr = i === 0 ? C.bad : i === 1 ? C.warn : C.primary;
     // 번호 박스
     s.addShape(pres.shapes.RECTANGLE, {

@@ -235,10 +235,14 @@
   <!-- 라디아 + 4분면 -->
   <div class="grid grid-2">
     <div class="panel">
-      <h2>5축 에너지 라디아</h2>
+      <h2>투구 4대 능력 종합 차트 <span class="badge" style="background:#ddf4ff;color:#0969da">v4.1</span></h2>
       <div class="chart-wrap lg"><canvas id="p-radar"></canvas></div>
       <div class="footnote">
-        축: <b>출력 (Output)</b> / <b>전달 (Transfer)</b> / <b>누수관리 (역 ELI)</b> / <b>GRF·LHEI</b> / <b>제구·결함</b> (모두 0~100, 클수록 우수)
+        <b>⚡ 힘 만들기</b> (몸에서 power 생성) ·
+        <b>🔗 힘 전달</b> (분절 간 효율) ·
+        <b>💧 힘 보존</b> (누수 없이 전달) ·
+        <b>🎯 제구 안정</b> (반복 일관성)
+        — 4축 모두 0~100, 클수록 우수
       </div>
     </div>
     <div class="panel">
@@ -269,9 +273,9 @@
       회전 power가 어떻게 만들어지고(<b>생성</b>) → 분절 간에 얼마나 잘 넘어가고(<b>전달</b>) → 어디서 새는지(<b>누수</b>)를 한눈에.
     </div>
     <div class="grid grid-3">
-      <!-- ① 에너지 생성 (Output) -->
+      <!-- ① 에너지 생성 (Output) — v4.1: Rear GRF 통합 -->
       <div class="scard" style="border-top:3px solid #0969da">
-        <h3>① 에너지 생성 (Output)
+        <h3>① ⚡ 힘 만들기 (Output)
           <span style="font-size:18px;font-weight:700" id="p-en-gen-score">—</span>
         </h3>
         <div class="grp-title">피크 회전속도 (°/s)</div>
@@ -283,11 +287,13 @@
         <div class="row"><span>합계 (Total)</span><span class="v" id="p-en-total-w">—</span></div>
         <div class="grp-title">분절 운동에너지 (J)</div>
         <div class="row"><span>골반 / 몸통 / 상완</span><span class="v" id="p-en-mech" style="font-size:11.5px">—</span></div>
+        <div class="grp-title">★ 축발 push-off (지면반력 → 운동량 시작)</div>
+        <div class="row"><span>축발 (Rear) GRF</span><span class="v" id="p-rear">—</span></div>
       </div>
 
-      <!-- ② 에너지 전달 (Transfer) -->
+      <!-- ② 에너지 전달 (Transfer) — v4.1: Lead GRF·LHEI·CoG_Decel 통합 -->
       <div class="scard" style="border-top:3px solid #1a7f37">
-        <h3>② 에너지 전달 (Transfer)
+        <h3>② 🔗 힘 전달 (Transfer)
           <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
         </h3>
         <div class="grp-title">전달 효율</div>
@@ -299,6 +305,11 @@
         <div class="row"><span>Proper Sequence</span><span class="v" id="p-en-proper">—</span></div>
         <div class="row"><span>Pelvis→Trunk lag</span><span class="v" id="p-en-lag-pt">—</span></div>
         <div class="row"><span>Trunk→Arm lag</span><span class="v" id="p-en-lag-ta">—</span></div>
+        <div class="grp-title">★ 착지발 block (linear → angular 전환)</div>
+        <div class="row"><span>착지발 (Lead) GRF</span><span class="v" id="p-lead">—</span></div>
+        <div class="row"><span>LHEI (하체 효율)</span><span class="v" id="p-lhei">—</span></div>
+        <div class="row"><span>투수 유형</span><span class="v" id="p-grf-type" style="font-size:11px">—</span></div>
+        <div class="row"><span title="BBL v33.22 핵심 변수">CoG_Decel (운동량 감속)</span><span class="v" id="p-cog-decel">—</span></div>
       </div>
 
       <!-- ③ 에너지 누수 (Leak / ELI) -->
@@ -325,26 +336,12 @@
     <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
   </div>
 
-  <!-- 지면반력 (NewtForce) 단독 패널 -->
+  <!-- v4.1: 지면반력 단독 카드 제거 — Rear GRF는 ⚡출력에, Lead GRF·LHEI·CoG_Decel는 🔗전달 섹션에 통합됨 -->
+
+  <!-- 부상위험 · 제구일관성 카드만 유지 (제구는 별도 framework) -->
   <div class="panel">
-    <h2>🦵 지면반력 (NewtForce 통합 분석) <span class="protocol-tag theia">Theia+GRF</span></h2>
-    <div class="grid grid-3">
-      <div class="scard">
-        <h3>하체 종합 효율 (LHEI)</h3>
-        <div class="row"><span>LHEI 점수</span><span class="v" id="p-lhei" style="font-size:18px;font-weight:700">—</span></div>
-        <div class="row"><span>투수 유형 자동 진단</span><span class="v" id="p-grf-type" style="font-size:11.5px">—</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
-          LHEI = 8개 지표 가중 평균 (NewtForce 표준)
-        </div>
-      </div>
-      <div class="scard">
-        <h3>발별 누적 힘 (% BW·s)</h3>
-        <div class="row"><span>축발(뒷발) FP1</span><span class="v" id="p-rear">—</span></div>
-        <div class="row"><span>디딤발(앞발) FP2</span><span class="v" id="p-lead">—</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line-soft)">
-          축발: 시작부터 정적 weight + 차고 나가기<br>디딤발: 앞발 착지 후 받쳐주기
-        </div>
-      </div>
+    <h2>🩺 부상위험 · 제구 일관성</h2>
+    <div class="grid grid-1">
       <div class="scard">
         <h3>부상위험 · 제구일관성</h3>
         <div class="grp-title">정렬 · 분리</div>

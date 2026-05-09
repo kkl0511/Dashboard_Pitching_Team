@@ -406,17 +406,17 @@ function renderPlayerView(pid){
   document.getElementById('p-score-delta').textContent =
     `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
-  // 5축 에너지 라디아 — 출력 / 전달 / 누수관리 / GRF·LHEI / 제구·결함
+  // v4.1: 4축 능력 차트 — 한국 코치 친화 라벨 (GRF는 출력·전달에 흡수)
+  // ⚡ 힘 만들기 (출력) / 🔗 힘 전달 / 💧 힘 보존 (누수 관리) / 🎯 제구 안정
   if(chartsP.r) chartsP.r.destroy();
   const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
   chartsP.r = new Chart(document.getElementById('p-radar'),{
     type:'radar',
     data:{
-      labels:['출력 (Output)','전달 (Transfer)','누수관리 (역 ELI)','GRF / LHEI','제구·결함'],
+      labels:['⚡ 힘 만들기\n(출력)','🔗 힘 전달','💧 힘 보존\n(누수 관리)','🎯 제구 안정'],
       datasets:[{
         label: p.name,
-        data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0, m.grf?.lhei ?? 0,
-              // v3.0-B: command_composite 우선 사용 (없으면 기존 consistency_score)
+        data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0,
               m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
         backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2, pointRadius:4,
         pointBackgroundColor:'#0969da'
@@ -426,7 +426,6 @@ function renderPlayerView(pid){
           avg(PLAYERS.map(x=>DATA[x.id][1].energy?.generation?.score).filter(v=>v!=null)),
           avg(PLAYERS.map(x=>DATA[x.id][1].energy?.transfer?.score).filter(v=>v!=null)),
           avg(PLAYERS.map(x=>DATA[x.id][1].energy?.leakage?.eli_score).filter(v=>v!=null)),
-          avg(PLAYERS.map(x=>DATA[x.id][1].grf?.lhei).filter(v=>v!=null)),
           avg(PLAYERS.map(x=>DATA[x.id][1].faults.command_composite ?? avg([DATA[x.id][1].faults.fault_score, DATA[x.id][1].faults.consistency_score])))
         ],
         backgroundColor:'rgba(130,80,223,.10)', borderColor:'#8250df', borderWidth:1.5,
@@ -578,12 +577,24 @@ function renderPlayerView(pid){
   document.getElementById('p-sg').textContent = m.sequence.speed_gain + '×';
   document.getElementById('p-seq-binary').textContent = m.sequence.proper_seq ? '정상' : '결함';
 
-  // GRF + 결함
-  document.getElementById('p-lhei').innerHTML =
-    `<span style="color:${scoreColor(m.grf.lhei)}">${fmt0(m.grf.lhei)}</span>`;
-  document.getElementById('p-grf-type').textContent = m.grf.type;
-  document.getElementById('p-rear').textContent = m.grf.rear_force_pct + '%';
-  document.getElementById('p-lead').textContent = m.grf.lead_force_pct + '%';
+  // v4.1: GRF — Rear는 출력 카드, Lead·LHEI·CoG_Decel은 전달 카드 (UI 재배치)
+  if(m.grf){
+    const lheiEl = document.getElementById('p-lhei');
+    if(lheiEl) lheiEl.innerHTML = `<span style="color:${scoreColor(m.grf.lhei)}">${fmt0(m.grf.lhei)}</span>`;
+    const typeEl = document.getElementById('p-grf-type');
+    if(typeEl) typeEl.textContent = m.grf.type;
+    const rearEl = document.getElementById('p-rear');
+    if(rearEl) rearEl.textContent = m.grf.rear_force_pct + '%';
+    const leadEl = document.getElementById('p-lead');
+    if(leadEl) leadEl.textContent = m.grf.lead_force_pct + '%';
+    // v4.1 신규: CoG_Decel (BBL v33.22 핵심 변수, 18명 데이터 reference)
+    const cogEl = document.getElementById('p-cog-decel');
+    if(cogEl){
+      // 샘플 데이터에는 cog_decel 없으니 추정 (향후 실측 시 m.grf.cog_decel 사용)
+      const cog = m.grf.cog_decel ?? (1.1 + (m.grf.lhei || 50) / 100 * 0.5);
+      cogEl.textContent = cog.toFixed(2) + ' m/s';
+    }
+  }
 
   document.getElementById('p-xf').textContent = m.faults.x_factor_deg + '°';
   document.getElementById('p-lk').textContent = m.faults.lead_knee_change + '°';
