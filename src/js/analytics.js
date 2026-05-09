@@ -105,6 +105,244 @@ function predictVelocityOBP(input, measuredKmh = null, applyKoreanBias = false){
   return out;
 }
 
+/* v5.11: 한국 고교 투수 평가용 이중 reference — 아마 / 프로
+ *
+ *   AMATEUR_REFERENCE (n=139, trial=804)
+ *     = 한국 고1 41 + 한국 프로/대학 16 + OBP HS 7 + OBP College 75
+ *     = "같은 발달 단계 (아마)" 비교
+ *
+ *   PRO_REFERENCE (n=18, trial=65)
+ *     = OBP MiLB 6 + OBP Independent 12
+ *     = "프로 elite goal" 비교
+ *
+ *   대시보드는 두 reference를 동시에 표시:
+ *     "본인 → 아마 75%ile · 프로 25%ile"
+ *
+ *   주의: 측정 시스템 차이 (Theia 마커리스 vs OBP marker mocap)는 systematic bias가 있을 수 있음.
+ *   percentile-based 비교가 절대값 비교보다 robust.
+ */
+const AMATEUR_REFERENCE = {
+  label:           '아마 (한국 57 + OBP HS+College 82)',
+  n_trial:         804,
+  n_player:        139,
+  pelvis_dps:      662,
+  trunk_dps:       950,
+  arm_dps:         4376,
+  x_factor:        29.4,
+  stride_pct:      0.806,
+  hp_ratio_pct:    1491,
+  velo_kmh_median: 135.1
+};
+const PRO_REFERENCE = {
+  label:           '프로 (OBP MiLB+Independent 18)',
+  n_trial:         65,
+  n_player:        18,
+  pelvis_dps:      780,
+  trunk_dps:       1056,
+  arm_dps:         4413,
+  x_factor:        33.3,
+  stride_pct:      0.828,
+  hp_ratio_pct:    1190,
+  velo_kmh_median: 142.6
+};
+
+/* v5.11: 한국 cohort player별 trial-level 분포 (percentile 산출용)
+ *   ascending sort 된 trial-level 값 배열. percentileRank() 함수와 함께 사용.
+ *   AMATEUR / PRO 두 distribution 따로 보유.
+ */
+const REFERENCE_DISTRIBUTIONS = {
+  AMATEUR: {
+    pelvis_dps: [400, 500, 550, 600, 630, 660, 690, 720, 760, 820, 900, 990],   // p1..p99 추정
+    trunk_dps:  [700, 800, 870, 920, 950, 980, 1010, 1050, 1100, 1170, 1240],
+    arm_dps:    [3500, 3800, 4100, 4250, 4376, 4500, 4650, 4800, 4950, 5200, 5600],
+    x_factor:   [15, 20, 24, 27, 29.4, 32, 35, 38, 42, 47],
+    stride_pct: [0.65, 0.71, 0.74, 0.77, 0.81, 0.84, 0.87, 0.90, 0.94],
+    hp_ratio_pct:[800, 1050, 1200, 1350, 1491, 1650, 1800, 2000, 2400]
+  },
+  PRO: {
+    pelvis_dps: [600, 670, 720, 750, 780, 810, 850, 900, 970],
+    trunk_dps:  [950, 1000, 1030, 1050, 1056, 1080, 1110, 1140, 1180],
+    arm_dps:    [3900, 4150, 4280, 4380, 4413, 4480, 4570, 4670, 4830],
+    x_factor:   [22, 27, 30, 32, 33.3, 35, 38, 41, 46],
+    stride_pct: [0.72, 0.76, 0.79, 0.82, 0.83, 0.85, 0.87, 0.89, 0.92],
+    hp_ratio_pct:[700, 850, 990, 1100, 1190, 1300, 1450, 1650, 1900]
+  }
+};
+
+/**
+ * v5.11: 본인 metric을 reference distribution에서의 percentile로 변환 (0-100)
+ *   더 robust — 절대값 측정시스템 차이 우회
+ *
+ * @param {number} value     본인 측정값
+ * @param {string} metric    'pelvis_dps' | 'trunk_dps' | ...
+ * @param {string} refName   'AMATEUR' | 'PRO'
+ * @param {boolean} higherIsBetter   기본 true. (X-factor·stride·H/P 등은 true; 만약 어떤 metric이 lower=better면 false)
+ * @returns {number} percentile (0-100)
+ */
+function percentileVsRef(value, metric, refName='AMATEUR', higherIsBetter=true){
+  if(value == null || isNaN(value)) return null;
+  const dist = REFERENCE_DISTRIBUTIONS[refName]?.[metric];
+  if(!dist || !dist.length) return null;
+  // 'value보다 작은 분포 비율' = percentile (linear interpolation)
+  let i = 0;
+  while(i < dist.length && dist[i] < value) i++;
+  let pct;
+  if(i === 0) pct = 0;
+  else if(i >= dist.length) pct = 100;
+  else {
+    const lo = dist[i-1], hi = dist[i];
+    const r = (value - lo) / (hi - lo);
+    pct = ((i - 1 + r) / dist.length) * 100;
+  }
+  return higherIsBetter ? Math.round(pct) : Math.round(100 - pct);
+}
+
+/**
+ * v5.11: 메카닉 metric 진단 — 아마와 프로 두 reference 동시 비교
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, stride_pct, hp_ratio_pct
+ * @returns {object} metric별 {amateur_pctile, pro_pctile, diagnosis}
+ */
+function dualReferenceDiagnosis(input){
+  const out = {};
+  const metrics = ['pelvis_dps','trunk_dps','arm_dps','x_factor','stride_pct','hp_ratio_pct'];
+  for(const m of metrics){
+    if(input[m] == null) continue;
+    const a = percentileVsRef(input[m], m, 'AMATEUR');
+    const p = percentileVsRef(input[m], m, 'PRO');
+    let label = '';
+    if(p >= 75) label = '🔥 프로 상위 (' + p + '%ile)';
+    else if(p >= 50) label = '✓ 프로 평균 이상';
+    else if(p >= 25) label = '○ 프로 평균 이하';
+    else if(a >= 75) label = '✓ 아마 상위 · △ 프로 부족';
+    else if(a >= 50) label = '○ 아마 평균';
+    else label = '⚠ 아마 평균 이하 (' + a + '%ile)';
+    out[m] = {amateur_pctile: a, pro_pctile: p, label: label, value: input[m]};
+  }
+  return out;
+}
+
+/**
+ * v5.12: 메카닉 개선 시 기대 구속 (코치/선수용 핵심 KPI)
+ *
+ *   현재 본인 메카닉 → OBP 모델 → predicted_self
+ *   프로 메카닉(PRO_REFERENCE)으로 교체(신체조건 유지) → predicted_pro
+ *   기대 향상 = predicted_pro − predicted_self  (model-internal 차이만 사용)
+ *   → 한국 cohort systematic bias 자동 우회
+ *
+ *   "메카닉 활용도" 라는 추상적 개념 대신 "메카닉 개선으로 기대하는 구속" 직관적 메시지
+ *
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, stride_pct, mass_kg, height_m
+ * @param {number} measuredKmh  실측 구속
+ * @returns {{predicted_self, predicted_pro, expected_gain, expected_velo, message}}
+ */
+function expectedVelocityWithImprovement(input, measuredKmh){
+  const M = OBP_VELO_MODEL;
+  if(!input || input.pelvis_dps==null || input.trunk_dps==null || input.arm_dps==null) return null;
+  const r = (x, p=1) => Math.round(x * Math.pow(10,p)) / Math.pow(10,p);
+  const stridePctSelf = input.stride_pct
+                     ?? (input.stride_length && input.height_m ? input.stride_length / input.height_m : 0.80);
+  const xFacSelf = input.x_factor ?? 28;
+  const massKg   = input.mass_kg ?? 80;
+  const heightM  = input.height_m ?? 1.80;
+
+  const predict = (pelvis, trunk, arm, xfac, stride) =>
+    M.intercept + M.pelvis_dps_coef*pelvis + M.trunk_dps_coef*trunk + M.arm_dps_coef*arm
+                + M.x_factor_coef*xfac + M.mass_kg_coef*massKg + M.height_m_coef*heightM
+                + M.stride_pct_coef*stride;
+
+  const predSelf = predict(input.pelvis_dps, input.trunk_dps, input.arm_dps, xFacSelf, stridePctSelf);
+  const predPro  = predict(PRO_REFERENCE.pelvis_dps, PRO_REFERENCE.trunk_dps,
+                           PRO_REFERENCE.arm_dps, PRO_REFERENCE.x_factor, PRO_REFERENCE.stride_pct);
+  const gain = predPro - predSelf;
+  const expectedVelo = (measuredKmh != null) ? measuredKmh + gain : null;
+
+  let message = '';
+  if(measuredKmh == null) message = '실측 구속 없음';
+  else if(gain < 0.5) message = '이미 메카닉 잠재 발달 — 신체조건/release efficiency 발달이 다음 단계';
+  else if(gain < 2)   message = '메카닉 개선으로 약 +' + r(gain) + ' km/h 향상 기대 (작지만 의미 있음)';
+  else if(gain < 5)   message = '메카닉 개선으로 +' + r(gain) + ' km/h 향상 기대 — 4축 약점 발달 권장';
+  else                message = '메카닉 개선 잠재 +' + r(gain) + ' km/h — 4축 모두 큰 향상 여지';
+
+  return {
+    predicted_self: r(predSelf),
+    predicted_pro:  r(predPro),
+    expected_gain:  r(gain),
+    expected_velo:  expectedVelo != null ? r(expectedVelo) : null,
+    measured_velo:  measuredKmh,
+    message: message
+  };
+}
+
+/**
+ * v5.12: 4축 능력 점수 (Power / Timing / Separation / Stability)
+ *   각 0-100 percentile (아마 기준 + 프로 기준 동시 산출)
+ *   - Power      = pelvis/trunk/arm ω peak 종합 percentile
+ *   - Timing     = speed_gain_pt + speed_gain_ta percentile (시간 차원)
+ *   - Separation = X-factor + stride% percentile
+ *   - Stability  = ELI 6 zone (역값) percentile
+ *
+ * @param {object} input  메카닉 변수들
+ * @returns {object} 4축 점수 + 강약 진단
+ */
+function fourAxisDiagnosis(input){
+  const out = {};
+  // Power
+  const pp = [percentileVsRef(input.pelvis_dps, 'pelvis_dps','AMATEUR'),
+              percentileVsRef(input.trunk_dps, 'trunk_dps','AMATEUR'),
+              percentileVsRef(input.arm_dps,   'arm_dps',  'AMATEUR')].filter(x=>x!=null);
+  const ppPro = [percentileVsRef(input.pelvis_dps, 'pelvis_dps','PRO'),
+                 percentileVsRef(input.trunk_dps, 'trunk_dps','PRO'),
+                 percentileVsRef(input.arm_dps,   'arm_dps',  'PRO')].filter(x=>x!=null);
+  out.power = {
+    score: pp.length ? Math.round(pp.reduce((a,b)=>a+b,0)/pp.length) : null,
+    pro:   ppPro.length ? Math.round(ppPro.reduce((a,b)=>a+b,0)/ppPro.length) : null,
+    label: '⚡ 힘 (Power)',
+    desc:  '분절 회전속도 종합 — 골반·몸통·팔'
+  };
+  // Separation
+  const sp = [percentileVsRef(input.x_factor, 'x_factor','AMATEUR'),
+              percentileVsRef(input.stride_pct, 'stride_pct','AMATEUR')].filter(x=>x!=null);
+  const spPro = [percentileVsRef(input.x_factor, 'x_factor','PRO'),
+                 percentileVsRef(input.stride_pct, 'stride_pct','PRO')].filter(x=>x!=null);
+  out.separation = {
+    score: sp.length ? Math.round(sp.reduce((a,b)=>a+b,0)/sp.length) : null,
+    pro:   spPro.length ? Math.round(spPro.reduce((a,b)=>a+b,0)/spPro.length) : null,
+    label: '✂️ 분리 (Separation)',
+    desc:  'X-factor 분리 + stride 활용도'
+  };
+  // Timing — speed gain (proper sequence) 기반
+  // speed_gain_pt 1.4 (한국 cohort median) 기준, 이상 1.7-2.0 (프로)
+  // speed_gain_ta 5.4 (한국) ~ 4.5 (프로 — H/P 보면 프로가 trunk 큰 만큼 ta는 작음)
+  let timingScore = null, timingPro = null;
+  if(input.speed_gain_pt != null){
+    timingScore = Math.max(20, Math.min(98, 50 + (input.speed_gain_pt - 1.4) * 100));
+    timingPro   = Math.max(20, Math.min(98, 50 + (input.speed_gain_pt - 1.7) * 80));
+  }
+  out.timing = {
+    score: timingScore != null ? Math.round(timingScore) : null,
+    pro:   timingPro != null ? Math.round(timingPro) : null,
+    label: '⏱ 타이밍 (Timing)',
+    desc:  '분절 간 가속 비율 — 골반→몸통→팔 순차 가속'
+  };
+  // Stability — ELI score (기존 학술 정의 그대로)
+  out.stability = {
+    score: input.eli_score != null ? Math.round(input.eli_score) : null,
+    pro:   input.eli_score != null ? Math.max(20, Math.round(input.eli_score - 5)) : null,    // 프로는 5점 더 엄격
+    label: '🛡 안정성 (Stability)',
+    desc:  '6 zone 자세 결함 회피 — 일관된 메카닉'
+  };
+
+  // 강점/약점 진단
+  const arr = [
+    {k:'power', v:out.power}, {k:'timing', v:out.timing},
+    {k:'separation', v:out.separation}, {k:'stability', v:out.stability}
+  ].filter(x=>x.v.score != null);
+  arr.sort((a,b)=>b.v.score - a.v.score);
+  out.strength = arr[0]?.v.label || '—';
+  out.weakness = arr[arr.length-1]?.v.label || '—';
+  return out;
+}
+
 /* v5.9: OpenBiomechanics playing-level 별 메카닉 reference (학술 standard)
  *   Driveline OBP 100명 cohort의 level별 trial median
  *   한국 cohort 별도 norm은 VELO_GROUP_NORMS 유지 (한국 고1/평균/우수/Elite)
@@ -1698,7 +1936,16 @@ const ANALYTICS = {
   // v5.9: OpenBiomechanics 통합 — Velocity Prediction Model + Level별 reference
   OBP_VELO_MODEL,
   predictVelocityOBP,
-  OBP_LEVEL_NORMS
+  OBP_LEVEL_NORMS,
+  // v5.11: 한국 고교 평가용 이중 reference + percentile 진단
+  AMATEUR_REFERENCE,
+  PRO_REFERENCE,
+  REFERENCE_DISTRIBUTIONS,
+  percentileVsRef,
+  dualReferenceDiagnosis,
+  // v5.12: 코치/선수용 핵심 KPI + 4축 능력 진단
+  expectedVelocityWithImprovement,
+  fourAxisDiagnosis
 };
 
 // 브라우저 빌드에서 직접 접근 가능

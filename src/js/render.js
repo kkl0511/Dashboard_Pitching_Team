@@ -365,30 +365,46 @@ function renderPlayerView(pid){
       m.velocity.predicted_kmh != null ? `Predicted ${m.velocity.predicted_group} 그룹` : '잔차 —';
   }
 
-  // [3] 출력 (Generation)
-  const out = m.energy?.generation;
-  if(document.getElementById('p-out-score')){
-    const s = out?.score ?? null;
-    document.getElementById('p-out-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-out-detail').textContent =
-      `Pelvis ${m.sequence.pelvis_dps}° · Trunk ${m.sequence.trunk_dps}° · Power ${out?.total_W ?? '—'}W`;
+  // [3] v5.12: 🎯 메카닉 개선 기대 구속 (코치/선수용 핵심 메시지)
+  const expEl = document.getElementById('p-expected-velo');
+  if(expEl && typeof ANALYTICS !== 'undefined' && ANALYTICS.expectedVelocityWithImprovement){
+    const exp = ANALYTICS.expectedVelocityWithImprovement({
+      pelvis_dps: m.sequence?.pelvis_dps,
+      trunk_dps:  m.sequence?.trunk_dps,
+      arm_dps:    m.sequence?.arm_dps,
+      x_factor:   m.faults?.x_factor_deg,
+      stride_pct: m.faults?.stride_pct ?? 0.80,
+      mass_kg:    p.weight, height_m: p.height/100
+    }, m.velocity?.measured_kmh);
+    if(exp && exp.expected_velo != null){
+      const gain = exp.expected_gain;
+      const gainColor = gain > 5 ? '#1a7f37' : gain > 2 ? '#bc4c00' : gain > 0 ? '#0969da' : '#656d76';
+      expEl.innerHTML = `<span style="color:${gainColor}">${exp.expected_velo}</span> <span style="font-size:13px;color:var(--muted)">km/h</span>`;
+      document.getElementById('p-expected-detail').innerHTML =
+        `실측 ${exp.measured_velo} → <b style="color:${gainColor}">+${gain}</b> 향상 잠재`;
+    } else {
+      expEl.textContent = '—';
+      document.getElementById('p-expected-detail').textContent = '메카닉 데이터 부족';
+    }
   }
-  // [4] 전달 (Transfer)
-  const trf = m.energy?.transfer;
-  if(document.getElementById('p-trf-score')){
-    const s = trf?.score ?? null;
-    document.getElementById('p-trf-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-trf-detail').textContent =
-      `ETE ${trf?.ete_pct ?? '—'}% · Speed Gain ${trf?.speed_gain_pt ?? '—'}× · Lag ${trf?.pelvis_to_trunk_lag_ms ?? '—'}ms`;
+  // [4] v5.12: 📊 4축 능력 강약 요약 (Power/Timing/Separation/Stability)
+  const summaryEl = document.getElementById('p-4axis-summary');
+  if(summaryEl && typeof ANALYTICS !== 'undefined' && ANALYTICS.fourAxisDiagnosis){
+    const fa = ANALYTICS.fourAxisDiagnosis({
+      pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+      arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+      stride_pct: m.faults?.stride_pct ?? 0.80,
+      speed_gain_pt: m.energy?.transfer?.speed_gain_pt,
+      speed_gain_ta: m.energy?.transfer?.speed_gain_ta,
+      eli_score: m.energy?.leakage?.eli_score
+    });
+    summaryEl.innerHTML =
+      `<span style="color:#1a7f37">▲ ${fa.strength}</span><br><span style="color:#cf222e">▼ ${fa.weakness}</span>`;
+    document.getElementById('p-4axis-detail').innerHTML =
+      `힘 ${fa.power.score ?? '—'} · 타이밍 ${fa.timing.score ?? '—'} · 분리 ${fa.separation.score ?? '—'} · 안정성 ${fa.stability.score ?? '—'}`;
   }
-  // [5] 누수 관리 (역 ELI)
-  const leak = m.energy?.leakage;
-  if(document.getElementById('p-leak-score')){
-    const s = leak?.eli_score ?? null;
-    document.getElementById('p-leak-score').innerHTML = `<span style="color:${scoreColor(s)}">${fmt0(s)}</span>`;
-    document.getElementById('p-leak-detail').textContent =
-      leak?.causal_chains?.length ? `Top: ${leak.causal_chains[0].defect}` : '6 zone · 인과 chain';
-  }
+  // 호환성: 기존 hidden span에도 값 채움 (다른 코드가 참조 시 안전)
+  const out = m.energy?.generation, trf = m.energy?.transfer, leak = m.energy?.leakage;
 
   // 보조 정보: 부상위험 + 메카닉 효율 (AE) + 종합 점수 (숨김 ID)
   const elrk = document.getElementById('p-risk');
@@ -406,10 +422,18 @@ function renderPlayerView(pid){
   document.getElementById('p-score-delta').textContent =
     `종합 ${m.velocity.score} / 메카닉 ${m.sequence.score} · 체력 ${m.fitness?.score ?? '—'} · GRF ${fmt0(m.grf?.lhei)}`;
 
-  // v5.4: 4축 능력 차트 — 본인 + 합성 베스트(전체 측정 max) + Elite 41 reference (3 dataset)
-  // ⚡ 힘 만들기 / 🔗 힘 전달 (시퀀싱 효율, ETE) / 💧 주요 누수 (자세 결함, ELI) / 🎯 제구 안정
+  // v5.12: 4축 능력 차트 — Power/Timing/Separation/Stability (아마/프로 percentile 기반)
   if(chartsP.r) chartsP.r.destroy();
   const eg = m.energy?.generation, et = m.energy?.transfer, el = m.energy?.leakage;
+  // v5.12 fourAxisDiagnosis 사용
+  const fa4 = (typeof ANALYTICS !== 'undefined' && ANALYTICS.fourAxisDiagnosis) ?
+    ANALYTICS.fourAxisDiagnosis({
+      pelvis_dps: m.sequence?.pelvis_dps, trunk_dps: m.sequence?.trunk_dps,
+      arm_dps: m.sequence?.arm_dps, x_factor: m.faults?.x_factor_deg,
+      stride_pct: m.faults?.stride_pct ?? 0.80,
+      speed_gain_pt: et?.speed_gain_pt, speed_gain_ta: et?.speed_gain_ta,
+      eli_score: el?.eli_score
+    }) : null;
   // 합성 베스트 — 모든 PLAYERS × SESSIONS 측정에서 각 축 최고치 (가상 챔피언)
   const allM = [];
   PLAYERS.forEach(pl => SESSIONS.forEach(s => {
@@ -433,26 +457,42 @@ function renderPlayerView(pid){
     command_composite: 80, label: '📊 Elite 41 ref'
   };
   const proData = [proRef.generation_score, proRef.transfer_score, proRef.eli_score, proRef.command_composite];
+  // v5.12 — 4축 percentile 기반 (본인 / 아마 50%ile 평균 / 프로 50%ile 평균)
+  const myData = fa4 ? [
+    fa4.power?.score ?? 0, fa4.timing?.score ?? 0,
+    fa4.separation?.score ?? 0, fa4.stability?.score ?? 0
+  ] : [0, 0, 0, 0];
+  const myProData = fa4 ? [
+    fa4.power?.pro ?? 0, fa4.timing?.pro ?? 0,
+    fa4.separation?.pro ?? 0, fa4.stability?.pro ?? 0
+  ] : [0, 0, 0, 0];
+  // 아마/프로 reference 자체는 50점 (median 위치)
+  const amateurRefData = [50, 50, 50, 50];
+  const proRefData     = [50, 50, 50, 50];   // 프로 reference는 본인의 프로 percentile 기준
   chartsP.r = new Chart(document.getElementById('p-radar'),{
     type:'radar',
     data:{
-      labels:['⚡ 힘 만들기','🔗 힘 전달\n(시퀀싱 효율)','💧 주요 누수\n(자세 결함)','🎯 제구 안정'],
+      labels:['⚡ 힘\n(Power)','⏱ 타이밍\n(Timing)','✂️ 분리\n(Separation)','🛡 안정성\n(Stability)'],
       datasets:[{
-        label: p.name,
-        data:[eg?.score ?? 0, et?.score ?? 0, el?.eli_score ?? 0,
-              m.faults.command_composite ?? avg([m.faults.fault_score, m.faults.consistency_score])],
-        backgroundColor:'rgba(9,105,218,.18)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
+        label: `${p.name} (아마 percentile)`,
+        data: myData,
+        backgroundColor:'rgba(9,105,218,.20)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
         pointBackgroundColor:'#0969da', order: 1
       },{
-        label: `🏆 합성 베스트 (N=${allM.length})`,
-        data: bestData,
-        backgroundColor:'rgba(212,138,15,.06)', borderColor:'#bc8a0f', borderWidth:1.5,
-        borderDash:[5,4], pointRadius:3, pointBackgroundColor:'#bc8a0f', order: 2
+        label: `${p.name} (프로 percentile)`,
+        data: myProData,
+        backgroundColor:'rgba(207,34,46,.10)', borderColor:'#cf222e', borderWidth:1.8, pointRadius:3,
+        borderDash:[3,3], pointBackgroundColor:'#cf222e', order: 2
       },{
-        label: proRef.label,
-        data: proData,
-        backgroundColor:'rgba(101,109,118,.05)', borderColor:'#656d76', borderWidth:1.3,
-        borderDash:[2,3], pointRadius:2.5, pointBackgroundColor:'#656d76', order: 3
+        label: '🟧 아마 평균 (n=139)',
+        data: amateurRefData,
+        backgroundColor:'rgba(212,138,15,.04)', borderColor:'#bc8a0f', borderWidth:1.3,
+        borderDash:[5,4], pointRadius:0, order: 3
+      },{
+        label: '⬜ 프로 평균 (n=18)',
+        data: proRefData,
+        backgroundColor:'rgba(101,109,118,.0)', borderColor:'#656d76', borderWidth:1.0,
+        borderDash:[2,3], pointRadius:0, order: 4, hidden: true
       }]
     },
     options:{

@@ -1440,6 +1440,122 @@ function predictVelocityOBP(input, measuredKmh = null, applyKoreanBias = false){
   return out;
 }
 
+/* v5.11: 한국 고교 투수 평가용 이중 reference — 아마 / 프로
+ *
+ *   AMATEUR_REFERENCE (n=139, trial=804)
+ *     = 한국 고1 41 + 한국 프로/대학 16 + OBP HS 7 + OBP College 75
+ *     = "같은 발달 단계 (아마)" 비교
+ *
+ *   PRO_REFERENCE (n=18, trial=65)
+ *     = OBP MiLB 6 + OBP Independent 12
+ *     = "프로 elite goal" 비교
+ *
+ *   대시보드는 두 reference를 동시에 표시:
+ *     "본인 → 아마 75%ile · 프로 25%ile"
+ *
+ *   주의: 측정 시스템 차이 (Theia 마커리스 vs OBP marker mocap)는 systematic bias가 있을 수 있음.
+ *   percentile-based 비교가 절대값 비교보다 robust.
+ */
+const AMATEUR_REFERENCE = {
+  label:           '아마 (한국 57 + OBP HS+College 82)',
+  n_trial:         804,
+  n_player:        139,
+  pelvis_dps:      662,
+  trunk_dps:       950,
+  arm_dps:         4376,
+  x_factor:        29.4,
+  stride_pct:      0.806,
+  hp_ratio_pct:    1491,
+  velo_kmh_median: 135.1
+};
+const PRO_REFERENCE = {
+  label:           '프로 (OBP MiLB+Independent 18)',
+  n_trial:         65,
+  n_player:        18,
+  pelvis_dps:      780,
+  trunk_dps:       1056,
+  arm_dps:         4413,
+  x_factor:        33.3,
+  stride_pct:      0.828,
+  hp_ratio_pct:    1190,
+  velo_kmh_median: 142.6
+};
+
+/* v5.11: 한국 cohort player별 trial-level 분포 (percentile 산출용)
+ *   ascending sort 된 trial-level 값 배열. percentileRank() 함수와 함께 사용.
+ *   AMATEUR / PRO 두 distribution 따로 보유.
+ */
+const REFERENCE_DISTRIBUTIONS = {
+  AMATEUR: {
+    pelvis_dps: [400, 500, 550, 600, 630, 660, 690, 720, 760, 820, 900, 990],   // p1..p99 추정
+    trunk_dps:  [700, 800, 870, 920, 950, 980, 1010, 1050, 1100, 1170, 1240],
+    arm_dps:    [3500, 3800, 4100, 4250, 4376, 4500, 4650, 4800, 4950, 5200, 5600],
+    x_factor:   [15, 20, 24, 27, 29.4, 32, 35, 38, 42, 47],
+    stride_pct: [0.65, 0.71, 0.74, 0.77, 0.81, 0.84, 0.87, 0.90, 0.94],
+    hp_ratio_pct:[800, 1050, 1200, 1350, 1491, 1650, 1800, 2000, 2400]
+  },
+  PRO: {
+    pelvis_dps: [600, 670, 720, 750, 780, 810, 850, 900, 970],
+    trunk_dps:  [950, 1000, 1030, 1050, 1056, 1080, 1110, 1140, 1180],
+    arm_dps:    [3900, 4150, 4280, 4380, 4413, 4480, 4570, 4670, 4830],
+    x_factor:   [22, 27, 30, 32, 33.3, 35, 38, 41, 46],
+    stride_pct: [0.72, 0.76, 0.79, 0.82, 0.83, 0.85, 0.87, 0.89, 0.92],
+    hp_ratio_pct:[700, 850, 990, 1100, 1190, 1300, 1450, 1650, 1900]
+  }
+};
+
+/**
+ * v5.11: 본인 metric을 reference distribution에서의 percentile로 변환 (0-100)
+ *   더 robust — 절대값 측정시스템 차이 우회
+ *
+ * @param {number} value     본인 측정값
+ * @param {string} metric    'pelvis_dps' | 'trunk_dps' | ...
+ * @param {string} refName   'AMATEUR' | 'PRO'
+ * @param {boolean} higherIsBetter   기본 true. (X-factor·stride·H/P 등은 true; 만약 어떤 metric이 lower=better면 false)
+ * @returns {number} percentile (0-100)
+ */
+function percentileVsRef(value, metric, refName='AMATEUR', higherIsBetter=true){
+  if(value == null || isNaN(value)) return null;
+  const dist = REFERENCE_DISTRIBUTIONS[refName]?.[metric];
+  if(!dist || !dist.length) return null;
+  // 'value보다 작은 분포 비율' = percentile (linear interpolation)
+  let i = 0;
+  while(i < dist.length && dist[i] < value) i++;
+  let pct;
+  if(i === 0) pct = 0;
+  else if(i >= dist.length) pct = 100;
+  else {
+    const lo = dist[i-1], hi = dist[i];
+    const r = (value - lo) / (hi - lo);
+    pct = ((i - 1 + r) / dist.length) * 100;
+  }
+  return higherIsBetter ? Math.round(pct) : Math.round(100 - pct);
+}
+
+/**
+ * v5.11: 메카닉 metric 진단 — 아마와 프로 두 reference 동시 비교
+ * @param {object} input  pelvis_dps, trunk_dps, arm_dps, x_factor, stride_pct, hp_ratio_pct
+ * @returns {object} metric별 {amateur_pctile, pro_pctile, diagnosis}
+ */
+function dualReferenceDiagnosis(input){
+  const out = {};
+  const metrics = ['pelvis_dps','trunk_dps','arm_dps','x_factor','stride_pct','hp_ratio_pct'];
+  for(const m of metrics){
+    if(input[m] == null) continue;
+    const a = percentileVsRef(input[m], m, 'AMATEUR');
+    const p = percentileVsRef(input[m], m, 'PRO');
+    let label = '';
+    if(p >= 75) label = '🔥 프로 상위 (' + p + '%ile)';
+    else if(p >= 50) label = '✓ 프로 평균 이상';
+    else if(p >= 25) label = '○ 프로 평균 이하';
+    else if(a >= 75) label = '✓ 아마 상위 · △ 프로 부족';
+    else if(a >= 50) label = '○ 아마 평균';
+    else label = '⚠ 아마 평균 이하 (' + a + '%ile)';
+    out[m] = {amateur_pctile: a, pro_pctile: p, label: label, value: input[m]};
+  }
+  return out;
+}
+
 /* v5.9: OpenBiomechanics playing-level 별 메카닉 reference (학술 standard)
  *   Driveline OBP 100명 cohort의 level별 trial median
  *   한국 cohort 별도 norm은 VELO_GROUP_NORMS 유지 (한국 고1/평균/우수/Elite)
@@ -3033,7 +3149,13 @@ const ANALYTICS = {
   // v5.9: OpenBiomechanics 통합 — Velocity Prediction Model + Level별 reference
   OBP_VELO_MODEL,
   predictVelocityOBP,
-  OBP_LEVEL_NORMS
+  OBP_LEVEL_NORMS,
+  // v5.11: 한국 고교 평가용 이중 reference + percentile 진단
+  AMATEUR_REFERENCE,
+  PRO_REFERENCE,
+  REFERENCE_DISTRIBUTIONS,
+  percentileVsRef,
+  dualReferenceDiagnosis
 };
 
 // 브라우저 빌드에서 직접 접근 가능

@@ -205,20 +205,15 @@
         <div class="value" id="p-velo-pot">—</div>
         <div class="delta" id="p-velo-pot-delta">Predicted Velo</div>
       </div>
-      <div class="kpi" style="border-left:3px solid #1a7f37">
-        <div class="label">⚡ 출력 (Generation)</div>
-        <div class="value" id="p-out-score">—</div>
-        <div class="delta" id="p-out-detail">Pelvis · Trunk · Power</div>
+      <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4">
+        <div class="label" title="현재 메카닉 → OBP 모델 → 메카닉을 프로 수준으로 끌어올렸을 때 기대 구속">🎯 메카닉 개선 기대 구속</div>
+        <div class="value" id="p-expected-velo">—</div>
+        <div class="delta" id="p-expected-detail">실측 — · 향상 잠재 —</div>
       </div>
       <div class="kpi" style="border-left:3px solid #8250df">
-        <div class="label">🔗 전달 (Transfer)</div>
-        <div class="value" id="p-trf-score">—</div>
-        <div class="delta" id="p-trf-detail">ETE · Speed Gain · Lag</div>
-      </div>
-      <div class="kpi" style="border-left:3px solid #cf222e">
-        <div class="label">💧 누수 관리 (역 ELI)</div>
-        <div class="value" id="p-leak-score">—</div>
-        <div class="delta" id="p-leak-detail">6 zone · 인과 chain</div>
+        <div class="label">📊 4축 능력 강약</div>
+        <div class="value" id="p-4axis-summary" style="font-size:12.5px;font-weight:600;line-height:1.3">—</div>
+        <div class="delta" id="p-4axis-detail">힘 · 타이밍 · 분리 · 안정성</div>
       </div>
     </div>
     <!-- 보조 정보: 부상위험 배지 + 메카닉 효율 (AE) 인라인 -->
@@ -235,15 +230,16 @@
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
   <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">투구 4대 능력 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.4</span></h2>
+      <h2 style="font-size:15px">투구 4축 능력 <span class="badge" style="background:#ddf4ff;color:#0969da">v5.12</span></h2>
       <div class="chart-wrap" style="height:280px"><canvas id="p-radar"></canvas></div>
       <div class="footnote" style="font-size:11px;line-height:1.55">
-        <b>⚡ 힘 만들기</b> (출력) · <b>🔗 힘 전달</b> (시퀀싱 효율) ·
-        <b>💧 주요 누수</b> (자세 결함) · <b>🎯 제구 안정</b> (반복 일관성)<br>
-        <span style="color:var(--muted)">전달은 분절 간 시퀀싱 시간을, 누수는 6 zone 자세 결함을 본다 — <b>다른 측면</b>이라 한쪽이 높고 다른 쪽이 낮을 수 있다.</span><br>
+        <b>⚡ 힘 (Power)</b> · <b>⏱ 타이밍 (Timing)</b> · <b>✂️ 분리 (Separation)</b> · <b>🛡 안정성 (Stability)</b><br>
+        각 0-100 백분위. 본인이 같은 발달 단계 안에서 어디 위치인지 한눈에.
+        <span style="color:var(--muted)">힘=분절 회전속도 종합 · 타이밍=분절 간 가속 비율 · 분리=X-factor + stride · 안정성=ELI 6 zone 자세 결함 회피</span><br>
         비교 reference 2종:
-        <span style="color:#bc8a0f">🏆 합성 베스트</span> (전체 측정 N개에서 각 축 최고) ·
-        <span style="color:#656d76">📊 Elite 41 ref</span> (Driveline pro + 한국 고교 elite 138+ km/h 코호트 추정)
+        <span style="color:#0969da">🟦 본인 (실선)</span> ·
+        <span style="color:#bc8a0f">🟧 아마 평균 (실선 점선)</span> (한국 57 + OBP HS+College 82 = 139명) ·
+        <span style="color:#656d76">⬜ 프로 평균 (점선)</span> (OBP MiLB+Indep 18명)
       </div>
     </div>
     <div class="panel">
@@ -268,78 +264,40 @@
   </div>
 
   <!-- ⚡ 에너지 분석 — 1차 측정의 헤드라인 (출력·전달·누수) -->
+  <!-- v5.12: 출력/전달/누수 큰 에너지 분석 카드 제거 — 4축 라디아로 흡수
+       기존 ID는 호환성 위해 hidden span으로 보존 (다른 코드가 참조 시 안전) -->
+  <span id="p-en-gen-score" style="display:none"></span>
+  <span id="p-en-omega" style="display:none"></span>
+  <span id="p-en-arm-power" style="display:none"></span>
+  <span id="p-en-hip" style="display:none"></span>
+  <span id="p-en-knee" style="display:none"></span>
+  <span id="p-en-total-w" style="display:none"></span>
+  <span id="p-en-mech" style="display:none"></span>
+  <span id="p-rear" style="display:none"></span>
+  <span id="p-en-trf-score" style="display:none"></span>
+  <span id="p-en-trf-kine" style="display:none"></span>
+  <span id="p-en-trf-kinetic" style="display:none"></span>
+  <span id="p-en-trf-ratio" style="display:none"></span>
+  <span id="p-en-ete" style="display:none"></span>
+  <span id="p-en-sg-pt" style="display:none"></span>
+  <span id="p-en-sg-ta" style="display:none"></span>
+  <span id="p-en-proper" style="display:none"></span>
+  <span id="p-en-lag-pt" style="display:none"></span>
+  <span id="p-en-lag-ta" style="display:none"></span>
+  <span id="p-lead" style="display:none"></span>
+  <span id="p-lhei" style="display:none"></span>
+  <span id="p-grf-type" style="display:none"></span>
+  <span id="p-cog-decel" style="display:none"></span>
+  <span id="p-en-eli-score" style="display:none"></span>
+  <span id="p-eli-zones" style="display:none"></span>
+
+  <!-- v5.12: 결함 인과 분석 + 자동 진단 — 별도 카드로 보존 (코치 훈련 처방용) -->
   <div class="panel">
-    <h2>⚡ 에너지 분석 — 출력 · 전달 · 누수
-        <span class="protocol-tag theia">Theia+GRF</span>
-        <span class="badge">Theia+GRF 리포트의 핵심 프레임워크</span></h2>
-    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      회전 power가 어떻게 만들어지고(<b>생성</b>) → 분절 간에 얼마나 잘 넘어가고(<b>전달</b>) → 어디서 새는지(<b>누수</b>)를 한눈에.
+    <h2>🔗 메카닉 결함 → 손실 인과 분석 <span class="badge" style="background:#fee9e9;color:#cf222e">Top 3</span></h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+      가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. 훈련 처방 1순위.
     </div>
-    <div class="grid grid-3">
-      <!-- ① 에너지 생성 (Output) — v4.1: Rear GRF 통합 -->
-      <div class="scard" style="border-top:3px solid #0969da">
-        <h3>① ⚡ 힘 만들기 (Output)
-          <span style="font-size:18px;font-weight:700" id="p-en-gen-score">—</span>
-        </h3>
-        <div class="grp-title">피크 회전속도 (°/s)</div>
-        <div class="row"><span>골반 / 몸통 / 팔</span><span class="v" id="p-en-omega" style="font-size:11.5px">—</span></div>
-        <div class="grp-title">관절 파워 — Joint Power Scalar (W)</div>
-        <div class="row"><span>투구 어깨 / 팔꿈치</span><span class="v" id="p-en-arm-power">—</span></div>
-        <div class="row"><span>힙 (R / L)</span><span class="v" id="p-en-hip">—</span></div>
-        <div class="row"><span>무릎 (R / L)</span><span class="v" id="p-en-knee">—</span></div>
-        <div class="row"><span>합계 (Total)</span><span class="v" id="p-en-total-w">—</span></div>
-        <div class="grp-title">분절 운동에너지 (J)</div>
-        <div class="row"><span>골반 / 몸통 / 상완</span><span class="v" id="p-en-mech" style="font-size:11.5px">—</span></div>
-        <div class="grp-title">★ 축발 push-off (지면반력 → 운동량 시작)</div>
-        <div class="row"><span>축발 (Rear) GRF</span><span class="v" id="p-rear">—</span></div>
-      </div>
-
-      <!-- ② 에너지 전달 (Transfer) — v5.5: kinematic + kinetic ETE 결합 점수 -->
-      <div class="scard" style="border-top:3px solid #1a7f37">
-        <h3>② 🔗 힘 전달 (Transfer)
-          <span style="font-size:18px;font-weight:700" id="p-en-trf-score">—</span>
-        </h3>
-        <div class="grp-title" title="v5.5: 시퀀싱 50% + 에너지 전달 50% 가중평균 — 학술 근거 Aguinaldo & Escamilla (2019)">합성 점수 분해</div>
-        <div class="row"><span>⏱ Kinematic (시퀀싱)</span><span class="v" id="p-en-trf-kine">—</span></div>
-        <div class="row"><span>⚡ Kinetic ETE (에너지)</span><span class="v" id="p-en-trf-kinetic">—</span></div>
-        <div class="row"><span title="humerus_J / pelvis_J × 100 · elite 65~85%">Power Ratio (H/P)</span><span class="v" id="p-en-trf-ratio">—</span></div>
-        <div class="grp-title">전달 효율 (시간 차원)</div>
-        <div class="row"><span>ETE 전달율 (P→T→A)</span><span class="v" id="p-en-ete">—</span></div>
-        <div class="grp-title">Speed Gain (분절 간 가속비)</div>
-        <div class="row"><span>골반 → 몸통</span><span class="v" id="p-en-sg-pt">—</span></div>
-        <div class="row"><span>몸통 → 팔</span><span class="v" id="p-en-sg-ta">—</span></div>
-        <div class="grp-title">시퀀스 정확성</div>
-        <div class="row"><span>Proper Sequence</span><span class="v" id="p-en-proper">—</span></div>
-        <div class="row"><span>Pelvis→Trunk lag</span><span class="v" id="p-en-lag-pt">—</span></div>
-        <div class="row"><span>Trunk→Arm lag</span><span class="v" id="p-en-lag-ta">—</span></div>
-        <div class="grp-title">★ 착지발 block (linear → angular 전환)</div>
-        <div class="row"><span>착지발 (Lead) GRF</span><span class="v" id="p-lead">—</span></div>
-        <div class="row"><span>LHEI (하체 효율)</span><span class="v" id="p-lhei">—</span></div>
-        <div class="row"><span>투수 유형</span><span class="v" id="p-grf-type" style="font-size:11px">—</span></div>
-        <div class="row"><span title="BBL v33.22 핵심 변수">CoG_Decel (운동량 감속)</span><span class="v" id="p-cog-decel">—</span></div>
-      </div>
-
-      <!-- ③ 에너지 누수 (Leak / ELI) -->
-      <div class="scard" style="border-top:3px solid #cf222e">
-        <h3>③ 에너지 누수 (ELI 6 zones)
-          <span style="font-size:18px;font-weight:700" id="p-en-eli-score">—</span>
-        </h3>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">100=완벽 / 50=중간 / 0=완전누수</div>
-        <div id="p-eli-zones"></div>
-      </div>
-    </div>
-
-    <!-- 결함 인과 분석 (causal chains, top 3) -->
-    <div style="margin-top:14px;padding:14px;background:var(--panel2);
-                border:1px solid var(--line-soft);border-radius:6px">
-      <h3 style="margin:0 0 10px;font-size:13px">🔗 결함 → 힘 손실 인과 분석 (우선순위 Top 3)</h3>
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. 훈련 처방 1순위.
-      </div>
-      <div id="p-causal-chains"></div>
-    </div>
-
-    <!-- v4.0 [5] 자동 진단 카드 (Outcome diagnosis) -->
+    <div id="p-causal-chains"></div>
     <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
   </div>
 
