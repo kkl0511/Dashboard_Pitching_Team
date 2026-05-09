@@ -6,9 +6,10 @@ __pycache__/
 *.pyc
 node_modules/
 
-# Theia 원본 c3d (크기 큼 — 별도 백업)
+# Theia 원본 c3d (크기 큼)
 *.c3d
 sample_data/2026-05-15_1차측정/01_theia/*/*.c3d.txt
 
-# 로컬 처리 결과 (필요 시 push)
-# sample_data/2026-05-15_1차측정/04_dashboard_import/
+# PDF/이미지 변환물 (sandbox 한글 폰트 없어 깨짐)
+docs/preview-*.jpg
+docs/*.pdf
