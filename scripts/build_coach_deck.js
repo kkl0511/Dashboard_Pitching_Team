@@ -98,23 +98,23 @@ function addCoverSlide(){
   });
   s.addText('상동고 투수 측정 리포트', {
     x: 0.8, y: 1.3, w: 8.5, h: 0.6,
-    fontSize: 16, color: 'CADCFC', fontFace: 'Malgun Gothic',
+    fontSize: 16, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo',
     margin: 0
   });
   s.addText(`${session.label} 측정 — 코치 미팅`, {
     x: 0.8, y: 1.85, w: 8.8, h: 1.0,
-    fontSize: 38, color: C.white, fontFace: 'Malgun Gothic', bold: true,
+    fontSize: 38, color: C.white, fontFace: 'Apple SD Gothic Neo', bold: true,
     margin: 0
   });
   s.addText(`${session.date}  ·  ${session.protocol}  ·  ${PLAYERS.length}명`, {
     x: 0.8, y: 2.85, w: 8.5, h: 0.5,
-    fontSize: 18, color: 'CADCFC', fontFace: 'Malgun Gothic',
+    fontSize: 18, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo',
     margin: 0
   });
   // 푸터
   s.addText('국민대학교 스포츠과학과 BBL · analytics v2.1', {
     x: 0.5, y: H - 0.5, w: W - 1, h: 0.3,
-    fontSize: 10, color: '8B95A1', fontFace: 'Malgun Gothic', align: 'right'
+    fontSize: 10, color: '8B95A1', fontFace: 'Apple SD Gothic Neo', align: 'right'
   });
 }
 
@@ -128,12 +128,12 @@ function addTeamSummarySlide(){
   // 제목
   s.addText('팀 종합 — KPI 및 우수/주의 선수', {
     x: 0.5, y: 0.3, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: C.midnight, fontFace: 'Malgun Gothic',
+    fontSize: 22, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo',
     margin: 0
   });
   s.addText(`${session.label} 측정 (${session.date}) · N=${PLAYERS.length}`, {
     x: 0.5, y: 0.78, w: 9, h: 0.3,
-    fontSize: 11, color: C.muted, fontFace: 'Malgun Gothic',
+    fontSize: 11, color: C.muted, fontFace: 'Apple SD Gothic Neo',
     margin: 0
   });
 
@@ -165,19 +165,19 @@ function addTeamSummarySlide(){
     });
     s.addText(c.label, {
       x: x + 0.18, y: 1.28, w: 2.0, h: 0.3,
-      fontSize: 11, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 11, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(c.val + '', {
       x: x + 0.18, y: 1.5, w: 1.55, h: 0.6,
-      fontSize: 28, bold: true, color: C.midnight, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 28, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(c.unit, {
       x: x + 1.7, y: 1.78, w: 0.5, h: 0.3,
-      fontSize: 10, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 10, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(c.sub, {
       x: x + 0.18, y: 2.13, w: 2.0, h: 0.3,
-      fontSize: 9, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 9, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
   });
 
@@ -192,7 +192,7 @@ function addTeamSummarySlide(){
   // 상위 3명 박스
   s.addText('상위 3명 (구속)', {
     x: 0.5, y: 2.7, w: 4.5, h: 0.3,
-    fontSize: 12, bold: true, color: C.good, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 12, bold: true, color: C.good, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const tableTop = top3.map((x, i) => [
     `${i+1}`,
@@ -202,7 +202,7 @@ function addTeamSummarySlide(){
   ]);
   s.addTable(tableTop, {
     x: 0.5, y: 3.05, w: 4.5,
-    fontSize: 11, fontFace: 'Malgun Gothic', color: C.text,
+    fontSize: 11, fontFace: 'Apple SD Gothic Neo', color: C.text,
     border: { type: 'solid', pt: 0.5, color: C.line },
     colW: [0.4, 1.7, 1.4, 1.0],
     rowH: 0.36,
@@ -212,7 +212,7 @@ function addTeamSummarySlide(){
   // 주의 3명 박스
   s.addText('주의 3명 (구속)', {
     x: 5.2, y: 2.7, w: 4.5, h: 0.3,
-    fontSize: 12, bold: true, color: C.bad, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 12, bold: true, color: C.bad, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const tableBot = bot3.map((x, i) => [
     `${i+1}`,
@@ -222,7 +222,7 @@ function addTeamSummarySlide(){
   ]);
   s.addTable(tableBot, {
     x: 5.2, y: 3.05, w: 4.5,
-    fontSize: 11, fontFace: 'Malgun Gothic', color: C.text,
+    fontSize: 11, fontFace: 'Apple SD Gothic Neo', color: C.text,
     border: { type: 'solid', pt: 0.5, color: C.line },
     colW: [0.4, 1.7, 1.4, 1.0],
     rowH: 0.36,
@@ -232,14 +232,14 @@ function addTeamSummarySlide(){
   // 핵심 시사점
   s.addText('핵심 시사점', {
     x: 0.5, y: 4.4, w: 9, h: 0.28,
-    fontSize: 12, bold: true, color: C.midnight, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 12, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const insights = generateTeamInsights(m, session);
   s.addText(insights.map((t, i) => ({
     text: t, options: { bullet: true, breakLine: i < insights.length - 1 }
   })), {
     x: 0.5, y: 4.7, w: 9, h: 0.55,
-    fontSize: 10, color: C.text, fontFace: 'Malgun Gothic', margin: 0,
+    fontSize: 10, color: C.text, fontFace: 'Apple SD Gothic Neo', margin: 0,
     paraSpaceAfter: 1
   });
 
@@ -276,25 +276,25 @@ function addPlayerSlide(p){
   });
   s.addText(p.id, {
     x: 0.4, y: 0.18, w: 0.85, h: 0.5,
-    fontSize: 22, bold: true, color: 'CADCFC', fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 22, bold: true, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addText(p.name, {
     x: 1.3, y: 0.18, w: 5, h: 0.5,
-    fontSize: 24, bold: true, color: C.white, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 24, bold: true, color: C.white, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addText(
     `${p.arm === 'L' ? '좌투' : '우투'} · ${p.height}cm · ${p.weight}kg · ${session.label} (${session.date})`, {
     x: 0.4, y: 0.55, w: 6, h: 0.25,
-    fontSize: 10.5, color: 'CADCFC', fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 10.5, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   // 우측 종합 점수
   s.addText(`종합 ${m.velocity.score}`, {
     x: 7.5, y: 0.2, w: 2.2, h: 0.5,
-    fontSize: 22, bold: true, color: C.white, fontFace: 'Malgun Gothic', align: 'right', margin: 0
+    fontSize: 22, bold: true, color: C.white, fontFace: 'Apple SD Gothic Neo', align: 'right', margin: 0
   });
   s.addText('/100', {
     x: 7.5, y: 0.55, w: 2.2, h: 0.25,
-    fontSize: 10, color: 'CADCFC', fontFace: 'Malgun Gothic', align: 'right', margin: 0
+    fontSize: 10, color: 'CADCFC', fontFace: 'Apple SD Gothic Neo', align: 'right', margin: 0
   });
 
   // KPI 카드 4개 (가로)
@@ -315,20 +315,20 @@ function addPlayerSlide(p){
     });
     s.addText(k.label, {
       x: x + 0.15, y: 1.1, w: 2.0, h: 0.22,
-      fontSize: 9.5, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 9.5, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(k.val + '', {
       x: x + 0.15, y: 1.32, w: 1.6, h: 0.5,
-      fontSize: 24, bold: true, color: k.color, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 24, bold: true, color: k.color, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     s.addText(k.unit, {
       x: x + 1.3, y: 1.55, w: 0.85, h: 0.3,
-      fontSize: 10, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 10, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
     if(k.sub){
       s.addText(k.sub, {
         x: x + 0.15, y: 1.78, w: 2.0, h: 0.2,
-        fontSize: 9, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+        fontSize: 9, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
       });
     }
   });
@@ -336,7 +336,7 @@ function addPlayerSlide(p){
   // 좌측 — 시퀀스 차트
   s.addText('관절 분절 시퀀스 (피크 회전속도)', {
     x: 0.4, y: 2.15, w: 4.6, h: 0.3,
-    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addChart(pres.charts.BAR, [{
     name: p.name,
@@ -359,7 +359,7 @@ function addPlayerSlide(p){
   // 우측 — 인과 chains + 권장
   s.addText('잠재 구속 손실 원인 (Top 3) — analytics v2.1', {
     x: 5.2, y: 2.15, w: 4.4, h: 0.3,
-    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 11, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const causal = m.energy?.leakage?.causal_chains || [];
   const tipMap = {
@@ -380,7 +380,7 @@ function addPlayerSlide(p){
     });
     s.addText(`${i+1}`, {
       x: 5.2, y: y + 0.18, w: 0.4, h: 0.4,
-      fontSize: 18, bold: true, color: C.white, fontFace: 'Malgun Gothic',
+      fontSize: 18, bold: true, color: C.white, fontFace: 'Apple SD Gothic Neo',
       align: 'center', margin: 0
     });
     // 본문 박스
@@ -394,7 +394,7 @@ function addPlayerSlide(p){
       { text: `→ ${tipMap[c.zone] || '추가 분석 권장'}`, options: { fontSize: 10, color: C.primary, italic: true } }
     ], {
       x: 5.7, y: y + 0.05, w: 3.85, h: 0.7,
-      fontFace: 'Malgun Gothic', margin: 0,
+      fontFace: 'Apple SD Gothic Neo', margin: 0,
       paraSpaceAfter: 0, valign: 'top'
     });
   });
@@ -402,7 +402,7 @@ function addPlayerSlide(p){
   if(causal.length === 0){
     s.addText('인과 chain 데이터 없음 (Uplift 회차)', {
       x: 5.2, y: 3, w: 4.4, h: 0.3,
-      fontSize: 11, color: C.muted, italic: true, fontFace: 'Malgun Gothic', margin: 0
+      fontSize: 11, color: C.muted, italic: true, fontFace: 'Apple SD Gothic Neo', margin: 0
     });
   }
 
@@ -417,13 +417,13 @@ function addMethodologySlide(){
   s.background = { color: C.bg };
   s.addText('분석 방법론 (analytics v2.1)', {
     x: 0.5, y: 0.3, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: C.midnight, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 22, bold: true, color: C.midnight, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
 
   // 잠재구속 회귀
   s.addText('잠재 구속 회귀 — 7개 변수 가법 모델', {
     x: 0.5, y: 1.0, w: 9, h: 0.3,
-    fontSize: 13, bold: true, color: C.primary, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 13, bold: true, color: C.primary, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const lvWeights = ANALYTICS.LATENT_VELOCITY_WEIGHTS;
   const lvRows = [
@@ -437,7 +437,7 @@ function addMethodologySlide(){
   });
   s.addTable(lvRows, {
     x: 0.5, y: 1.35, w: 5.7, fontSize: 9.5,
-    fontFace: 'Malgun Gothic', color: C.text,
+    fontFace: 'Apple SD Gothic Neo', color: C.text,
     border: { type: 'solid', pt: 0.5, color: C.line },
     colW: [2.0, 0.9, 1.4, 1.4],
     rowH: 0.27, fill: { color: C.white }
@@ -446,7 +446,7 @@ function addMethodologySlide(){
   // ELI 6 zone
   s.addText('ELI 6 Zones', {
     x: 6.5, y: 1.0, w: 3.2, h: 0.3,
-    fontSize: 13, bold: true, color: C.primary, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 13, bold: true, color: C.primary, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   const eliRows = [
     [{ text: 'Zone', options: { bold: true, fill: { color: C.primary }, color: C.white } },
@@ -460,7 +460,7 @@ function addMethodologySlide(){
   ];
   s.addTable(eliRows, {
     x: 6.5, y: 1.35, w: 3.2, fontSize: 9.5,
-    fontFace: 'Malgun Gothic', color: C.text,
+    fontFace: 'Apple SD Gothic Neo', color: C.text,
     border: { type: 'solid', pt: 0.5, color: C.line },
     colW: [0.6, 2.6], rowH: 0.27, fill: { color: C.white }
   });
@@ -468,7 +468,7 @@ function addMethodologySlide(){
   // 한계
   s.addText('한계 및 주의', {
     x: 0.5, y: 4.15, w: 9, h: 0.3,
-    fontSize: 12, bold: true, color: C.bad, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 12, bold: true, color: C.bad, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addText([
     { text: '회귀 계수는 문헌 기반 합의 추정값 — 우리 코호트(N=20)에 fit 된 값 아님', options: { bullet: true, breakLine: true } },
@@ -476,7 +476,7 @@ function addMethodologySlide(){
     { text: 'Uplift 회차는 GRF 없음 — Z3, Z4, Z6 제한', options: { bullet: true } }
   ], {
     x: 0.5, y: 4.5, w: 9, h: 1, fontSize: 10, color: C.text,
-    fontFace: 'Malgun Gothic', margin: 0, paraSpaceAfter: 3
+    fontFace: 'Apple SD Gothic Neo', margin: 0, paraSpaceAfter: 3
   });
 
   addFooter(s);
@@ -492,11 +492,11 @@ function addFooter(s){
   });
   s.addText(`상동고 투구 리포트 · ${session.label} 측정 (${session.date})`, {
     x: 0.4, y: H - 0.3, w: W - 0.8, h: 0.25,
-    fontSize: 8, color: C.muted, fontFace: 'Malgun Gothic', margin: 0
+    fontSize: 8, color: C.muted, fontFace: 'Apple SD Gothic Neo', margin: 0
   });
   s.addText('국민대 BBL · analytics v2.1', {
     x: 0.4, y: H - 0.3, w: W - 0.8, h: 0.25,
-    fontSize: 8, color: C.muted, fontFace: 'Malgun Gothic',
+    fontSize: 8, color: C.muted, fontFace: 'Apple SD Gothic Neo',
     align: 'right', margin: 0
   });
 }
