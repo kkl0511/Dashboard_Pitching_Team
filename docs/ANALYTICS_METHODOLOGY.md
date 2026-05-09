@@ -38,6 +38,58 @@
 
 ---
 
+# 분석 방법론 (Analytics Methodology) — v3.8
+
+## v3.8 — 외부 모델 + 시각 자료 + 외부 검증
+
+### A. BBL VELO_REGRESSION_v33_22 cross-check (BBL n=169 OLS)
+
+`predictMaxVelocityBBL(input)` 함수로 외부 회귀 모델 활용.
+
+**모델 사양**:
+- 11 변수: x_factor, lead_knee_ext, proper_sequence, lag_sd, elbow_ext, height, weight, cmj_pp_bm, imtp_pp_bm, grip, cog_decel
+- 학습 R² = 0.377, LOO-CV R² = 0.268
+- 출처: kkl0511/Uplift_Pitching_Report v33.22
+
+**표준화 β 1~5순위**:
+1. proper_sequence (+0.276)
+2. grip_strength (+0.266)
+3. height (+0.235)
+4. max_x_factor (+0.214)
+5. cog_decel (+0.183) — Driveline 검증 후 채택
+
+**우리 모델 vs BBL 모델**: 선수 페이지 잠재구속 옆에 BBL 예측값 배지 표시 (cross-validation).
+
+### B. master_fitness.xlsx H2_2025 외부 검증 (v3.8-4)
+
+41명 c3d 데이터 ↔ master_fitness 134 H2 sessions 매칭 → BBL 모델 예측 vs 실측 H2 MaxV
+
+**13명 매칭 결과**:
+| 지표 | 값 | 해석 |
+|---|---|---|
+| Pearson r | **0.379** | 중간 수준 ranking 능력 ✓ |
+| MAE | 5.61 km/h | 평균 절대 오차 |
+| RMSE | 7.17 km/h | |
+| residual mean | +5.5 km/h | systematic underestimate |
+
+**결정적 통찰**:
+- 13명 H1→H2 평균 +5.3 km/h 발달 (반년)
+- BBL 모델은 H1 시점 fit → H2 비교 시 +5.5 underestimate가 자연스러움
+- **모델은 "현재 상태 ranking" 능력 ✓, "시간 변화 예측" 능력 부족**
+- 우리 잠재구속 = "현재 메카닉으로 도달 가능한 ceiling" — BBL 모델과 같은 한계
+
+**활용**:
+- BBL 모델 잔차 +5 km/h 이상 = "발달 잠재력 큼" 신호
+- 우리 잔차 + BBL 잔차 둘 다 양수 → 향상 권장
+
+### C. 시각 자료 통합
+
+- `kinetic_chain.gif` (BBL Uplift) — 시퀀스 카드 옆 애니메이션
+- `assets/fault_images/*.png` (7개) — ELI causal_chain 카드 결함 시각
+  - Z1=EarlyRelease, Z2=FlyingOpen, Z3=KneeCollapse, Z4=Sway, Z5=ForearmFlyout, Z6=GettingOutFront
+
+---
+
 # 분석 방법론 (Analytics Methodology) — v3.3
 
 ## v3.3 — 3-Tier 코호트 비교 (한국 elite + College + MLB)

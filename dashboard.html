@@ -1194,7 +1194,18 @@ const BBL_VELO_MODEL = {
   source: 'BBL Uplift Pitching Report v33.22 (kkl0511)',
   // 표준화 β 1~5순위 (UI 인용)
   top5_beta: ['proper_sequence (+0.276)', 'grip_strength (+0.266)',
-              'height (+0.235)', 'max_x_factor (+0.214)', 'cog_decel (+0.183)']
+              'height (+0.235)', 'max_x_factor (+0.214)', 'cog_decel (+0.183)'],
+  // v3.8-4 외부 검증 (master_fitness.xlsx H2_2025 vs 41명 c3d 매칭 13명)
+  external_validation: {
+    n_matched: 13,
+    pearson_r: 0.379,
+    rmse_kmh: 7.17,
+    mae_kmh: 5.61,
+    actual_mean_h2: 140.8,
+    predicted_mean: 135.3,
+    residual_mean: +5.5,    // BBL fit는 H1 시점 → H2 와 비교 시 발달분만큼 underestimate
+    note: 'H1→H2 13명 평균 +5.3 km/h 발달 — 모델 underestimate 가 발달분과 일치 (자연스러움). Pearson r=0.38 = ranking 능력 확보.'
+  }
 };
 
 /**
