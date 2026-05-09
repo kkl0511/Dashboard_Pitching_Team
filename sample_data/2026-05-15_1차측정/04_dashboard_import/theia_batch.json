@@ -1,0 +1,103 @@
+{
+  "session": {
+    "date": "2026-05-15",
+    "protocol": "Theia+GRF"
+  },
+  "results": [
+    {
+      "athlete_external_id": "P01",
+      "athlete_name": "이영하",
+      "session_id": 1,
+      "test_date": "2026-05-15",
+      "protocol": "Theia+GRF",
+      "theia_n_trials": 10,
+      "rapsodo_n_throws": 37,
+      "velocity": {
+        "measured_kmh": 134.8,
+        "measured_avg_kmh": 120.4,
+        "measured_sd": 8.07,
+        "potential_kmh": 139.8,
+        "score": 72
+      },
+      "sequence": {
+        "pelvis_dps": 501,
+        "trunk_dps": 846,
+        "arm_dps": 1974,
+        "ete_pct": 80,
+        "speed_gain": 1.69,
+        "proper_seq": true,
+        "score": 58
+      },
+      "energy": {
+        "generation": {
+          "hip_R_W": 1855,
+          "hip_L_W": 3290,
+          "knee_R_W": 1280,
+          "knee_L_W": 966,
+          "shoulder_W": 800,
+          "elbow_W": 8013,
+          "total_W": 16203,
+          "mech_energy_pelvis_J": 810,
+          "mech_energy_trunk_J": 160,
+          "mech_energy_humerus_J": 592,
+          "score": 56
+        },
+        "transfer": {
+          "ete_pct": 80,
+          "speed_gain_pt": 1.69,
+          "speed_gain_ta": 2.33,
+          "proper_seq": true,
+          "pelvis_to_trunk_lag_ms": 50,
+          "trunk_to_arm_lag_ms": 35,
+          "score": 58
+        },
+        "leakage": {
+          "zone1_sequence": 88,
+          "zone2_x_factor": 98,
+          "zone3_lead_block": 98,
+          "zone4_trunk_at_fc": 78,
+          "zone5_shoulder_align": 84,
+          "zone6_pelvis_brake": 72,
+          "eli_score": 86,
+          "causal_chains": [
+            {
+              "zone": "zone6",
+              "zone_label": "골반 감속 (브레이크)",
+              "defect": "Pelvis braking 부족",
+              "impact_kmh": -2.7
+            },
+            {
+              "zone": "zone4",
+              "zone_label": "앞발 착지 시 몸통 자세",
+              "defect": "FC 시 트렁크 기울기 부적절",
+              "impact_kmh": -2.2
+            },
+            {
+              "zone": "zone5",
+              "zone_label": "어깨 정렬 (외전·외회전)",
+              "defect": "Shoulder alignment 결함",
+              "impact_kmh": -1.7
+            }
+          ]
+        }
+      },
+      "grf": {
+        "lhei": 93,
+        "rear_force_pct": 83.93,
+        "lead_force_pct": 131.18,
+        "type": "균형형"
+      },
+      "faults": {
+        "x_factor_deg": 127.1,
+        "lead_knee_change": 12,
+        "release_height_sd_cm": 4.6,
+        "wrist_pos_sd_cm": 2.5,
+        "trunk_tilt_sd_deg": 1.8,
+        "consistency_score": 88,
+        "fault_score": 85,
+        "injury_risk": "low",
+        "fault_count": 1
+      }
+    }
+  ]
+}

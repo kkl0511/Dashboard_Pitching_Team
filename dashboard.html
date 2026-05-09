@@ -2798,6 +2798,62 @@ function importValdCSV(text){
   return {ok: applied.length, errors, applied};
 }
 
+// 원본 Rapsodo 2.0 CSV (45컬럼 메타 헤더 형식) 자동 감지 및 정규화
+function detectAndNormalizeRapsodoV2(text){
+  // 첫 5줄에 'Player ID:', 'Player Name:', '"No"' 패턴이 있으면 원본 v2.0
+  const lines = text.split(/\r?\n/);
+  const headerIdx = lines.findIndex(l => l.startsWith('"No"') || l.startsWith('No,'));
+  if(headerIdx < 0 || headerIdx > 6) return null;  // 표준 형식
+  // 메타 추출
+  let playerName = '';
+  for(let i = 0; i < headerIdx; i++){
+    if(lines[i].startsWith('"Player Name:"')){
+      playerName = (lines[i].split(',')[1] || '').replace(/"/g,'').trim();
+    }
+  }
+  // PID 추출 (P 01 → P01, P01 → P01)
+  const pidMatch = playerName.match(/P\s*(\d+)/i);
+  const pid = pidMatch ? `P${pidMatch[1].padStart(2,'0')}` : 'P01';
+  // 헤더부터 끝까지 파싱
+  const csvBody = lines.slice(headerIdx).join('\n');
+  const {header, rows} = parseCSV(csvBody);
+  // 표준 컬럼으로 매핑
+  const out = ['athlete_external_id,athlete_name,test_date,session_id,pitch_type,pitch_no,'+
+               'velocity_kmh,plate_velocity_kmh,velocity_loss_pct,'+
+               'spin_rpm,true_spin_rpm,spin_efficiency_pct,spin_axis_clock,spin_axis_deg,gyro_degree,'+
+               'ivb_cm,hb_cm,vb_total_cm,'+
+               'release_height_m,release_side_m,release_extension_m,release_angle_deg,'+
+               'vaa_deg,haa_deg,plate_height_cm,plate_side_cm,in_zone,bauer_units'];
+  function clkToDeg(s){
+    const m = (s||'').match(/(\d+):(\d+)/); if(!m) return '';
+    return Math.round(((+m[1]) % 12) * 30 + (+m[2]) / 2 * 10) / 10;
+  }
+  function n(v){ const x = parseFloat(v); return (isNaN(x) || v==='-' || v==='') ? '' : x; }
+  rows.forEach((r, i) => {
+    const vel = n(r['Velocity']);
+    const spin = n(r['Total Spin']);
+    const ext_ft = n(r['Release Extension (ft)']);
+    const ext_m = (ext_ft !== '') ? Math.round(ext_ft * 0.3048 * 100) / 100 : '';
+    const plate_vel = (vel !== '') ? Math.round(vel * 0.93 * 10) / 10 : '';
+    const velo_loss = (vel !== '' && plate_vel !== '') ? Math.round((vel - plate_vel) / vel * 100 * 10) / 10 : '';
+    const bauer = (vel !== '' && spin !== '') ? Math.round(spin / (vel * 0.621371) * 10) / 10 : '';
+    const inZone = r['Is Strike'] === 'Y' ? 1 : 0;
+    const pType = (r['Pitch Type'] || '').includes('Fastball') ? 'FB' : (r['Pitch Type'] || '');
+    out.push([pid, playerName, r['Date'] || '2026-05-15', `SES_${pid}`,
+              pType, i + 1,
+              vel, plate_vel, velo_loss,
+              spin, n(r['True Spin (release)']), n(r['Spin Efficiency (release)']),
+              r['Spin Direction'] || '', clkToDeg(r['Spin Direction']), n(r['Gyro Degree (deg)']),
+              n(r['VB (trajectory)']), n(r['HB (trajectory)']),
+              (n(r['VB (trajectory)']) !== '') ? Math.round((n(r['VB (trajectory)']) - 30)*10)/10 : '',
+              n(r['Release Height']), n(r['Release Side']), ext_m, n(r['Release Angle']),
+              n(r['Vertical Approach Angle']), n(r['Horizontal Approach Angle']),
+              n(r['Strike Zone Height']), n(r['Strike Zone Side']),
+              inZone, bauer].join(','));
+  });
+  return out.join('\n');
+}
+
 // Rapsodo 2.0 통계 헬퍼
 function _stat(arr){
   const v = arr.filter(x => x != null && !isNaN(x));
@@ -2816,6 +2872,10 @@ const RAPSODO_BENCHMARKS = {
 
 // Rapsodo CSV → 선수별 FB 풀 분석 + velocity·release SD 매핑
 function importRapsodoCSV(text){
+  // 원본 Rapsodo 2.0 형식이면 자동 정규화
+  const normalized = detectAndNormalizeRapsodoV2(text);
+  if(normalized) text = normalized;
+
   const {header, rows} = parseCSV(text);
   const required = ['athlete_external_id','pitch_type','velocity_kmh'];
   const missing = required.filter(c => !header.includes(c));

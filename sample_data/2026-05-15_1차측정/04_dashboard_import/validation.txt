@@ -1,0 +1,18 @@
+═══ 자동 매칭 결과 ═══
+세션 폴더: sample_data/2026-05-15_1차측정/
+
+Roster: 1명
+
+── Theia ──
+  ✓ P01_LYH: 10 trial · Fastball RH
+
+── Rapsodo ──
+  ✓ all_rapsodo.csv: 37 throws · Player Name: P 01
+    갭 분포: 정상 27 · ⚠ 누락 1 · 🔧 검토 4 · ⛳ 경계 4
+    → 선수 경계 분할: 5그룹
+
+── 통합 처리 ──
+  ✓ P01: theia 10 trial + rapsodo 37 throws
+
+✓ theia_batch.json (2,737 bytes, 1 선수)
+✓ rapsodo_master.csv (6,595 bytes, 37 throws)
