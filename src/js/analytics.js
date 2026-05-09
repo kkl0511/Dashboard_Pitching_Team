@@ -11,7 +11,7 @@
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '3.0';
+const ANALYTICS_VERSION = '3.1';
 
 /* ────────────────────────────────────────────────────────────
    0. 학년별 벤치마크 (한국 고교 야구 투수 발달 단계)
@@ -451,6 +451,171 @@ function eliScoresFromTheia(m){
 }
 
 /* ────────────────────────────────────────────────────────────
+   3.6 GRF 정식 산출 (v3.1 신규) — LHEI · force balance · type
+
+   문헌 근거:
+   - MacWilliams et al. (1998) "Characteristic GRF in baseball pitching"
+     — rear leg push-off ~75% BW, lead leg block ~80~120% BW
+   - Kageyama et al. (2014) — lead leg vertical impulse 와 ball velocity
+     상관 r=0.50~0.60
+   - McNally et al. (2015) — pitchers with GRF 패턴 4분류
+   ──────────────────────────────────────────────────────────── */
+
+const GRF_BENCHMARKS = {
+  rear_force_pct_ideal:  75,    // 축발 push-off (% BW)
+  lead_force_pct_ideal:  100,   // 착지발 block (% BW)
+  asymmetry_max:         15,    // 좌우 비대칭 한계 (%)
+  lhei_excellent:        1.20,  // N·s/kg
+  lhei_acceptable:       0.90
+};
+
+/**
+ * GRF 정식 산출 — Lead Hip Energy Index + force balance + type
+ * @param {object} g  GRF 변수
+ *   {rear_force_pct_bw, lead_force_pct_bw, lead_vertical_impulse_n_s, body_mass_kg, pitch_time_ms,
+ *    lateral_force_asymmetry_pct}
+ * @returns {{lhei, lhei_score, balance_score, asymmetry_score, type, grf_score, components}}
+ */
+function grfScore(g = {}){
+  // ── LHEI (Lead Hip Energy Index) ──
+  // = lead_vertical_impulse / body_mass / pitch_time
+  let lhei = null, lheiScore = null;
+  if(g.lead_vertical_impulse_n_s != null && g.body_mass_kg && g.pitch_time_ms){
+    lhei = g.lead_vertical_impulse_n_s / g.body_mass_kg / (g.pitch_time_ms / 1000);
+    lhei = Math.round(lhei*100)/100;
+    if(lhei >= GRF_BENCHMARKS.lhei_excellent) lheiScore = 100;
+    else if(lhei >= GRF_BENCHMARKS.lhei_acceptable) lheiScore = 70 + (lhei - 0.90) * 100;
+    else lheiScore = Math.max(0, lhei / 0.90 * 70);
+    lheiScore = Math.round(_clamp01(lheiScore));
+  }
+  // ── Force balance ──
+  // rear ideal=75% (60~95 OK), lead ideal=100% (75~120 OK)
+  let balanceScore = null;
+  if(g.rear_force_pct_bw != null && g.lead_force_pct_bw != null){
+    const rearPen = Math.abs(g.rear_force_pct_bw - GRF_BENCHMARKS.rear_force_pct_ideal) * 1.2;
+    const leadPen = Math.abs(g.lead_force_pct_bw - GRF_BENCHMARKS.lead_force_pct_ideal) * 1.0;
+    balanceScore = Math.round(_clamp01(100 - (rearPen + leadPen) / 2));
+  }
+  // ── Lateral asymmetry ──
+  let asymScore = null;
+  if(g.lateral_force_asymmetry_pct != null){
+    const a = g.lateral_force_asymmetry_pct;
+    asymScore = Math.round(_clamp01(100 - Math.max(0, a - 5) * 4));
+  }
+  // ── Type 분류 (5가지) ──
+  let type = '데이터 부족';
+  if(g.rear_force_pct_bw != null && g.lead_force_pct_bw != null){
+    const r = g.rear_force_pct_bw, l = g.lead_force_pct_bw;
+    const asym = g.lateral_force_asymmetry_pct;
+    if(asym != null && asym > GRF_BENCHMARKS.asymmetry_max) type = '좌우로 새는';
+    else if(r > 90 && l < 70)              type = '뒤에 처지는';
+    else if(r < 60 && l > 95)              type = '앞으로 쏟아지는';
+    else if(r > 90 && l > 110)             type = '잠깐만 미는';
+    else                                   type = '균형형';
+  }
+  // ── 종합 GRF score = 0.50 LHEI + 0.30 balance + 0.20 asymmetry ──
+  const validPieces = [lheiScore, balanceScore, asymScore].filter(x => x != null);
+  const weights     = [0.50, 0.30, 0.20];
+  let grfScore_ = null;
+  if(validPieces.length){
+    let totalW = 0, totalS = 0;
+    [lheiScore, balanceScore, asymScore].forEach((s, i) => {
+      if(s != null){ totalS += s * weights[i]; totalW += weights[i]; }
+    });
+    grfScore_ = Math.round(totalS / totalW);
+  }
+  return {
+    lhei, lhei_score: lheiScore,
+    balance_score:    balanceScore,
+    asymmetry_score:  asymScore,
+    type,
+    grf_score: grfScore_,
+    components: { lhei, balance: balanceScore, asymmetry: asymScore },
+    formula: '0.50·LHEI + 0.30·Balance + 0.20·Asymmetry'
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   3.7 Stuff Score 정식화 (v3.1)
+
+   문헌 근거:
+   - Driveline Baseball "Stuff+" 모델 (공개 자료)
+   - Pitching Ninja, Baseball Savant — velocity·spin·movement 기반 평가
+   - Bauer Units = spin_rpm / velocity_mph (≥26 우수)
+
+   가중:  velocity 0.30 · bauer 0.25 · IVB 0.25 · HB 0.20
+   단, 학년 또는 코호트 percentile 사용 (절대값 비교 위험)
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * @param {object} m  Rapsodo 평균값
+ *   {velocity_kmh, spin_rpm, ivb_cm, hb_cm, spin_efficiency_pct}
+ * @param {string} cohort  'KBO'|'HS' (학년 추가 시 'HS-1' 등)
+ * @returns {{stuff_score, components, breakdown, cohort, formula}}
+ */
+function stuffScore(m = {}, cohort = 'HS'){
+  const COH = STUFF_BENCHMARKS[cohort] || STUFF_BENCHMARKS.HS;
+  const breakdown = [];
+  // velocity (mph) — z-score → percentile
+  let vScore = null;
+  if(m.velocity_kmh != null){
+    const vMph = m.velocity_kmh / 1.60934;
+    const z = (vMph - COH.velo_mph_mean) / COH.velo_mph_sd;
+    vScore = Math.round(_clamp01(_normCdf(z) * 100));
+    breakdown.push({ var: 'velocity', value: Math.round(vMph*10)/10, unit: 'mph', score: vScore, weight: 0.30 });
+  }
+  // Bauer Units (spin/vMph)
+  let bScore = null;
+  if(m.spin_rpm != null && m.velocity_kmh != null){
+    const bauer = m.spin_rpm / (m.velocity_kmh / 1.60934);
+    const z = (bauer - COH.bauer_mean) / COH.bauer_sd;
+    bScore = Math.round(_clamp01(_normCdf(z) * 100));
+    breakdown.push({ var: 'bauer', value: Math.round(bauer*10)/10, unit: '', score: bScore, weight: 0.25 });
+  }
+  // IVB (Induced Vertical Break) — 18~24 inch (45~60cm) 우수
+  let iScore = null;
+  if(m.ivb_cm != null){
+    const ivbInch = m.ivb_cm / 2.54;
+    // 단순 임계: 22 inch 이상 100, 16 이하 0, 그 사이 선형
+    if(ivbInch >= 22) iScore = 100;
+    else if(ivbInch <= 16) iScore = 0;
+    else iScore = Math.round((ivbInch - 16) / 6 * 100);
+    breakdown.push({ var: 'ivb', value: Math.round(ivbInch*10)/10, unit: 'inch', score: iScore, weight: 0.25 });
+  }
+  // HB (Horizontal Break) — 절대값 8 inch 이하 우수 (FB는 작을수록 좋음)
+  let hScore = null;
+  if(m.hb_cm != null){
+    const hbInch = Math.abs(m.hb_cm / 2.54);
+    if(hbInch <= 4) hScore = 100;
+    else if(hbInch >= 12) hScore = 0;
+    else hScore = Math.round(100 - (hbInch - 4) * 12.5);
+    breakdown.push({ var: 'hb_abs', value: Math.round(hbInch*10)/10, unit: 'inch', score: hScore, weight: 0.20 });
+  }
+  // 종합 Stuff Score
+  let total = null;
+  if(breakdown.length){
+    let totalW = 0, totalS = 0;
+    breakdown.forEach(b => { totalS += b.score * b.weight; totalW += b.weight; });
+    total = Math.round(totalS / totalW);
+  }
+  return {
+    stuff_score: total,
+    components:  breakdown,
+    cohort,
+    formula: '0.30·Velocity + 0.25·Bauer + 0.25·IVB + 0.20·HB(abs)'
+  };
+}
+
+const STUFF_BENCHMARKS = {
+  // mph 단위 (1 mph ≈ 1.609 km/h)
+  KBO:    { velo_mph_mean: 88, velo_mph_sd: 3, bauer_mean: 25.5, bauer_sd: 1.5 },  // KBO 평균
+  HS:     { velo_mph_mean: 80, velo_mph_sd: 4, bauer_mean: 24.0, bauer_sd: 1.8 },  // 한국 고교 전체
+  'HS-1': { velo_mph_mean: 77, velo_mph_sd: 4, bauer_mean: 23.0, bauer_sd: 2.0 },  // 고1
+  'HS-2': { velo_mph_mean: 81, velo_mph_sd: 4, bauer_mean: 24.0, bauer_sd: 1.8 },  // 고2
+  'HS-3': { velo_mph_mean: 84, velo_mph_sd: 4, bauer_mean: 25.0, bauer_sd: 1.8 }   // 고3
+};
+
+/* ────────────────────────────────────────────────────────────
    4. Composite Score Weights (정식화)
 
    각 종합점수의 weight 를 명시 — UI/리포트에서 인용 가능.
@@ -551,11 +716,15 @@ const ANALYTICS = {
   compositeScore, percentileRank,
   // v3.0 — 학년·제구 통합
   gradePercentile, commandComposite,
+  // v3.1 — GRF · Stuff
+  grfScore, stuffScore,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
   COMPOSITE_WEIGHTS,
   GRADE_BENCHMARKS,
-  GRADE_LATENT_OFFSETS
+  GRADE_LATENT_OFFSETS,
+  GRF_BENCHMARKS,
+  STUFF_BENCHMARKS
 };
 
 // 브라우저 빌드에서 직접 접근 가능

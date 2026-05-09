@@ -521,14 +521,28 @@ function importRapsodoCSV(text){
     if(!stats.velocity.n){ errors.push(`${pid}: velocity_kmh 모두 빈 값`); return; }
     const inZone = fb.filter(t => num(t.in_zone) === 1).length;
 
-    // ── 합성지표 — KBO 코호트 기준 (기본 모드) ──
+    // ── 합성지표 — v3.1: ANALYTICS.stuffScore 사용 (학년 코호트 자동) ──
     const COH = RAPSODO_BENCHMARKS.KBO;
-    // Stuff (구위) = velocity, spin rate, IVB, spin efficiency 가중평균 → 0~100
-    const stuff_v = Math.max(0, Math.min(100, 50 + (stats.velocity.avg - COH.velo) * 4));
-    const stuff_s = Math.max(0, Math.min(100, 50 + (stats.spin.avg - COH.spin) / 10));
-    const stuff_i = Math.max(0, Math.min(100, 50 + (stats.ivb.avg - COH.ivb) * 2));
-    const stuff_e = Math.max(0, Math.min(100, 50 + (stats.spin_eff.avg - COH.eff) * 2));
-    const stuff_score = Math.round(stuff_v*0.35 + stuff_s*0.25 + stuff_i*0.20 + stuff_e*0.20);
+    let stuff_score, stuff_components, stuff_cohort;
+    if(typeof ANALYTICS !== 'undefined'){
+      // 학년별 코호트 자동 선택
+      const playerCohort = player.grade ? `HS-${player.grade}` : 'HS';
+      const ss = ANALYTICS.stuffScore({
+        velocity_kmh:        stats.velocity.avg,
+        spin_rpm:            stats.spin.avg,
+        ivb_cm:              stats.ivb.avg,
+        hb_cm:               stats.hb.avg,
+        spin_efficiency_pct: stats.spin_eff.avg
+      }, playerCohort);
+      stuff_score      = ss.stuff_score;
+      stuff_components = ss.components;
+      stuff_cohort     = ss.cohort;
+    } else {
+      // fallback: 기존 단순 식
+      const sv = Math.max(0, Math.min(100, 50 + (stats.velocity.avg - COH.velo) * 4));
+      const ss = Math.max(0, Math.min(100, 50 + (stats.spin.avg - COH.spin) / 10));
+      stuff_score = Math.round(sv*0.5 + ss*0.5);
+    }
     // Command (제구) = release SD (height·side·ext), in_zone% 가중
     const rh_sd_cm = (stats.release_height.sd || 0) * 100;
     const rs_sd_cm = (stats.release_side.sd || 0) * 100;
@@ -592,8 +606,10 @@ function importRapsodoCSV(text){
           side_avg:   _rd(stats.plate_side.avg,1),
         },
         in_zone_pct: Math.round(cmd_zone),
-        // 합성
+        // 합성 (v3.1: 학년 코호트 기반)
         stuff_score,
+        stuff_components: stuff_components || null,
+        stuff_cohort:     stuff_cohort || 'KBO',
         command_score,
         // 원본 throws (선수별 산점도용 — 첫 5개만 보존)
         throws: fb.slice(0, 30).map(t => ({

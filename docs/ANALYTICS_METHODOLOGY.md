@@ -1,4 +1,4 @@
-# 분석 방법론 (Analytics Methodology) — v3.0
+# 분석 방법론 (Analytics Methodology) — v3.1
 
 대시보드의 잠재구속·ELI·composite score 산출 공식과 문헌 근거를 정리한 문서입니다.
 모든 함수는 `src/js/analytics.js` 에 구현되어 있고, 브라우저에서 `window.ANALYTICS` 로 노출됩니다.
@@ -131,6 +131,81 @@ trial-level SD 기반:
 ### UI 표시
 
 선수 페이지의 "부상위험·제구일관성" 카드 하단에 통합 점수 + Theia/Rapsodo 분리 점수 + 경고 표시.
+
+---
+
+## 2.6 GRF 정식 산출 (v3.1 신규)
+
+### LHEI (Lead Hip Energy Index)
+
+$$\text{LHEI} = \frac{\text{lead vertical impulse (N·s)}}{\text{body mass (kg)} \times \text{pitch time (s)}}$$
+
+- **≥ 1.20 N·s/kg**: 우수 (100점)
+- **0.90 ~ 1.20**: 평균 (70~100 선형)
+- **< 0.90**: 부족 (선형 감점)
+
+문헌: MacWilliams (1998), Kageyama (2014).
+
+### Force Balance Score
+
+$$\text{Balance} = 100 - \tfrac{|\text{rear}_{\%BW} - 75| \times 1.2 \,+\, |\text{lead}_{\%BW} - 100| \times 1.0}{2}$$
+
+이상점: rear push-off 75% BW, lead block 100% BW. 편차마다 감점.
+
+### Asymmetry Score
+
+좌우 lateral force 비대칭이 5% 초과부터 4pt/% 감점.
+
+### Type 분류 (5가지)
+
+| 조건 | 분류 |
+|---|---|
+| asymmetry > 15% | **좌우로 새는** |
+| rear > 90% & lead < 70% | **뒤에 처지는** |
+| rear < 60% & lead > 95% | **앞으로 쏟아지는** |
+| rear > 90% & lead > 110% | **잠깐만 미는** |
+| 그 외 | **균형형** |
+
+### 종합 GRF Score
+
+$$\text{GRF\_score} = 0.50 \cdot \text{LHEI} + 0.30 \cdot \text{Balance} + 0.20 \cdot \text{Asymmetry}$$
+
+---
+
+## 2.7 Stuff Score 정식화 (v3.1)
+
+Driveline "Stuff+" 모델·Pitching Ninja·Baseball Savant 참조한 가법 모델.
+
+### 가중
+
+$$\text{Stuff} = 0.30 \cdot V_{score} + 0.25 \cdot B_{score} + 0.25 \cdot I_{score} + 0.20 \cdot H_{score}$$
+
+### 각 변수
+
+| 변수 | 산출 | 임계 |
+|---|---|---|
+| **Velocity** (mph) | z-score → percentile | 코호트별 평균/SD |
+| **Bauer Units** = spin_rpm / vMph | z-score → percentile | 코호트별 평균/SD |
+| **IVB** (inch) | 22 inch ≥ 100, 16 이하 0, 선형 | 절대값 |
+| **HB** abs (inch) | 4 이하 100, 12 이상 0, 선형 | FB는 작을수록 좋음 |
+
+### 코호트별 벤치마크 (`STUFF_BENCHMARKS`)
+
+| 코호트 | Velo (mph) | Bauer |
+|---|---|---|
+| KBO | 88 ± 3 | 25.5 ± 1.5 |
+| HS  | 80 ± 4 | 24.0 ± 1.8 |
+| **HS-1** | 77 ± 4 | 23.0 ± 2.0 |
+| **HS-2** | 81 ± 4 | 24.0 ± 1.8 |
+| **HS-3** | 84 ± 4 | 25.0 ± 1.8 |
+
+학년 코호트 자동 선택 (선수.grade 가 있으면 `HS-{grade}`).
+같은 130 km/h 라도 HS-1 에서는 우수, HS-3 에서는 평균.
+
+### 한계
+
+- Driveline 모델은 미국 프로 데이터 기반. 한국 고교 환경에서 weight 조정 가능성 있음.
+- 측정 누적되면 자체 회귀로 가중치 재조정 권장.
 
 ---
 

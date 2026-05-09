@@ -159,12 +159,38 @@ function genMeasurements(){
             : null;
           return { generation: gen, transfer: trf, leakage: leak };
         })(),
-        grf: isTheia ? {
-          lhei: Math.max(20,Math.min(98, 50 + rng()*40 + scoreTrend*f)),
-          rear_force_pct: Math.round(70 + rng()*25),
-          lead_force_pct: Math.round(75 + rng()*22),
-          type: ['균형형','뒤에 처지는','앞으로 쏟아지는','잠깐만 미는','좌우로 새는'][Math.floor(rng()*5)]
-        } : null,
+        // v3.1: GRF 정식 산출 (Theia+GRF 회차에만)
+        grf: isTheia ? (function(){
+          // 측정 변수 (가상 — 실측 시 io.js 에서 인입)
+          const rear_pct = Math.round(60 + rng()*40);              // 60~100% BW
+          const lead_pct = Math.round(75 + rng()*45);              // 75~120% BW
+          const lat_asym = r1(2 + rng()*15);                       // 2~17%
+          const lead_imp = r1(60 + rng()*40);                      // 60~100 N·s
+          const pitch_t  = Math.round(280 + rng()*60);             // 280~340 ms
+          const grfInput = {
+            rear_force_pct_bw: rear_pct,
+            lead_force_pct_bw: lead_pct,
+            lateral_force_asymmetry_pct: lat_asym,
+            lead_vertical_impulse_n_s: lead_imp,
+            body_mass_kg: p.weight,
+            pitch_time_ms: pitch_t
+          };
+          const gs = (typeof ANALYTICS !== 'undefined') ? ANALYTICS.grfScore(grfInput) : null;
+          return gs ? {
+            lhei: gs.lhei_score,                       // UI 호환 (기존 0~100 점수 자리)
+            lhei_value: gs.lhei,                       // 실제 LHEI 값 (N·s/kg)
+            rear_force_pct: rear_pct,
+            lead_force_pct: lead_pct,
+            asymmetry_pct: lat_asym,
+            type: gs.type,
+            grf_score: gs.grf_score,
+            balance_score: gs.balance_score,
+            asymmetry_score: gs.asymmetry_score,
+            // 측정 원본 (실측 인입 시 검증용)
+            lead_force_bm: lead_pct / 100,
+            measurements: grfInput
+          } : null;
+        })() : null,
         faults: {
           x_factor_deg: x_factor,
           lead_knee_change: lead_knee,

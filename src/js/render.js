@@ -105,7 +105,8 @@ function buildM1Table(){
     const leakDisplay = r.eli==null ? '—' : (100 - r.eli);
     return `
     <tr data-pid="${r.pid}">
-      <td><b>${r.name}</b>${realDot}${r.grade?` <span style="background:#ddf4ff;color:#0969da;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600">고${r.grade}</span>`:''}</td>
+      <td><b>${r.name}</b>${realDot}</td>
+      <td class="right">${r.grade?`<span style="background:#ddf4ff;color:#0969da;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">고${r.grade}</span>`:'—'}</td>
       <td class="right">${r.arm}</td>
       <td class="right"><b>${fmt(r.velo,1)}</b></td>
       <td class="right">${fmt(r.velo_avg,1)}</td>
