@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-process_pitching_session.py — Theia c3d + Rapsodo 자동 매칭/처리 스크립트
-v1.0 · 2026-05-09
+process_pitching_session.py — Theia c3d + Rapsodo + ForceDecks(fitness) 자동 처리
+v1.1 · 2026-05-10 (v5.0 — 매뉴얼 v2 호환, 32컬럼 fitness CSV 지원)
 
 사용법:
     python process_pitching_session.py 2026-05-15_1차측정/
@@ -11,11 +11,13 @@ v1.0 · 2026-05-09
     2026-05-15_1차측정/
     ├── 00_meta/roster.csv
     ├── 01_theia/P01_LYH/Fastball RH Markerless N.c3d.txt
+    ├── 02_forcedecks/all_forcedecks.csv      ← 29 또는 32컬럼 (auto-detect)
     └── 03_rapsodo/all_rapsodo.csv
 
 출력 (04_dashboard_import/):
     theia_batch.json       # 대시보드 인입용 (선수별 에너지·메카닉·GRF 합성)
     rapsodo_master.csv     # 표준 정규화된 Rapsodo (대시보드 importRapsodoCSV용)
+    fitness_master.csv     # 표준 32컬럼 fitness CSV (대시보드 importValdCSV용)
     validation.txt         # 자동 처리 진단 + 운영자 검토 alert
 """
 import sys, os, glob, json, csv, re, statistics
@@ -45,6 +47,28 @@ THEIA_COLS = {
 }
 THEIA_NAME_RE = re.compile(r'^([A-Za-z]+)\s+(LH|RH)\s+Markerless\s+(\d+)\.c3d\.txt$')
 PLAYER_DIR_RE = re.compile(r'^(P\d{2})_(.+)$')
+
+# ── ForceDecks fitness CSV 표준 헤더 (매뉴얼 v2 32컬럼 wide format) ──
+# v1.1 (29컬럼 legacy) ↔ v2.0 (32컬럼 + Plyo Push Up 3컬럼) auto-detect
+FITNESS_COMMON_COLS = [
+    'athlete_external_id','athlete_name','date_of_birth','sex',
+    'height_cm','weight_kg','bmi','handedness',
+    'test_date','session_id',
+    'cmj_jump_height_cm','cmj_peak_power_w','cmj_peak_power_bm_w_kg',
+    'cmj_rsi_modified_ms','cmj_concentric_peak_force_bm_n_kg',
+    'cmj_eccentric_concentric_force_ratio',
+    'sj_jump_height_cm','sj_peak_power_bm_w_kg','sj_concentric_peak_force_bm_n_kg',
+    'eur',
+    'pogo_rsi_ms','pogo_mean_contact_time_ms','pogo_mean_jump_height_cm',
+    'imtp_peak_vertical_force_n','imtp_peak_vertical_force_bm_n_kg',
+    'imtp_rfd_0_100ms_n_s','imtp_force_at_100ms_bm_n_kg','imtp_asymmetry_pct',
+]
+FITNESS_PP_COLS = [   # v5.0 신규 (32컬럼)
+    'pp_peak_takeoff_force_bm_n_kg',
+    'pp_peak_eccentric_force_bm_n_kg',
+    'pp_asymmetry_pct',
+]
+EXPECTED_FITNESS_COLS = FITNESS_COMMON_COLS + FITNESS_PP_COLS   # 32컬럼 전체
 
 # ════════════════════════════════════════════════════════════
 # 유틸리티
@@ -299,6 +323,66 @@ def parse_rapsodo_v2(path):
     return meta, throws
 
 # ════════════════════════════════════════════════════════════
+# ForceDecks fitness CSV 처리 (v5.0 — 32컬럼 / 29컬럼 auto-detect)
+# ════════════════════════════════════════════════════════════
+def process_fitness_csv(forcedecks_dir, log):
+    """02_forcedecks/all_forcedecks.csv (또는 폴더 내 첫 *.csv) →
+    표준 32컬럼 fitness rows (legacy 29컬럼 입력 시 pp_* 빈값 graceful).
+
+    Returns: (header_list, rows_list_of_dicts) or (None, None) if no file.
+    """
+    if not os.path.isdir(forcedecks_dir):
+        log.append(f'  ℹ {os.path.basename(forcedecks_dir)} 폴더 없음 (fitness 스킵)')
+        return None, None
+
+    # 우선순위: all_forcedecks.csv → 폴더 내 첫 *.csv
+    candidate = os.path.join(forcedecks_dir, 'all_forcedecks.csv')
+    if not os.path.exists(candidate):
+        csvs = sorted(glob.glob(os.path.join(forcedecks_dir, '*.csv')))
+        if not csvs:
+            log.append(f'  ℹ {os.path.basename(forcedecks_dir)}/ 안에 csv 없음 (fitness 스킵)')
+            return None, None
+        candidate = csvs[0]
+        log.append(f'  ℹ all_forcedecks.csv 없음 → {os.path.basename(candidate)} 사용')
+
+    try:
+        with open(candidate, encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            in_header = reader.fieldnames or []
+            in_rows   = list(reader)
+    except Exception as e:
+        log.append(f'  ✗ {os.path.basename(candidate)} 읽기 실패: {e}')
+        return None, None
+
+    # 32 / 29 auto-detect
+    has_pp = all(c in in_header for c in FITNESS_PP_COLS)
+    fmt    = 'v2.0 (32컬럼, PP 포함)' if has_pp else 'v1.1 (29컬럼, PP 빈값으로 graceful)'
+    log.append(f'  ✓ {os.path.basename(candidate)}: {len(in_rows)} 선수 · 형식 {fmt}')
+    log.append(f'    입력 헤더 {len(in_header)}컬럼 → 출력 표준 {len(EXPECTED_FITNESS_COLS)}컬럼')
+
+    # 미인식 컬럼 안내 (선수에 대한 추가 정보일 수 있음)
+    unknown = [c for c in in_header if c not in EXPECTED_FITNESS_COLS]
+    if unknown:
+        log.append(f'    ⚠ 표준 외 컬럼 {len(unknown)}개 무시: {", ".join(unknown[:5])}'
+                   + ('…' if len(unknown) > 5 else ''))
+
+    # 표준 헤더 순서로 행 정규화 (누락 컬럼 → 빈 문자열)
+    out_rows = []
+    for r in in_rows:
+        out = {c: (r.get(c, '') or '').strip() for c in EXPECTED_FITNESS_COLS}
+        out_rows.append(out)
+
+    return EXPECTED_FITNESS_COLS, out_rows
+
+def write_fitness_master(header, rows, out_path):
+    if not header or not rows: return 0
+    with open(out_path, 'w', encoding='utf-8', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=header)
+        w.writeheader()
+        w.writerows(rows)
+    return len(rows)
+
+# ════════════════════════════════════════════════════════════
 # 갭 분석 → 자동 분류 (20초 프로토콜)
 # ════════════════════════════════════════════════════════════
 def analyze_gaps(throws):
@@ -527,10 +611,11 @@ def write_rapsodo_master(throws_with_pid, out_path, test_date):
 # 메인
 # ════════════════════════════════════════════════════════════
 def main(session_dir):
-    meta_dir   = os.path.join(session_dir, '00_meta')
-    theia_dir  = os.path.join(session_dir, '01_theia')
-    rap_dir    = os.path.join(session_dir, '03_rapsodo')
-    out_dir    = os.path.join(session_dir, '04_dashboard_import')
+    meta_dir       = os.path.join(session_dir, '00_meta')
+    theia_dir      = os.path.join(session_dir, '01_theia')
+    forcedecks_dir = os.path.join(session_dir, '02_forcedecks')
+    rap_dir        = os.path.join(session_dir, '03_rapsodo')
+    out_dir        = os.path.join(session_dir, '04_dashboard_import')
     os.makedirs(out_dir, exist_ok=True)
 
     log = ['═══ 자동 매칭 결과 ═══', f'세션 폴더: {session_dir}', '']
@@ -615,6 +700,16 @@ def main(session_dir):
     rap_master_path = os.path.join(out_dir, 'rapsodo_master.csv')
     n = write_rapsodo_master(all_throws_with_pid, rap_master_path, '2026-05-15')
     log.append(f'✓ {os.path.basename(rap_master_path)} ({os.path.getsize(rap_master_path):,} bytes, {n} throws)')
+
+    # ── ForceDecks fitness CSV → fitness_master.csv (v5.0) ──
+    log.append('\n── ForceDecks (fitness) ──')
+    f_header, f_rows = process_fitness_csv(forcedecks_dir, log)
+    if f_header and f_rows:
+        fit_master_path = os.path.join(out_dir, 'fitness_master.csv')
+        nf = write_fitness_master(f_header, f_rows, fit_master_path)
+        log.append(f'✓ {os.path.basename(fit_master_path)} ({os.path.getsize(fit_master_path):,} bytes, {nf} 선수)')
+    else:
+        log.append('  fitness_master.csv 미생성 (입력 없음)')
 
     # validation.txt
     val_path = os.path.join(out_dir, 'validation.txt')

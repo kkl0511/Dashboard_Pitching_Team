@@ -1,22 +1,24 @@
 # v5.0 핸드오프 — 매뉴얼 v2 호환 대시보드
 
 **시작일**: 2026-05-09
+**완료일**: 2026-05-10
 **전제 매뉴얼**: `docs/측정_프로토콜_매뉴얼_v2.docx`
-**마지막 안정 빌드**: v5.0 (2026-05-09 — 대시보드 핵심 3파일 완료, 빌드 OK)
+**마지막 안정 빌드**: v5.0 (2026-05-10 — 전체 파이프라인 완료, end-to-end 검증 OK)
 
-## 진행 상황 (2026-05-09 시점)
+## 진행 상황 (2026-05-10 — v5.0 전체 완료 ✓)
 
 | 파일 | 상태 |
 |---|---|
 | `src/js/analytics.js` | ✅ VELO_GROUP_NORMS에 `pp_peak_takeoff_bm` 추가 |
 | `src/js/data.js` | ✅ 가상 fitness 데이터 `pp` 블록 추가 |
 | `src/js/render.js` | ✅ `renderHPAssessment` Grip → Plyo Push Up 교체 |
-| `dashboard.html` | ✅ 재빌드 완료 (305,844 bytes, PP 라벨 6개소 확인) |
-| `dashboard_mobile.html` | ✅ 재빌드 완료 |
-| `scripts/process_pitching_session.py` | ⏳ 32컬럼 인식 (다음 대화) |
-| `scripts/build_coach_deck.js` | ⏳ PPTX HP Assessment PP 추가 (다음 대화) |
-| PPTX 재생성 | ⏳ 다음 대화 |
-| Git commit + push | ⏳ 다음 대화 |
+| `src/js/io.js` | ✅ `importValdCSV`에 pp_* 3컬럼 인식 추가 (29/32 graceful) |
+| `dashboard.html` | ✅ 재빌드 완료 (306,239 bytes) |
+| `dashboard_mobile.html` | ✅ 재빌드 완료 (316,392 bytes) |
+| `scripts/process_pitching_session.py` | ✅ `EXPECTED_FITNESS_COLS` + `process_fitness_csv` 추가, `02_forcedecks/all_forcedecks.csv` 28/31컬럼 auto-detect |
+| `scripts/build_coach_deck.js` | ✅ HP Assessment Grip → Plyo PP 교체 (`m.fitness.pp.peak_takeoff_force_bm_n_kg`), `/tmp` 권한충돌 fix |
+| PPTX 재생성 | ✅ `코치미팅_1차_2026-05-15.pptx` 2018 KB · 23슬라이드 (Plyo PP 20회 / Grip 0회) |
+| Git commit + push | ✅ v5.0 완료 commit |
 
 ---
 

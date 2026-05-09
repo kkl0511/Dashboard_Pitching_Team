@@ -4974,6 +4974,13 @@ function importValdCSV(text){
         force_at_100ms_bm_n_kg:   num(r.imtp_force_at_100ms_bm_n_kg),
         asymmetry_pct:            num(r.imtp_asymmetry_pct),
       },
+      // v5.0 — Plyo Push Up (Driveline HP 6축 호환) · 32컬럼 wide CSV 신규
+      // 29컬럼 legacy CSV 시 모두 null (graceful degradation)
+      pp: {
+        peak_takeoff_force_bm_n_kg:    num(r.pp_peak_takeoff_force_bm_n_kg),
+        peak_eccentric_force_bm_n_kg:  num(r.pp_peak_eccentric_force_bm_n_kg),
+        asymmetry_pct:                 num(r.pp_asymmetry_pct),
+      },
     };
     // 체력 종합 점수 — CMJ JH(25cm 기준 0, 50cm 만점) + IMTP PF/BM(15 기준 0, 35 만점)
     const cmjN  = fitness.cmj.jump_height_cm  != null ? Math.max(0,Math.min(100,(fitness.cmj.jump_height_cm-25)/25*100)) : null;

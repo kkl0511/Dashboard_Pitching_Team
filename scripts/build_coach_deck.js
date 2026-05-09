@@ -46,10 +46,16 @@ function loadDataAndAnalytics(){
   // ANALYTICS 를 전역에 노출 (data.js 가 typeof ANALYTICS !== 'undefined' 체크)
   global.ANALYTICS = ANALYTICS;
   // eval 로는 module.exports 사용이 어려우므로 임시 파일 require
-  const tmp = path.join('/tmp', '_data_extract.js');
+  // PID + os.tmpdir 사용 — 권한 충돌 방지 (이전 다른 user가 /tmp/_data_extract.js 잡고 있는 경우)
+  const os = require('os');
+  const tmp = path.join(os.tmpdir(), `_data_extract_${process.pid}.js`);
   fs.writeFileSync(tmp, wrap);
-  const { PLAYERS, SESSIONS, DATA } = require(tmp);
-  return { PLAYERS, SESSIONS, DATA, ANALYTICS };
+  try {
+    const { PLAYERS, SESSIONS, DATA } = require(tmp);
+    return { PLAYERS, SESSIONS, DATA, ANALYTICS };
+  } finally {
+    try { fs.unlinkSync(tmp); } catch(e) { /* ignore */ }
+  }
 }
 
 const { PLAYERS, SESSIONS, DATA, ANALYTICS } = loadDataAndAnalytics();
@@ -412,18 +418,19 @@ function addPlayerSlide(p){
     });
 
     // 우측 절반 — HP Assessment 5 변수 mini visualization
-    s.addText('💪 체력 5 변수 (본인 ▼ vs Velo Group)', {
+    // v5.0: 매뉴얼 v2 / Driveline HP 6축 호환 — Grip 제거, Plyo Push Up 추가 (render.js 정합)
+    s.addText('💪 HP Assessment 5축 (본인 ▼ vs Velo Group)', {
       x: 2.75, y: 4.45, w: 2.2, h: 0.18,
       fontSize: 8.5, bold: true, color: '#bc4c00', fontFace: 'Apple SD Gothic Neo', margin: 0
     });
 
     if(m.fitness){
       const vars = [
-        { label: 'CMJ JH',   val: m.fitness.cmj?.jump_height_cm,        unit: 'cm',   range: [25, 50] },
-        { label: 'CMJ PP',   val: m.fitness.cmj?.peak_power_bm_w_kg,    unit: 'W/kg', range: [20, 35] },
-        { label: 'IMTP',     val: m.fitness.imtp?.peak_force_bm_n_kg,   unit: 'N/kg', range: [18, 35] },
-        { label: 'Hop RSI',  val: m.fitness.pogo?.rsi_ms,                unit: '',     range: [1.5, 3.0] },
-        { label: 'Grip',     val: 50 + 5,                                unit: 'kg',   range: [45, 70] }
+        { label: 'CMJ JH',    val: m.fitness.cmj?.jump_height_cm,           unit: 'cm',   range: [25, 50] },
+        { label: 'CMJ PP',    val: m.fitness.cmj?.peak_power_bm_w_kg,       unit: 'W/kg', range: [20, 35] },
+        { label: 'IMTP',      val: m.fitness.imtp?.peak_force_bm_n_kg,      unit: 'N/kg', range: [18, 35] },
+        { label: 'Hop RSI',   val: m.fitness.pogo?.rsi_ms,                  unit: '',     range: [1.5, 3.0] },
+        { label: 'Plyo PP',   val: m.fitness.pp?.peak_takeoff_force_bm_n_kg, unit: 'N/kg', range: [6, 13] }
       ];
       vars.forEach((v, vi) => {
         if(v.val == null) return;
