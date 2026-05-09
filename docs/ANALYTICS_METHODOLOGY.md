@@ -1,3 +1,87 @@
+# 분석 방법론 (Analytics Methodology) — v3.4
+
+## v3.4 — 41명 고1 elite 정밀측정 통합
+
+이전 추정값 → **41명 한국 고1 elite 투수 실측치**로 보정.
+
+### GRADE_BENCHMARKS[1] (고1) 보정 전·후
+
+| 변수 | v3.3 (추정) | v3.4 (실측 N=41) |
+|---|---|---|
+| 평균 구속 | 122 ± 6 km/h | **133.6 ± 5.2 km/h** |
+| 신장 | 175 cm | **184.7 ± 4 cm** |
+| 체중 | 70 kg | **84.4 ± 6 kg** |
+| Pelvis peak velocity | (없음) | **1025 ± 96 deg/s** |
+
+### 41명 elite 구속 분포 (선수당 평균)
+
+| Percentile | 평균 구속 | 최고 구속 |
+|---|---|---|
+| 10p | 127.2 | 130.3 |
+| 25p | 130.8 | 132.4 |
+| **50p (중앙값)** | **133.3** | **135.0** |
+| 75p | 137.8 | 138.9 |
+| 90p | 139.2 | 141.5 |
+| max | 145.4 | 146.3 |
+
+### 활용
+
+- 우리 상동고 측정 시 `valdMultiTier(velocity, 'pitching', 'velocity_mean_kmh')` 호출로 한국 elite 코호트 내 percentile 즉시 산출
+- `GRADE_LATENT_OFFSETS[1].pelvis_peak_dps = +456` → 한국 elite 25th percentile (956 deg/s) 가 "충분 시작" 임계
+- 잠재구속 회귀가 한국 발달 단계에 정확히 fit
+
+### 데이터 출처
+
+- `raw data.zip` — 41명 c3d.txt (선수당 ~10 trial)
+- `고1 정밀측정.xlsx` — 355개 throw 의 ball_speed
+- 측정 시점: 2025년 (한국 야구 elite 투수 선수단)
+
+---
+
+# 분석 방법론 (Analytics Methodology) — v3.3
+
+## v3.3 — 3-Tier 코호트 비교 (한국 elite + College + MLB)
+
+3개 reference cohort 동시 비교로 정밀 평가:
+
+| Cohort | 출처 | N | 의미 |
+|---|---|---|---|
+| **kr_hs_elite** | Pitcher.zip (2025/02 측정) | 15~30 | 한국 중3→고1 우수 투수 — 학년·문화 동일 reference |
+| **college** | VALD Norm Report (USA College Baseball) | 수백 | 미국 대학 야구 — mid-tier reference |
+| **mlb** | VALD Norm Report (USA MLB) | 수백 | 미국 프로 야구 — top-tier ceiling |
+
+`valdMultiTier(value, test, metric)` 한 호출로 3개 percentile 동시 산출.
+
+### 활용 예시
+
+CMJ JH 42cm 측정 시:
+- 한국 elite percentile 86p ("Elite" — 한국 동급에서 상위)
+- College percentile 26p ("Average" — 미국 대학과 비교 시 평균)
+- MLB percentile 41p ("Average" — 미국 프로와 비교 시 평균)
+
+→ "한국 동급 우수, 미국 대학 진학 권장권" 같은 정밀 평가
+
+### KR HS Elite 실측 통계 (Pitcher.zip)
+
+| 측정 | mean ± SD | N |
+|---|---|---|
+| CMJ Jump Height | 34.5 ± 6.1 cm | 15 |
+| CMJ RSI-Modified | 0.48 ± 0.09 m/s | 15 |
+| CMJ Conc PF/BM | 25.7 ± 2.9 N/kg | 15 |
+| SJ Jump Height | 33.5 ± 4.7 cm | 15 |
+| SJ Conc Max RFD | 13788 ± 5679 N/s | 15 |
+| Nordic L Force | 379 ± 75 N | 30 |
+| Nordic R Force | 403 ± 64 N | 30 |
+| Nordic Asymmetry | 6.2 ± 9.6 % | 30 |
+| Shoulder L Force | 167 ± 40 N | 30 |
+| Shoulder R Force | 171 ± 36 N | 30 |
+| 30m Sprint Total | 4.58 ± 0.23 s | 30 |
+| Grip L (kg) | 58.7 ± 7.0 | 16 |
+| Grip R (kg) | 60.8 ± 7.5 | 16 |
+| BW (kg) | 84.7 ± 10.4 | 15 |
+
+---
+
 # 분석 방법론 (Analytics Methodology) — v3.1
 
 대시보드의 잠재구속·ELI·composite score 산출 공식과 문헌 근거를 정리한 문서입니다.

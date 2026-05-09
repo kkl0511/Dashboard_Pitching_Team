@@ -199,10 +199,26 @@ function genMeasurements(){
           trunk_tilt_sd_deg: r1(0.8 + rng()*2.5),
           consistency_score: Math.round(consScore),
           fault_score: Math.round(faultScore),
-          injury_risk: ['low','low','mid','low','high'][Math.floor(rng()*5)],
+          // v3.2: 부상위험도는 m 객체 만든 후 ANALYTICS.injuryRisk 로 산출 (아래 처리)
+          injury_risk: 'low',  // 임시값 — 아래에서 덮어씀
           fault_count: Math.floor(rng()*5)
         }
       };
+      // v3.2 부상위험도 정식 산출 (ANALYTICS.injuryRisk)
+      if(typeof ANALYTICS !== 'undefined' && isTheia){
+        const ir = ANALYTICS.injuryRisk({
+          x_factor_max_deg:        x_factor,
+          lead_knee_change_deg:    lead_knee,
+          trunk_lat_tilt_deg:      trunk_lat,
+          pelvis_to_trunk_lag_ms:  pt_lag,
+          shoulder_er_max_deg:     er_max,
+          imtp_asymmetry_pct:      s.hasFitness ? r1(1 + rng()*7) : null
+        });
+        m.faults.injury_risk = ir.risk_level;
+        m.faults.injury_score = ir.risk_score;
+        m.faults.injury_contributors = ir.contributors;
+        m.faults.injury_recommendations = ir.recommendations;
+      }
       // 체력 (Theia+GRF 회차에만)
       if(s.hasFitness){
         const ff = baseFitness + (rng()-0.5)*0.2;
@@ -234,24 +250,44 @@ function genMeasurements(){
             asymmetry_pct: r1(1 + rng()*7)
           }
         };
-        // 체력 종합점수 — v3.0 학년별 percentile + ANALYTICS.compositeScore + 비대칭 반영
+        // 체력 종합점수 — v3.2 VALD College Baseball percentile 기반 + 학년 percentile 병행
         if(typeof ANALYTICS !== 'undefined'){
-          // 학년별 percentile (0~100 직접 변환)
-          const cmjPctl  = ANALYTICS.gradePercentile(m.fitness.cmj.peak_power_bm_w_kg, p.grade, 'cmj_pp_bm');
-          const imtpPctl = ANALYTICS.gradePercentile(m.fitness.imtp.peak_force_bm_n_kg, p.grade, 'imtp_pf_bm');
-          // 비대칭은 7% 이하 우수, 12% 이상 불량 (ForceDecks 권장)
+          // 학년별 percentile (한국 고1/2/3 코호트 내 위치)
+          const cmjPctlGrade  = ANALYTICS.gradePercentile(m.fitness.cmj.peak_power_bm_w_kg, p.grade, 'cmj_pp_bm');
+          const imtpPctlGrade = ANALYTICS.gradePercentile(m.fitness.imtp.peak_force_bm_n_kg, p.grade, 'imtp_pf_bm');
+          // VALD 3-tier percentile (한국 elite + College + MLB)
+          const cmjVald  = ANALYTICS.valdMultiTier(m.fitness.cmj.peak_power_bm_w_kg, 'cmj', 'conc_pp_bm');
+          const cmjJhVald = ANALYTICS.valdMultiTier(m.fitness.cmj.jump_height_cm, 'cmj', 'jump_height_cm');
+          const cmjRsiVald = ANALYTICS.valdMultiTier(m.fitness.cmj.rsi_modified_ms, 'cmj', 'rsi_modified');
+          // v3.5-2 확장: 5개 ForceDecks 변수를 VALD percentile 기반으로 변환
+          // VALD MLB 코호트 (top reference) 사용 — Pogo는 hop 사용
+          const rsiMod = m.fitness.cmj.rsi_modified_ms;
+          const rsiModP = ANALYTICS.valdPercentile(rsiMod, 'cmj', 'rsi_modified', 'mlb');
+          // Pogo RSI: m.fitness.pogo.rsi_ms 가 있으면 hop.best_rsi 사용
+          const pogoRsi = m.fitness.pogo?.rsi_ms;
+          const pogoRsiP = pogoRsi != null ? ANALYTICS.valdPercentile(pogoRsi, 'hop', 'best_rsi', 'mlb') : null;
+          // IMTP RFD 0~100ms: VALD squat_jump.conc_rfd reference 사용 (가장 가까운 reference)
+          const imtpRfd = m.fitness.imtp?.rfd_0_100ms_n_s;
+          const imtpRfdP = imtpRfd != null ? ANALYTICS.valdPercentile(imtpRfd, 'squat_jump', 'conc_rfd', 'college') : null;
+          // 비대칭 — IMTP asymmetry 기준 (lower is better)
           const asymScore = Math.max(0, Math.min(100, 100 - Math.max(0, m.fitness.imtp.asymmetry_pct - 5) * 8));
           const cs = ANALYTICS.compositeScore(ANALYTICS.COMPOSITE_WEIGHTS.fitness, {
-            cmj_pp:    cmjPctl ? cmjPctl.percentile : null,
-            imtp_pf:   imtpPctl ? imtpPctl.percentile : null,
-            asymmetry: asymScore
+            cmj_pp:        cmjPctlGrade ? cmjPctlGrade.percentile : null,
+            imtp_pf:       imtpPctlGrade ? imtpPctlGrade.percentile : null,
+            rsi_modified:  rsiModP?.percentile,
+            pogo_rsi:      pogoRsiP?.percentile,
+            imtp_rfd:      imtpRfdP?.percentile,
+            asymmetry:     asymScore
           });
           m.fitness.score = cs.score;
-          m.fitness.score_breakdown = cs.breakdown;   // UI 에서 인용 가능
+          m.fitness.score_breakdown = cs.breakdown;
           m.fitness.score_formula   = cs.formula;
-          // 학년별 percentile 도 저장 (선수 카드 표시용)
-          m.fitness.cmj_pctl_in_grade  = cmjPctl?.percentile ?? null;
-          m.fitness.imtp_pctl_in_grade = imtpPctl?.percentile ?? null;
+          // 학년·VALD 양쪽 percentile 모두 저장 (UI 에서 두 코호트 비교 가능)
+          m.fitness.cmj_pctl_in_grade  = cmjPctlGrade?.percentile ?? null;
+          m.fitness.imtp_pctl_in_grade = imtpPctlGrade?.percentile ?? null;
+          m.fitness.vald_cmj_pp        = cmjVald;
+          m.fitness.vald_cmj_jh        = cmjJhVald;
+          m.fitness.vald_cmj_rsi       = cmjRsiVald;
         } else {
           // fallback: 기존 단순 평균
           const cmjN = Math.min(100, (m.fitness.cmj.jump_height_cm-25)/25 * 100);

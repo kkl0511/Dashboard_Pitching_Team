@@ -108,23 +108,51 @@ function enrichWithAnalytics(m){
       m.faults.command_warnings  = cc.warnings;
     }
   }
-  // v3.0 fitness 학년 percentile + composite 재계산
+  // v3.2 fitness — 학년 percentile + VALD College Baseball percentile + composite
   if(m.fitness && grade){
     const cmjPctl  = ANALYTICS.gradePercentile(m.fitness.cmj?.peak_power_bm_w_kg, grade, 'cmj_pp_bm');
     const imtpPctl = ANALYTICS.gradePercentile(m.fitness.imtp?.peak_force_bm_n_kg, grade, 'imtp_pf_bm');
+    const cmjVald  = ANALYTICS.valdMultiTier(m.fitness.cmj?.peak_power_bm_w_kg, 'cmj', 'conc_pp_bm');
+    const cmjJhVald = ANALYTICS.valdMultiTier(m.fitness.cmj?.jump_height_cm, 'cmj', 'jump_height_cm');
+    const cmjRsiVald = ANALYTICS.valdMultiTier(m.fitness.cmj?.rsi_modified_ms, 'cmj', 'rsi_modified');
     const asym = m.fitness.imtp?.asymmetry_pct;
     const asymScore = asym != null ? Math.max(0, Math.min(100, 100 - Math.max(0, asym - 5) * 8)) : null;
+    // v3.5-2: 추가 fitness 변수 percentile (RSI-Mod, Pogo, IMTP RFD)
+    const rsiModP = ANALYTICS.valdPercentile(m.fitness.cmj?.rsi_modified_ms, 'cmj', 'rsi_modified', 'mlb');
+    const pogoRsiP = m.fitness.pogo?.rsi_ms != null ? ANALYTICS.valdPercentile(m.fitness.pogo.rsi_ms, 'hop', 'best_rsi', 'mlb') : null;
+    const imtpRfdP = m.fitness.imtp?.rfd_0_100ms_n_s != null ? ANALYTICS.valdPercentile(m.fitness.imtp.rfd_0_100ms_n_s, 'squat_jump', 'conc_rfd', 'college') : null;
     const cs = ANALYTICS.compositeScore(ANALYTICS.COMPOSITE_WEIGHTS.fitness, {
-      cmj_pp:    cmjPctl?.percentile,
-      imtp_pf:   imtpPctl?.percentile,
-      asymmetry: asymScore
+      cmj_pp:        cmjPctl?.percentile,
+      imtp_pf:       imtpPctl?.percentile,
+      rsi_modified:  rsiModP?.percentile,
+      pogo_rsi:      pogoRsiP?.percentile,
+      imtp_rfd:      imtpRfdP?.percentile,
+      asymmetry:     asymScore
     });
     if(cs.score != null){
       m.fitness.score = cs.score;
       m.fitness.score_breakdown = cs.breakdown;
       m.fitness.cmj_pctl_in_grade  = cmjPctl?.percentile ?? null;
       m.fitness.imtp_pctl_in_grade = imtpPctl?.percentile ?? null;
+      m.fitness.vald_cmj_pp        = cmjVald;
+      m.fitness.vald_cmj_jh        = cmjJhVald;
+      m.fitness.vald_cmj_rsi       = cmjRsiVald;
     }
+  }
+  // v3.2 부상위험도 — 정식 산출
+  if(m.faults && (m.faults.x_factor_deg != null || m.faults.lead_knee_change != null)){
+    const ir = ANALYTICS.injuryRisk({
+      x_factor_max_deg:        m.faults.x_factor_deg,
+      lead_knee_change_deg:    m.faults.lead_knee_change,
+      trunk_lat_tilt_deg:      m.faults.trunk_lat_tilt_deg,
+      pelvis_to_trunk_lag_ms:  m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+      shoulder_er_max_deg:     m.faults.shoulder_er_max_deg,
+      imtp_asymmetry_pct:      m.fitness?.imtp?.asymmetry_pct
+    });
+    m.faults.injury_risk = ir.risk_level;
+    m.faults.injury_score = ir.risk_score;
+    m.faults.injury_contributors = ir.contributors;
+    m.faults.injury_recommendations = ir.recommendations;
   }
   // 2) ELI — Theia+GRF 회차에만 (필요 변수가 있을 때)
   if(m.protocol === 'Theia+GRF' && m.energy && m.faults){

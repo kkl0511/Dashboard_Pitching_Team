@@ -546,6 +546,8 @@ function renderPlayerView(pid){
   renderRapsodoFB(m.rapsodo, p);
 
   // 체력 4 카드 (보조)
+  // v3.5-4: 3-tier 코호트 overlay (한국 elite + College + MLB)
+  renderTierOverlay(m, p);
   renderFitnessCards(m.fitness);
 }
 
@@ -736,6 +738,65 @@ function renderRapsodoFB(rap, player){
       }
     }
   });
+}
+
+/* v3.5-4: 3-tier 코호트 overlay — 한국 elite vs College vs MLB percentile */
+function renderTierOverlay(m, p){
+  const wrap = document.getElementById('p-tier-overlay');
+  if(!wrap) return;
+  if(!m.fitness){ wrap.innerHTML = ''; return; }
+  // 비교할 metrics 4개
+  const items = [];
+  // 1. 구속
+  if(m.velocity?.measured_kmh != null && typeof ANALYTICS !== 'undefined'){
+    const tier = ANALYTICS.valdMultiTier(m.velocity.measured_kmh, 'pitching', 'velocity_mean_kmh');
+    items.push({ label: '평균 구속', value: m.velocity.measured_kmh, unit: 'km/h', tier });
+  }
+  // 2. CMJ JH
+  if(m.fitness.cmj?.jump_height_cm != null && m.fitness.vald_cmj_jh){
+    items.push({ label: 'CMJ Jump Height', value: m.fitness.cmj.jump_height_cm, unit: 'cm', tier: m.fitness.vald_cmj_jh });
+  }
+  // 3. CMJ Conc PP
+  if(m.fitness.cmj?.peak_power_bm_w_kg != null && m.fitness.vald_cmj_pp){
+    items.push({ label: 'CMJ Peak Power/BM', value: m.fitness.cmj.peak_power_bm_w_kg, unit: 'W/kg', tier: m.fitness.vald_cmj_pp });
+  }
+  // 4. CMJ RSI-Modified
+  if(m.fitness.cmj?.rsi_modified_ms != null && m.fitness.vald_cmj_rsi){
+    items.push({ label: 'CMJ RSI-Modified', value: m.fitness.cmj.rsi_modified_ms, unit: 'm/s', tier: m.fitness.vald_cmj_rsi });
+  }
+  if(items.length === 0){ wrap.innerHTML = ''; return; }
+
+  const tierColors = { kr_hs_elite: '#0969da', college: '#bc4c00', mlb: '#a40e26' };
+  const tierLabels = { kr_hs_elite: '🇰🇷 KR Elite', college: '🇺🇸 College', mlb: '🇺🇸 MLB' };
+
+  let html = `<div class="panel" style="background:#fafbfc;padding:14px 16px;margin:0">
+    <h3 style="margin:0 0 10px;font-size:13px">3-Tier 코호트 percentile 비교
+      <span style="font-size:11px;color:var(--muted);font-weight:400">한국 elite (N=41) · College Baseball · MLB Pro</span>
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(items.length, 4)}, 1fr);gap:10px">`;
+
+  items.forEach(it => {
+    html += `<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${it.label}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">${it.value} <span style="font-size:10px;color:var(--muted);font-weight:400">${it.unit}</span></div>`;
+    ['kr_hs_elite', 'college', 'mlb'].forEach(c => {
+      const t = it.tier[c];
+      if(!t) return;
+      const pct = t.percentile;
+      const color = pct >= 75 ? '#1a7f37' : pct >= 50 ? '#0969da' : pct >= 25 ? '#bf8700' : '#cf222e';
+      html += `<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;margin:2px 0">
+        <span style="flex:0 0 75px;color:${tierColors[c]}">${tierLabels[c]}</span>
+        <div style="flex:1;height:8px;background:#eaeef2;border-radius:4px;position:relative">
+          <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,pct)}%;background:${color};border-radius:4px"></div>
+        </div>
+        <span style="flex:0 0 38px;text-align:right;color:${color};font-weight:600">${pct}p</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  html += '</div></div>';
+  wrap.innerHTML = html;
 }
 
 function renderFitnessCards(fit){

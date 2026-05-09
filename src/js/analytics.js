@@ -11,7 +11,268 @@
    ║    compositeScore(weights, components) → {score, breakdown}  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-const ANALYTICS_VERSION = '3.1';
+const ANALYTICS_VERSION = '3.4';
+
+/* ────────────────────────────────────────────────────────────
+   v3.2 — VALD College Baseball 노메이티브 데이터 (USA, College, N≈수백)
+   각 항목 1·25·50·75·99 percentile (lo→hi). Imbalance·Ratio 는 별도 처리.
+   출처: VALD Normative Data Report — College Baseball (사용자 제공)
+   ──────────────────────────────────────────────────────────── */
+
+// v3.3: 3-tier cohort 구조 — VALD_NORMS[cohort][test][metric]
+//   'college' = USA College Baseball (mid-tier reference)
+//   'mlb'     = USA MLB (top-tier ceiling)
+//   'kr_hs_elite' = 한국 중3→고1 우수 투수 실측 (N=15~30, 2025/02 측정)
+const VALD_NORMS = {
+  college: {
+  // CMJ (ForceDecks Countermovement Jump)
+  cmj: {
+    conc_pp_bm:        { unit: 'W/kg', p: [46, 55, 60, 64, 77] },
+    ecc_pp_bm:         { unit: 'W/kg', p: [10, 19, 23, 29, 41] },
+    jump_height_cm:    { unit: 'cm',   p: [31, 42, 47, 51, 63] },
+    rsi_modified:      { unit: 'm/s',  p: [0.358, 0.536, 0.609, 0.691, 0.907] },
+    ft_ct_ratio:       { unit: '',     p: [0.56, 0.74, 0.81, 0.89, 1.10] },
+    ecc_decel_impulse: { unit: 'N/s',  p: [75.4, 119.5, 138.4, 157.6, 202.0] }
+  },
+  // Drop Jump
+  drop_jump: {
+    rsi:               { unit: '',     p: [0.87, 1.17, 1.46, 1.74, 2.77] },
+    contact_time:      { unit: 's',    p: [0.19, 0.38, 0.46, 0.53, 0.62] }
+  },
+  // Squat Jump (RFD only — JH·PP는 CMJ 와 유사)
+  squat_jump: {
+    conc_rfd:          { unit: 'N/s',  p: [962, 3397, 4408, 5862, 10391] },
+    conc_impulse:      { unit: 'N·s',  p: [185, 237, 258, 282, 342] }
+  },
+  // Single Leg Jump (좌우 각각 측정 후 평균)
+  slj: {
+    conc_pp_bm:        { unit: 'W/kg', p: [29, 35, 39, 43, 52] },
+    jump_height_cm:    { unit: 'cm',   p: [14, 21, 24, 27, 34] },
+    rsi_modified:      { unit: 'm/s',  p: [0.146, 0.248, 0.295, 0.344, 0.507] }
+  },
+  // Loaded CMJ (체중 부하 조건)
+  lcmj: {
+    conc_pp_bm:        { unit: 'W/kg', p: [35, 40, 43, 48, 57] },
+    jump_height_cm:    { unit: 'cm',   p: [20, 24, 27, 29, 36] }
+  },
+  // Hip Adduction/Abduction - 45 (ForceFrame)
+  hip_45: {
+    add_force_n:       { unit: 'N',    p: [251, 387, 462, 525, 631] },
+    abd_force_n:       { unit: 'N',    p: [327, 416, 466, 526, 618] },
+    add_imbalance_pct: { unit: '%',    p: [0.2, 2.2, 5.2, 7.8, 14.6], lower_better: true },
+    abd_imbalance_pct: { unit: '%',    p: [0.1, 2.3, 3.9, 6.8, 10.7], lower_better: true },
+    add_abd_ratio:     { unit: '',     p: [0.66, 0.87, 1.01, 1.07, 1.30] }
+  },
+  // Hip Adduction/Abduction - Supine Knee
+  hip_supine: {
+    add_force_n:       { unit: 'N',    p: [204, 361, 418, 499, 606] },
+    abd_force_n:       { unit: 'N',    p: [205, 342, 427, 492, 589] },
+    add_imbalance_pct: { unit: '%',    p: [0.2, 3.2, 7.1, 13.8, 27.3], lower_better: true },
+    abd_imbalance_pct: { unit: '%',    p: [0.3, 2.0, 3.7, 6.7, 12.7], lower_better: true }
+  },
+  // Shoulder ER/IR - Supine 90° AB
+  shoulder_er_ir: {
+    er_force_n:        { unit: 'N',    p: [116, 147, 166, 188, 236] },
+    ir_force_n:        { unit: 'N',    p: [95, 142, 162, 179, 232] },
+    er_imbalance_pct:  { unit: '%',    p: [0, 4, 9, 15, 28], lower_better: true },
+    ir_imbalance_pct:  { unit: '%',    p: [0, 5, 10, 17, 32], lower_better: true },
+    er_ir_ratio:       { unit: '',     p: [0.78, 0.95, 1.02, 1.11, 1.30] }
+  },
+  // Nordic Hamstring (편측 + 양측 합)
+  nordic: {
+    force_n:           { unit: 'N',    p: [229, 359, 419, 466, 571] },
+    imbalance_pct:     { unit: '%',    p: [0.2, 3.0, 6.3, 11.2, 23.1], lower_better: true }
+  }
+  },  // ── college 끝 ──
+
+  // ════════════════════════════════════════════════════════
+  //   MLB (USA Pro) — 더 엄격한 elite ceiling reference
+  // ════════════════════════════════════════════════════════
+  mlb: {
+    cmj: {
+      conc_pp_bm:        { unit: 'W/kg', p: [45, 56, 60, 65, 78] },
+      ecc_pp_bm:         { unit: 'W/kg', p: [10, 21, 26, 31, 43] },
+      jump_height_cm:    { unit: 'cm',   p: [30.5, 39.6, 43.7, 48.0, 58.4] },  // in→cm 변환
+      ft_ct_ratio:       { unit: '',     p: [0.55, 0.76, 0.85, 0.94, 1.17] },
+      conc_peak_force_n: { unit: 'N',    p: [1712, 2263, 2514, 2780, 3433] },
+      rsi_modified:      { unit: 'm/s',  p: [0.36, 0.56, 0.65, 0.74, 0.97] },
+      conc_impulse:      { unit: 'N·s',  p: [196.7, 250.2, 271.9, 294.2, 346.8] },
+      conc_impulse_100ms:{ unit: 'N·s',  p: [76.4, 118.3, 137.1, 156.8, 208.2] }
+    },
+    sj: {
+      jump_height_cm:    { unit: 'cm',   p: [27.2, 36.6, 40.6, 44.7, 55.1] },
+      rsi_modified:      { unit: 'm/s',  p: [0.44, 0.79, 0.96, 1.15, 1.61] },
+      conc_pp_bm:        { unit: 'W/kg', p: [44, 54, 59, 64, 75] },
+      conc_peak_force_n: { unit: 'N',    p: [1631, 2119, 2313, 2525, 3047] }
+    },
+    hop: {  // Pogo / Hop test
+      best_rsi:          { unit: '',     p: [0.45, 1.08, 1.34, 1.62, 2.31] },
+      best_jh_cm:        { unit: 'cm',   p: [9.61, 20.61, 25.71, 30.77, 43.54] },
+      active_stiffness:  { unit: 'N/m',  p: [15926, 33662, 41488, 49378, 71420] },
+      contact_time_s:    { unit: 's',    p: [0.253, 0.205, 0.187, 0.172, 0.144], lower_better: true }
+    },
+    imtp: {
+      peak_force_n:      { unit: 'N',    p: [2097, 2994, 3394, 3874, 5155] },
+      peak_force_bm:     { unit: 'N/kg', p: [24.2, 32.5, 36.3, 41.1, 53.7] }
+    },
+    nordic: {
+      force_n:           { unit: 'N',    p: [257, 394, 450, 505, 645] },
+      asymmetry_pct:     { unit: '%',    p: [23.2, 11.3, 6.6, 3.1, 0.1], lower_better: true }
+    },
+    iso_prone: {  // ISO Prone (NordBord)
+      force_n:           { unit: 'N',    p: [181, 306, 362, 421, 570] }
+    },
+    hip_45: {
+      add_force_n:       { unit: 'N',    p: [226, 394, 470, 541, 708] },
+      abd_force_n:       { unit: 'N',    p: [309, 432, 490, 552, 699] },
+      add_asymmetry_pct: { unit: '%',    p: [14.6, 7.1, 4.0, 1.9, 0.1], lower_better: true },
+      abd_asymmetry_pct: { unit: '%',    p: [12.7, 6.2, 3.6, 1.7, 0.0], lower_better: true },
+      add_abd_ratio:     { unit: '',     p: [0.54, 0.83, 0.95, 1.06, 1.36] }
+    },
+    hip_supine: {
+      add_force_n:       { unit: 'N',    p: [206, 370, 443, 515, 670] },
+      abd_force_n:       { unit: 'N',    p: [292, 421, 472, 530, 677] }
+    },
+    shoulder_ir_er: {
+      ir_force_n:        { unit: 'N',    p: [112, 173, 204, 239, 322] },
+      er_force_n:        { unit: 'N',    p: [110, 166, 192, 221, 290] },
+      ir_asymmetry_pct:  { unit: '%',    p: [31.6, 15.9, 9.6, 4.6, 0.2], lower_better: true },
+      er_asymmetry_pct:  { unit: '%',    p: [30.5, 15.3, 9.1, 4.5, 0.1], lower_better: true },
+      ir_er_ratio:       { unit: '',     p: [0.69, 0.95, 1.06, 1.18, 1.48] }
+    },
+    grip: {
+      peak_force_n:      { unit: 'N',    p: [432, 575, 632, 689, 831] },
+      rfd:               { unit: 'N/s',  p: [559, 1492, 2169, 2950, 4718] }
+    },
+    shoulder_rom: {  // DynaMo seated, elbow 90°
+      ir_avg_deg:        { unit: 'deg',  p: [36.2, 53.2, 61.3, 69.7, 88.9] },
+      ir_max_deg:        { unit: 'deg',  p: [37.7, 55.1, 63.4, 72.2, 92.8] },
+      er_avg_deg:        { unit: 'deg',  p: [99.2, 115.6, 122.5, 129.8, 148.3] },
+      er_max_deg:        { unit: 'deg',  p: [101.3, 118.1, 125.0, 132.5, 151.2] }
+    }
+  },
+
+  // ════════════════════════════════════════════════════════
+  //   KR HS Elite — 한국 중3→고1 우수 투수 실측 (2025/02, N=15~30)
+  //   Pitcher.zip 데이터에서 mean ± SD 추출.
+  //   percentile 변환: lo=mean-2sd, p25=mean-0.674sd, p50=mean, p75=mean+0.674sd, p99=mean+2sd
+  // ════════════════════════════════════════════════════════
+  kr_hs_elite: {
+    cmj: {
+      jump_height_cm:    { unit: 'cm',   p: [22.3, 30.4, 34.5, 38.6, 46.8], n: 15 },
+      rsi_modified:      { unit: 'm/s',  p: [0.30, 0.42, 0.48, 0.54, 0.66], n: 15 },
+      conc_pf_bm:        { unit: 'N/kg', p: [19.9, 23.7, 25.7, 27.6, 31.4], n: 15 }
+    },
+    sj: {
+      jump_height_cm:    { unit: 'cm',   p: [24.0, 30.3, 33.5, 36.7, 43.0], n: 15 },
+      takeoff_pf_bm:     { unit: 'N/kg', p: [20.4, 23.2, 24.7, 26.2, 29.0], n: 15 },
+      conc_max_rfd:      { unit: 'N/s',  p: [2429, 9959, 13788, 17617, 25147], n: 15 }
+    },
+    nordic: {
+      l_max_force_n:     { unit: 'N',    p: [229, 328, 379, 429, 528], n: 30 },
+      r_max_force_n:     { unit: 'N',    p: [275, 359, 403, 446, 530], n: 30 },
+      asymmetry_pct:     { unit: '%',    p: [-13.0, -0.3, 6.2, 12.7, 25.4], n: 30, lower_better: true }
+    },
+    shoulder_ir_er: {
+      l_max_force_n:     { unit: 'N',    p: [88, 140, 167, 193, 246], n: 30 },
+      r_max_force_n:     { unit: 'N',    p: [100, 147, 171, 195, 242], n: 30 },
+      asymmetry_pct:     { unit: '%',    p: [-23.7, -6.1, 2.9, 11.9, 29.5], n: 30, lower_better: true }
+    },
+    grip: {
+      l_max_force_kg:    { unit: 'kg',   p: [44.6, 53.9, 58.7, 63.5, 72.8], n: 16 },
+      r_max_force_kg:    { unit: 'kg',   p: [45.8, 55.7, 60.8, 65.9, 75.7], n: 16 }
+    },
+    sprint_30m: {
+      total_s:           { unit: 's',    p: [4.12, 4.43, 4.58, 4.74, 5.04], n: 30, lower_better: true },
+      velocity3_ms:      { unit: 'm/s',  p: [6.80, 7.48, 7.82, 8.16, 8.84], n: 30 }
+    },
+    body: {
+      bw_kg:             { unit: 'kg',   p: [63.9, 77.7, 84.7, 91.6, 105.4], n: 15 }
+    },
+    // ────────────────────────────────────────────────────
+    //   v3.4 신규 — 41명 고1 정밀측정 (Theia + 구속)
+    // ────────────────────────────────────────────────────
+    pitching: {
+      // 선수별 평균 구속 (선수당 ~10 trial 평균 → 41명 분포)
+      velocity_mean_kmh: { unit: 'km/h', p: [117.0, 130.8, 133.3, 137.8, 145.4], n: 41 },
+      // 선수별 최고 구속
+      velocity_max_kmh:  { unit: 'km/h', p: [128.8, 132.4, 135.0, 138.9, 146.3], n: 41 },
+      // 골반 회전속도 peak (선수별 median, IQR-clipped)
+      pelvis_peak_dps:   { unit: 'deg/s', p: [880, 956, 1028, 1077, 1179], n: 41 }
+    },
+    // 41명 신체 통계
+    body_pitchers: {
+      height_cm:         { unit: 'cm', p: [175, 181, 184, 188, 190], n: 41 },
+      weight_kg:         { unit: 'kg', p: [72, 80, 84, 88, 93], n: 41 }
+    }
+  }
+};
+
+/**
+ * VALD 코호트 percentile 산출 (3-tier: kr_hs_elite / college / mlb)
+ * @param {number} value   측정값
+ * @param {string} test    'cmj'|'drop_jump'|'hip_45'|'shoulder_er_ir'|'nordic'|...
+ * @param {string} metric  'conc_pp_bm'|'rsi_modified'|...
+ * @param {string} [cohort='college'] — 'kr_hs_elite' | 'college' | 'mlb'
+ * @returns {{percentile, label, vald_p25, vald_p50, vald_p75, lower_better, cohort}}
+ */
+function valdPercentile(value, test, metric, cohort = 'college'){
+  const norm = VALD_NORMS[cohort]?.[test]?.[metric];
+  if(!norm || value == null || isNaN(value)) return null;
+  const p = norm.p;   // [1, 25, 50, 75, 99]
+  const ps = [1, 25, 50, 75, 99];
+  // 측정값의 percentile 추정 (선형 보간)
+  let percentile;
+  if(norm.lower_better){
+    // 낮은 값이 좋음 → percentile 반대로
+    if(value <= p[0]) percentile = 99;
+    else if(value >= p[4]) percentile = 1;
+    else {
+      for(let i = 0; i < 4; i++){
+        if(value >= p[i] && value < p[i+1]){
+          const ratio = (value - p[i]) / (p[i+1] - p[i]);
+          percentile = Math.round(100 - (ps[i] + ratio * (ps[i+1] - ps[i])));
+          break;
+        }
+      }
+    }
+  } else {
+    if(value <= p[0]) percentile = 1;
+    else if(value >= p[4]) percentile = 99;
+    else {
+      for(let i = 0; i < 4; i++){
+        if(value >= p[i] && value < p[i+1]){
+          const ratio = (value - p[i]) / (p[i+1] - p[i]);
+          percentile = Math.round(ps[i] + ratio * (ps[i+1] - ps[i]));
+          break;
+        }
+      }
+    }
+  }
+  // 라벨
+  let label;
+  if(percentile >= 75) label = 'Elite';
+  else if(percentile >= 50) label = 'Above Average';
+  else if(percentile >= 25) label = 'Average';
+  else label = 'Below Average';
+  return {
+    percentile, label, cohort,
+    vald_p25: p[1], vald_p50: p[2], vald_p75: p[3], vald_p99: p[4],
+    lower_better: norm.lower_better || false
+  };
+}
+
+/**
+ * 3-tier cohort 동시 비교 — 한국 elite, College, MLB 에서 각각 percentile 산출
+ * @returns {{kr_hs_elite, college, mlb}}
+ */
+function valdMultiTier(value, test, metric){
+  return {
+    kr_hs_elite: valdPercentile(value, test, metric, 'kr_hs_elite'),
+    college:     valdPercentile(value, test, metric, 'college'),
+    mlb:         valdPercentile(value, test, metric, 'mlb')
+  };
+}
 
 /* ────────────────────────────────────────────────────────────
    0. 학년별 벤치마크 (한국 고교 야구 투수 발달 단계)
@@ -20,25 +281,56 @@ const ANALYTICS_VERSION = '3.1';
    고1→고2→고3 으로 갈수록 골격 성장 + 근력 증가.
    ──────────────────────────────────────────────────────────── */
 
+// v3.3 갱신: 고1 데이터를 한국 중3→고1 elite 실측 (N=15~30) 으로 보정
+// 단, "elite" 평균이라 일반 평균보다 높음 → 고1 일반 평균은 elite 평균 - 4 W/kg 정도로 추정
+// 출처: Pitcher.zip (2025/02/03 측정)
 const GRADE_BENCHMARKS = {
-  // 학년별 평균·표준편차 (예시 — 측정 누적되면 실측치로 갱신)
-  1: {  // 고1
-    velocity_mean: 124, velocity_sd: 6,         // km/h
-    cmj_pp_bm_mean: 36, cmj_pp_bm_sd: 5,        // W/kg
-    imtp_pf_bm_mean: 25, imtp_pf_bm_sd: 4,      // N/kg
-    height_mean: 173, weight_mean: 67
+  // v3.5 보정: 41명 elite 코호트의 p75/p85/p90 을 학년별 reference (고교 전반)
+  // 41명 자체가 한국 elite (구속 상위 10% 추정) → 그 안에서 학년 발달분 차등
+  // 고1 = p75 (이미 elite 진입), 고2 = p85, 고3 = p90 (성숙 elite)
+  1: {  // 고1 reference = 41명 elite p75
+    velocity_mean: 137.8, velocity_sd: 5.2,        // 41명 elite p75
+    velocity_max_mean: 138.9, velocity_max_sd: 5.1, // 41명 max p75
+    // 체력: Pitcher.zip ForceDecks (15명, p50 사용 — 별도 코호트)
+    cmj_pp_bm_mean: 25.7, cmj_pp_bm_sd: 2.9,
+    cmj_jh_mean:    34.5, cmj_jh_sd:    6.1,
+    cmj_rsi_mean:   0.48, cmj_rsi_sd:   0.09,
+    imtp_pf_bm_mean: 25, imtp_pf_bm_sd: 4,
+    sj_jh_mean:     33.5, sj_jh_sd:     4.7,
+    nordic_force_mean: 390, nordic_force_sd: 70,
+    // 메카닉: 41명 elite p75 (선수별 median 분포의 75th percentile)
+    pelvis_peak_dps_mean: 1077, pelvis_peak_dps_sd: 96,  // p75
+    // 신체: 41명 elite p75
+    height_mean: 188, height_sd: 4.0,
+    weight_mean: 88, weight_sd: 6.0,
+    n_kr_elite: 41,
+    reference_type: 'p75 of 41 elite cohort'
   },
-  2: {  // 고2
-    velocity_mean: 130, velocity_sd: 6,
-    cmj_pp_bm_mean: 41, cmj_pp_bm_sd: 5,
-    imtp_pf_bm_mean: 29, imtp_pf_bm_sd: 4,
-    height_mean: 178, weight_mean: 75
+  2: {  // 고2 reference = 41명 elite p85 (학년 발달 1년)
+    velocity_mean: 138.5, velocity_sd: 5.2,        // p85 추정 (p75=137.8, p90=139.2)
+    velocity_max_mean: 140.0, velocity_max_sd: 5.1,
+    cmj_pp_bm_mean: 27.5, cmj_pp_bm_sd: 2.9,        // 발달분 +1.8 W/kg
+    cmj_jh_mean:    37, cmj_jh_sd:    6,
+    cmj_rsi_mean:   0.52, cmj_rsi_sd: 0.10,
+    imtp_pf_bm_mean: 28, imtp_pf_bm_sd: 4,
+    sj_jh_mean:     36, sj_jh_sd:     5,
+    nordic_force_mean: 420, nordic_force_sd: 70,
+    pelvis_peak_dps_mean: 1130, pelvis_peak_dps_sd: 95,  // p85 추정
+    height_mean: 189, weight_mean: 90,
+    reference_type: 'p85 of 41 elite cohort (estimated)'
   },
-  3: {  // 고3
-    velocity_mean: 135, velocity_sd: 6,
-    cmj_pp_bm_mean: 45, cmj_pp_bm_sd: 5,
-    imtp_pf_bm_mean: 32, imtp_pf_bm_sd: 4,
-    height_mean: 181, weight_mean: 79
+  3: {  // 고3 reference = 41명 elite p90 (성숙 elite)
+    velocity_mean: 139.2, velocity_sd: 5.2,        // 41명 p90
+    velocity_max_mean: 141.5, velocity_max_sd: 5.1,
+    cmj_pp_bm_mean: 29, cmj_pp_bm_sd: 2.9,
+    cmj_jh_mean:    40, cmj_jh_sd:    6,
+    cmj_rsi_mean:   0.55, cmj_rsi_sd: 0.10,
+    imtp_pf_bm_mean: 31, imtp_pf_bm_sd: 4,
+    sj_jh_mean:     38, sj_jh_sd:     5,
+    nordic_force_mean: 450, nordic_force_sd: 70,
+    pelvis_peak_dps_mean: 1179, pelvis_peak_dps_sd: 95,  // 41명 p90
+    height_mean: 190, weight_mean: 92,
+    reference_type: 'p90 of 41 elite cohort'
   }
 };
 
@@ -46,12 +338,14 @@ const GRADE_BENCHMARKS = {
  * 학년별 잠재구속 임계치 보정 — 발달 단계에 맞춤
  * 같은 측정값이라도 학년에 따라 "충분/부족" 판정이 다름
  */
+// v3.5 보정: 41명 elite 코호트의 학년별 percentile 을 "충분 시작" 임계로 사용
+// 고1: p75 (1077), 고2: p85 (1130), 고3: p90 (1179) — 학년 ↑ 더 엄격
+// 그 임계 이상이면 추가 잠재구속 가능 (회귀 가산)
 const GRADE_LATENT_OFFSETS = {
   // value = (LATENT_VELOCITY_WEIGHTS의 th) + (학년별 offset)
-  // 고1: 임계치 ↓ (낮은 기준), 고3: 임계치 ↑
-  1: { trunk_peak_dps: -100, pelvis_peak_dps: -50, cmj_pp_bm: -5, imtp_pf_bm: -3, shoulder_er_deg: -10, stride_pct_height: -3 },
-  2: { trunk_peak_dps:    0, pelvis_peak_dps:   0, cmj_pp_bm:  0, imtp_pf_bm:  0, shoulder_er_deg:   0, stride_pct_height:  0 },
-  3: { trunk_peak_dps:  +50, pelvis_peak_dps: +25, cmj_pp_bm: +2, imtp_pf_bm: +1, shoulder_er_deg:  +5, stride_pct_height: +2 }
+  1: { trunk_peak_dps: -50, pelvis_peak_dps: +577, cmj_pp_bm: -12.3, imtp_pf_bm: -3, shoulder_er_deg: -10, stride_pct_height: -3 },
+  2: { trunk_peak_dps:  +0, pelvis_peak_dps: +630, cmj_pp_bm: -10.5, imtp_pf_bm:  0, shoulder_er_deg:   0, stride_pct_height:  0 },
+  3: { trunk_peak_dps: +50, pelvis_peak_dps: +679, cmj_pp_bm:  -9,    imtp_pf_bm: +1, shoulder_er_deg:  +5, stride_pct_height: +2 }
 };
 
 /**
@@ -197,11 +491,14 @@ function pairedTTest(before, after, alpha = 0.05){
    각 w_i 는 위 문헌의 회귀계수 보수적 추정값.
    ──────────────────────────────────────────────────────────── */
 
+// v3.5-3 검증: 41명 한국 elite 코호트 자체 회귀 결과 — pelvis_peak ↔ velocity R=-0.10
+// (range restriction — elite 는 이미 pelvis power 충분, 차이 없음)
+// 따라서 문헌 가중치 유지. 자체 회귀는 일반/혼합 코호트에서 의미 있음.
+// 한국 elite 평균 구속 133.6 km/h 자체가 ceiling reference 로 작동.
 const LATENT_VELOCITY_WEIGHTS = {
   // 단위: km/h gain per (단위 above threshold)
-  // weight, threshold, max_contribution (km/h)
-  trunk_peak_dps:   { w: 0.0050, th:  900, max: 4.0, src: 'Stodden 2001' },
-  pelvis_peak_dps:  { w: 0.0040, th:  500, max: 3.0, src: 'Stodden 2001' },
+  trunk_peak_dps:   { w: 0.0050, th:  900, max: 4.0, src: 'Stodden 2001 (univariate r≈0.4)' },
+  pelvis_peak_dps:  { w: 0.0040, th:  500, max: 3.0, src: 'Stodden 2001 (한국 elite N=41 fit R=-0.10, range restriction)' },
   cmj_pp_bm:        { w: 0.20,   th:   38, max: 4.0, src: 'Lehman 2013'  },
   imtp_pf_bm:       { w: 0.15,   th:   28, max: 3.0, src: 'Lehman 2013'  },
   front_grf_bm:     { w: 1.20,   th:  1.5, max: 3.0, src: 'MacWilliams 1998' },
@@ -451,7 +748,129 @@ function eliScoresFromTheia(m){
 }
 
 /* ────────────────────────────────────────────────────────────
-   3.6 GRF 정식 산출 (v3.1 신규) — LHEI · force balance · type
+   3.55 부상 위험도 정식 산출 (v3.2 신규)
+
+   문헌 근거:
+   - Fleisig et al. (2012, ASMI) — elbow/shoulder injury risk in pitching
+   - Aguinaldo & Chambers (2009) — sequential timing → elbow valgus torque
+   - Eckard et al. (2020) — workload + asymmetry → shoulder injury
+   - Opar et al. (2015) — Nordic strength asymmetry → hamstring injury
+
+   여러 위험 요인을 가중 합산해 0~100 risk_score 산출.
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * 부상 위험도 정식 산출
+ * @param {object} m  관련 변수
+ *   {x_factor_max_deg, lead_knee_change_deg, trunk_lat_tilt_deg,
+ *    pelvis_to_trunk_lag_ms, elbow_W, shoulder_er_max_deg,
+ *    imtp_asymmetry_pct, nordic_imbalance_pct, shoulder_er_ir_ratio,
+ *    hip_imbalance_pct, fault_count}
+ * @returns {{risk_score, risk_level, contributors, recommendations}}
+ */
+function injuryRisk(m = {}){
+  const factors = [];
+  let totalRisk = 0;
+
+  // ① X-factor 과도 (>55°): elbow valgus torque 급증
+  if(m.x_factor_max_deg != null){
+    if(m.x_factor_max_deg > 55){
+      const r = Math.min(20, (m.x_factor_max_deg - 55) * 1.2);
+      factors.push({ var:'x_factor', value:m.x_factor_max_deg, risk:r,
+                     reason:`X-factor ${m.x_factor_max_deg}° > 55° (분리 과다)` });
+      totalRisk += r;
+    }
+  }
+  // ② Lead knee collapse (<-10°): kinetic chain leak + 무릎 부담
+  if(m.lead_knee_change_deg != null && m.lead_knee_change_deg < -10){
+    const r = Math.min(15, Math.abs(m.lead_knee_change_deg + 10) * 1.5);
+    factors.push({ var:'lead_knee', value:m.lead_knee_change_deg, risk:r,
+                   reason:`Lead knee ${m.lead_knee_change_deg}° collapse (앞발 무너짐)` });
+    totalRisk += r;
+  }
+  // ③ Trunk lateral tilt (>20°): 어깨 부담 + 부정확
+  if(m.trunk_lat_tilt_deg != null && m.trunk_lat_tilt_deg > 20){
+    const r = Math.min(12, (m.trunk_lat_tilt_deg - 20) * 1.0);
+    factors.push({ var:'trunk_lat', value:m.trunk_lat_tilt_deg, risk:r,
+                   reason:`Trunk lateral tilt ${m.trunk_lat_tilt_deg}° (옆으로 기울어짐)` });
+    totalRisk += r;
+  }
+  // ④ Pelvis-trunk timing 충돌 (<25ms): kinetic chain 단락 → 팔 부담
+  if(m.pelvis_to_trunk_lag_ms != null && m.pelvis_to_trunk_lag_ms < 25){
+    const r = Math.min(15, (25 - m.pelvis_to_trunk_lag_ms) * 1.2);
+    factors.push({ var:'pt_lag', value:m.pelvis_to_trunk_lag_ms, risk:r,
+                   reason:`Pelvis→trunk lag ${m.pelvis_to_trunk_lag_ms}ms < 25ms (timing 충돌)` });
+    totalRisk += r;
+  }
+  // ⑤ Shoulder ER 과도 (>185°): rotator cuff 부담
+  if(m.shoulder_er_max_deg != null && m.shoulder_er_max_deg > 185){
+    const r = Math.min(12, (m.shoulder_er_max_deg - 185) * 0.8);
+    factors.push({ var:'shoulder_er', value:m.shoulder_er_max_deg, risk:r,
+                   reason:`Shoulder ER ${m.shoulder_er_max_deg}° > 185° (회전근개 부담)` });
+    totalRisk += r;
+  }
+  // ⑥ IMTP 비대칭 (>10%): 좌우 force 불균형
+  if(m.imtp_asymmetry_pct != null && m.imtp_asymmetry_pct > 10){
+    const r = Math.min(10, (m.imtp_asymmetry_pct - 10) * 1.2);
+    factors.push({ var:'imtp_asym', value:m.imtp_asymmetry_pct, risk:r,
+                   reason:`IMTP 좌우 비대칭 ${m.imtp_asymmetry_pct}% > 10%` });
+    totalRisk += r;
+  }
+  // ⑦ Nordic 비대칭 (>11%, VALD 75th percentile): 햄스트링 부상 위험
+  if(m.nordic_imbalance_pct != null && m.nordic_imbalance_pct > 11){
+    const r = Math.min(10, (m.nordic_imbalance_pct - 11) * 1.0);
+    factors.push({ var:'nordic_asym', value:m.nordic_imbalance_pct, risk:r,
+                   reason:`Nordic 비대칭 ${m.nordic_imbalance_pct}% > 11% (햄스트링)` });
+    totalRisk += r;
+  }
+  // ⑧ Shoulder ER/IR 비율 < 0.95: rotator cuff imbalance
+  if(m.shoulder_er_ir_ratio != null && m.shoulder_er_ir_ratio < 0.95){
+    const r = Math.min(10, (0.95 - m.shoulder_er_ir_ratio) * 30);
+    factors.push({ var:'er_ir_ratio', value:m.shoulder_er_ir_ratio, risk:r,
+                   reason:`Shoulder ER:IR ${m.shoulder_er_ir_ratio} < 0.95 (회전근개 불균형)` });
+    totalRisk += r;
+  }
+  // ⑨ Hip 비대칭 (>13%, VALD 75th): 골반-하지 불균형
+  if(m.hip_imbalance_pct != null && m.hip_imbalance_pct > 13){
+    const r = Math.min(8, (m.hip_imbalance_pct - 13) * 0.8);
+    factors.push({ var:'hip_asym', value:m.hip_imbalance_pct, risk:r,
+                   reason:`Hip 비대칭 ${m.hip_imbalance_pct}% > 13%` });
+    totalRisk += r;
+  }
+
+  totalRisk = Math.min(100, Math.round(totalRisk));
+  let level;
+  if(totalRisk >= 50)      level = 'high';
+  else if(totalRisk >= 25) level = 'mid';
+  else                     level = 'low';
+
+  // 권장 (가장 높은 risk 3개)
+  const top3 = factors.sort((a,b)=>b.risk-a.risk).slice(0, 3);
+  const recommendations = top3.map(f => {
+    const tipMap = {
+      x_factor:    'X-factor 점진적 감소 — hip-shoulder 분리 ROM 조절',
+      lead_knee:   'Lead leg 강화 (단일하지 box jump, RFE split squat)',
+      trunk_lat:   'Anti-lateral flexion core (suitcase carry, side plank)',
+      pt_lag:      'Sequencing drill — medicine ball rotational throw',
+      shoulder_er: 'ER ROM 점진 회복 + cuff isometric',
+      imtp_asym:   '좌우 균등 unilateral training (split squat, single-leg DL)',
+      nordic_asym: 'Nordic curl progressive (낮은 쪽 추가 set)',
+      er_ir_ratio: 'Cuff 외회전 강화 (band ER, side-lying ER)',
+      hip_asym:    'Lateral hip 강화 + Copenhagen plank'
+    };
+    return { factor: f.var, value: f.value, recommendation: tipMap[f.var] || '추가 분석 필요' };
+  });
+
+  return {
+    risk_score: totalRisk,
+    risk_level: level,
+    contributors: factors.sort((a,b)=>b.risk-a.risk),
+    recommendations
+  };
+}
+
+/* ────────────────────────────────────────────────────────────
+   3.6 GRF 정식 산출 (v3.1) — LHEI · force balance · type
 
    문헌 근거:
    - MacWilliams et al. (1998) "Characteristic GRF in baseball pitching"
@@ -642,10 +1061,14 @@ const COMPOSITE_WEIGHTS = {
     note: '0.40·일관성+0.35·부상위험+0.25·결함횟수'
   },
   fitness: {
-    cmj_pp:          0.40,   // CMJ peak power / BW
-    imtp_pf:         0.40,   // IMTP peak force / BW
-    asymmetry:       0.20,   // L/R 비대칭 (적을수록 ↑)
-    note: '0.40·CMJ+0.40·IMTP+0.20·대칭'
+    // v3.5-2 확장: 5개 ForceDecks 변수 + 비대칭. 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.20 = 1.00
+    cmj_pp:          0.20,   // CMJ peak power / BW (절대 power)
+    imtp_pf:         0.15,   // IMTP peak force / BW (max strength)
+    rsi_modified:    0.15,   // CMJ RSI-Modified (reactive strength)
+    pogo_rsi:        0.15,   // Pogo RSI (plyometric reactivity — 투구 폭발력)
+    imtp_rfd:        0.15,   // IMTP RFD 0~100ms (force 산출 속도)
+    asymmetry:       0.20,   // L/R 비대칭 평균 (CMJ + IMTP + Nordic, 작을수록 ↑)
+    note: '0.20·CMJ_PP+0.15·IMTP_PF+0.15·RSI-Mod+0.15·Pogo_RSI+0.15·IMTP_RFD+0.20·비대칭'
   }
 };
 
@@ -718,13 +1141,18 @@ const ANALYTICS = {
   gradePercentile, commandComposite,
   // v3.1 — GRF · Stuff
   grfScore, stuffScore,
+  // v3.2 — VALD norms · injury risk
+  valdPercentile, injuryRisk,
+  // v3.3 — 3-tier cohort 비교
+  valdMultiTier,
   // 상수 (UI 인용용)
   LATENT_VELOCITY_WEIGHTS,
   COMPOSITE_WEIGHTS,
   GRADE_BENCHMARKS,
   GRADE_LATENT_OFFSETS,
   GRF_BENCHMARKS,
-  STUFF_BENCHMARKS
+  STUFF_BENCHMARKS,
+  VALD_NORMS
 };
 
 // 브라우저 빌드에서 직접 접근 가능
