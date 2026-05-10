@@ -177,7 +177,7 @@ def parse_theia_trial(path):
         if event_time_sec is None: return None
 
         # 3) TIME 컬럼에서 가장 가까운 frame index 찾기
-        time_arr = col_by_name('TIME_X') or col_by_name('TIME') or col_by_name('TIME_0')
+        time_arr = col_by_name('TIME_0') or col_by_name('TIME_X') or col_by_name('TIME') or col_by_name('TIME_0')
         if time_arr:
             best_i, best_diff = None, float('inf')
             for i, ti in enumerate(time_arr):
@@ -190,11 +190,37 @@ def parse_theia_trial(path):
         return int(round(event_time_sec * 240))
 
     # v5.7: Theia 마커리스 골반 추적 jerk noise 완화 — FC~BR 분석 구간 제한
-    #   Naito et al. (2014), Werner et al. (2008) 표준
-    #   양쪽에 buffer (FC-5, BR+10 frame). event 없으면 전체 구간 fallback (graceful)
+    # v5.38 event-free fallback: FC/BR event 잘못된 trial (BR<100 또는 BR<FC)은
+    #   FP1 (lead) Z의 main active block으로 대체 (event 무관 motion phase 검출)
     fc_event = find_event_frame('Footstrike')
     br_event = find_event_frame('Release')
-    if fc_event is not None and br_event is not None and br_event > fc_event:
+
+    # 잘못된 event 검출 + fallback
+    event_valid = (fc_event is not None and br_event is not None
+                    and br_event > fc_event and br_event > 100
+                    and fc_event > 50)
+    if not event_valid:
+        # FP1 (lead) main active block으로 추정
+        fp1z = col_by_name('FP1_Z')
+        if fp1z and len(fp1z) > 100:
+            blocks = []
+            in_b = False; s = 0
+            for i, v in enumerate(fp1z):
+                if v is not None and v > 50:
+                    if not in_b: in_b = True; s = i
+                else:
+                    if in_b:
+                        if i - s >= 30: blocks.append((s, i))   # 100ms+ active block
+                        in_b = False
+            if in_b and len(fp1z) - s >= 30: blocks.append((s, len(fp1z)))
+            if blocks:
+                main_block = max(blocks, key=lambda b: b[1]-b[0])
+                fc_event = main_block[0] + 5   # block start = FC 근사
+                # BR 추정: lead block start + 100ms (typical FC→BR duration)
+                br_event = min(len(data_rows)-1, main_block[0] + 30)
+                event_valid = True
+
+    if event_valid:
         win_start = max(0, fc_event - 5)
         win_end   = min(len(data_rows), br_event + 10)
         analysis_window = (win_start, win_end)
@@ -229,33 +255,92 @@ def parse_theia_trial(path):
 
     mer_frame = find_mer_frame()
 
-    # v5.24 + v5.25 보정: COM_displacement_Y (mound 방향, 전후방) 시계열 → 속도/감속
-    # 이전 v5.24는 X 사용 — Theia 좌표계는 X=lateral, Y=anterior-posterior(mound), Z=vertical
+    # v5.37: Driveline 정의 매칭 (xlsx 변인 로직 검증):
+    #   CoG Decel = max(CoM_VELOCITY_Y) − BR 시점 CoM_VELOCITY_Y (단순 max−min 아님)
+    #   Max CoG Velo = max(CoM_VELOCITY_Y)
+    #   예시 데이터 1.36 m/s 매칭
     def cog_metrics():
-        """COM_displacement_Y (mound 방향) 시계열 → 속도/감속"""
-        com_y = col_by_name_window('COM_displacement_Y')
-        if not com_y or len(com_y) < 5: return None, None
-        time_arr = col_by_name_window('TIME_X') or col_by_name_window('TIME')
-        if not time_arr or len(time_arr) < 5: return None, None
-        velos = []
+        com_y = col_by_name('COM_displacement_Y')
+        if not com_y or len(com_y) < 10: return None, None
+        time_arr = col_by_name('TIME_0') or col_by_name('TIME_X') or col_by_name('TIME')
+        if not time_arr or len(time_arr) < 10: return None, None
+        # 전체 시계열 velocity (np.gradient 유사)
+        velos = []   # list of (frame_idx, velo)
         for i in range(1, len(com_y) - 1):
             if com_y[i+1] is None or com_y[i-1] is None: continue
             if time_arr[i+1] is None or time_arr[i-1] is None: continue
             dt = time_arr[i+1] - time_arr[i-1]
             if dt <= 0: continue
-            v = (com_y[i+1] - com_y[i-1]) / dt
-            velos.append(v)
+            velos.append((i, (com_y[i+1] - com_y[i-1]) / dt))
         if not velos: return None, None
-        max_velo = max(abs(v) for v in velos)
-        max_idx = next((i for i, v in enumerate(velos) if abs(v) == max_velo), None)
-        if max_idx is None or max_idx >= len(velos) - 1: return max_velo, None
-        decel_velos = velos[max_idx:]
-        if len(decel_velos) < 2: return max_velo, None
-        min_after = min(decel_velos)
-        decel = abs(max_velo - min_after)
-        return max_velo, decel
+        # Max CoG Velo = abs max
+        idx_max = max(velos, key=lambda x: abs(x[1]))
+        max_velo_abs = abs(idx_max[1])
+        # CoG Decel = max - BR velo (xlsx 정의)
+        # br_event 검증: 잘못된 event 가능 → fallback에 max 이후 끝까지 minimum velo (음수 또는 작은)
+        decel = None
+        if br_event is not None and br_event > 0:
+            # br_event 시점에 가장 가까운 velo
+            br_velo_candidates = [v for fr, v in velos if abs(fr - br_event) < 5]
+            if br_velo_candidates:
+                br_velo = br_velo_candidates[len(br_velo_candidates)//2]   # median 근처
+                decel = max_velo_abs - abs(br_velo)
+                decel = max(0, decel)
+        if decel is None:
+            # event 신뢰 X — max velo 이후 마지막 velo 사용 (motion end)
+            rest = [v for fr, v in velos if fr > idx_max[0]]
+            if rest:
+                end_velo = abs(rest[-1])
+                decel = max(0, max_velo_abs - end_velo)
+        return max_velo_abs, decel
 
     max_cog_velo, cog_decel = cog_metrics()
+
+    # v5.36: Lead Knee Extension Velocity (peak) — Lead_Knee_Angle 시계열 미분
+    def lead_knee_ext_velo_peak():
+        """Lead_Knee_Angle 시계열의 1차 미분 → peak (deg/s)"""
+        knee = col_by_name_window('Lead_Knee_Angle_X')
+        if not knee or len(knee) < 5: return None
+        time_arr = col_by_name_window('TIME_0') or col_by_name_window('TIME_X') or col_by_name_window('TIME')
+        if not time_arr or len(time_arr) < 5: return None
+        velos = []
+        for i in range(1, len(knee)-1):
+            if knee[i+1] is None or knee[i-1] is None: continue
+            if time_arr[i+1] is None or time_arr[i-1] is None: continue
+            dt = time_arr[i+1] - time_arr[i-1]
+            if dt <= 0: continue
+            velos.append((knee[i+1] - knee[i-1]) / dt)
+        if not velos: return None
+        # extension = positive direction (knee opening). max abs로 단순화
+        return max(abs(v) for v in velos)
+
+    lead_knee_ext_velo_val = lead_knee_ext_velo_peak()
+
+    # v5.36: Elbow Flex at FP — LANDMARK (R_Shoulder, R_Elbow, R_WRIST) 위치로 계산
+    #   upper_arm = elbow - shoulder, forearm = wrist - elbow
+    #   flex = 180 - angle(upper_arm, forearm)
+    def elbow_flex_at_fp_calc():
+        if fc_event is None: return None
+        sx = value_at_frame('R_Shoulder_X', fc_event); sy = value_at_frame('R_Shoulder_Y', fc_event); sz = value_at_frame('R_Shoulder_Z', fc_event)
+        ex = value_at_frame('R_Elbow_X',    fc_event); ey = value_at_frame('R_Elbow_Y',    fc_event); ez = value_at_frame('R_Elbow_Z',    fc_event)
+        wx = value_at_frame('R_WRIST_X',    fc_event); wy = value_at_frame('R_WRIST_Y',    fc_event); wz = value_at_frame('R_WRIST_Z',    fc_event)
+        if any(v is None for v in [sx,sy,sz,ex,ey,ez,wx,wy,wz]): return None
+        # upper arm vector (shoulder → elbow)
+        ua = (ex-sx, ey-sy, ez-sz)
+        # forearm vector (elbow → wrist)
+        fa = (wx-ex, wy-ey, wz-ez)
+        # angle (rad) = acos(dot / (|u||v|))
+        import math
+        dot = ua[0]*fa[0] + ua[1]*fa[1] + ua[2]*fa[2]
+        m_ua = math.sqrt(ua[0]**2 + ua[1]**2 + ua[2]**2)
+        m_fa = math.sqrt(fa[0]**2 + fa[1]**2 + fa[2]**2)
+        if m_ua == 0 or m_fa == 0: return None
+        cos_a = max(-1, min(1, dot / (m_ua * m_fa)))
+        angle_deg = math.degrees(math.acos(cos_a))
+        # flex = 180 - external angle (upper arm and forearm collinear=180=full extension)
+        return 180 - angle_deg
+
+    elbow_flex_at_fp_val = elbow_flex_at_fp_calc()
 
     # v5.32 사용자 confirmed: FP1=앞발(lead/착지발), FP2=뒷발(rear/drive/축발)
     #   → 자동 분류 제거, 강제 매핑. 매뉴얼 v1.1의 "FP1=축발" 표기는 잘못됐던 것.
@@ -281,7 +366,7 @@ def parse_theia_trial(path):
     #        + GRF 수평 임펄스 + 타이밍
     # ════════════════════════════════════════════════════════
     # Sampling rate (c3d.txt 내부 — Theia 300Hz raw로 force(1200Hz raw)도 동기화 export)
-    time_arr_for_fs = col_by_name('TIME_X') or col_by_name('TIME') or col_by_name('TIME_0')
+    time_arr_for_fs = col_by_name('TIME_0') or col_by_name('TIME_X') or col_by_name('TIME')
     fs_in_c3d = 300.0
     if time_arr_for_fs and len(time_arr_for_fs) > 1:
         for i in range(1, min(len(time_arr_for_fs), 10)):
@@ -549,6 +634,8 @@ def parse_theia_trial(path):
         # Arm Action
         'layback_deg':              safe_max_abs(col_by_name_window('Pitching_Shoulder_Angle_Z')),  # max ER
         'shoulder_abd_at_fp':       value_at_frame('Pitching_Shoulder_Angle_Y', fc_event),
+        # v5.37: Scap Load at FP = LEAD_SHOULDER_ANGLE_X at FP (Driveline xlsx 정의)
+        'scap_load_at_fp':          value_at_frame('Pitching_Shoulder_Angle_X', fc_event),
         'elbow_flex_at_fp':         value_at_frame('Pitching_Elbow_Angle_X', fc_event),
         # Posture (FP 시점)
         'hip_shoulder_sep_at_fp':   value_at_frame('Trunk_wrt_Pelvis_Angle_Z', fc_event),
@@ -560,9 +647,12 @@ def parse_theia_trial(path):
         # Block (Lead Knee)
         'lead_knee_at_fp':          value_at_frame('Lead_Knee_Angle_X', fc_event),
         'lead_knee_at_br':          value_at_frame('Lead_Knee_Angle_X', br_event),
-        # CoG (v5.24)
+        # CoG (v5.36 event-free)
         'max_cog_velo_m_s':         max_cog_velo,
         'cog_decel_m_s':            cog_decel,
+        # v5.36: Lead Knee Ext Velo (knee angle 미분 peak) + Elbow Flex at FP (LANDMARK 계산)
+        'lead_knee_extension_velo': lead_knee_ext_velo_val,
+        'elbow_flex_at_fp_calc':    elbow_flex_at_fp_val,
 
         # ─── v5.28: 분절 peak frame + lag (proximal-to-distal sequence) ───
         'sampling_rate_hz_internal': fs_in_c3d,
@@ -835,6 +925,8 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
     pelvis_me   = clip('pelvis_me_peak', 50, 1500, 400)
     trunk_me    = clip('trunk_me_peak',  50, 1500, 600)
     hum_me      = clip('humerus_me_peak', 50, 1500, 590)
+    peak_elbow  = clip('peak_elbow_v',   100, 5000, None)   # v5.36
+    peak_shoulder_v = clip('peak_shoulder_v', 100, 8000, None)
 
     # v5.28: 분절간 lag (proximal-to-distal sequence) — 실측 median
     p2t_lag    = clip('pelvis_to_trunk_lag_ms',    -100, 200, None)
@@ -938,6 +1030,10 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'arm_dps': round(peak_arm),
             'ete_pct': ete_pct, 'speed_gain': speed_gain_pt,
             'proper_seq': True, 'score': trf_score,
+            # v5.36: Driveline 5 모델 — Arm Action 추가 변인 매핑
+            'peak_elbow_v':    round(peak_elbow) if peak_elbow else None,
+            'elbow_dps':       round(peak_elbow) if peak_elbow else None,   # alias
+            'peak_shoulder_v': round(peak_shoulder_v) if peak_shoulder_v else None,
         },
         'energy': {
             'generation': {
@@ -1005,6 +1101,19 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'wrist_pos_sd_cm': 2.5, 'trunk_tilt_sd_deg': 1.8,
             'consistency_score': 88, 'fault_score': 85,
             'injury_risk': 'low', 'fault_count': 1,
+            # v5.36: 5 모델 driveline 변인 매핑 (— 표시 해결)
+            'shoulder_er_max_deg':    round(clip('layback_deg',           50, 230, None), 1) if clip('layback_deg',           50, 230, None) is not None else None,
+            'shoulder_abd_fp_deg':    round(clip('shoulder_abd_at_fp',    20, 130, None), 1) if clip('shoulder_abd_at_fp',    20, 130, None) is not None else None,
+            # v5.37: Scap Load at FP = Pitching_Shoulder_Angle_X at FP (xlsx 정의)
+            'scap_load_fp_deg':       round(clip('scap_load_at_fp',     -100, 100, None), 1) if clip('scap_load_at_fp',     -100, 100, None) is not None else None,
+            'elbow_flex_fp_deg':      round(clip('elbow_flex_at_fp', 20, 160, None) if clip('elbow_flex_at_fp', 20, 160, None) is not None else clip('elbow_flex_at_fp_calc', 20, 160, None), 1) if (clip('elbow_flex_at_fp', 20, 160, None) or clip('elbow_flex_at_fp_calc', 20, 160, None)) is not None else None,
+            'torso_counter_rot_deg':  round(clip('torso_counter_rot',    -90,  90, None), 1) if clip('torso_counter_rot',    -90,  90, None) is not None else None,
+            'trunk_tilt_at_fc_deg':   round(clip('torso_fwd_tilt_at_fp', -50,  50, None), 1) if clip('torso_fwd_tilt_at_fp', -50,  50, None) is not None else None,
+            'torso_rot_fp_deg':       round(clip('torso_rot_at_fp',     -180, 180, None), 1) if clip('torso_rot_at_fp',     -180, 180, None) is not None else None,
+            'trunk_lat_tilt_deg':     round(clip('torso_side_bend_at_mer', -50, 50, None), 1) if clip('torso_side_bend_at_mer', -50, 50, None) is not None else None,
+            'torso_rot_br_deg':       round(clip('torso_rot_at_br',     -180, 180, None), 1) if clip('torso_rot_at_br',     -180, 180, None) is not None else None,
+            'stride_length_m':        round(clip('stride_length',           0,   3, None), 3) if clip('stride_length',           0,   3, None) is not None else None,
+            'lead_knee_ext_velo':     round(clip('lead_knee_extension_velo', 0, 1500, None), 1) if clip('lead_knee_extension_velo', 0, 1500, None) is not None else None,
         },
         # v5.36: CoG (Center of Gravity) — driveline.js cog 모델용
         'cog': {

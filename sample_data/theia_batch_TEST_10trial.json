@@ -1,0 +1,142 @@
+{
+  "session": {
+    "date": "2026-05-15",
+    "protocol": "Theia+GRF",
+    "cohort": "TEST_10trial_v5.38"
+  },
+  "results": [
+    {
+      "athlete_external_id": "P00",
+      "athlete_name": "검증선수 (192cm/91kg)",
+      "session_id": 1,
+      "test_date": "2026-05-15",
+      "protocol": "Theia+GRF",
+      "theia_n_trials": 10,
+      "rapsodo_n_throws": 10,
+      "velocity": {
+        "measured_kmh": 141.1,
+        "measured_avg_kmh": 139.8,
+        "measured_sd": 0.85,
+        "potential_kmh": 146.1,
+        "score": 80
+      },
+      "sequence": {
+        "pelvis_dps": 775,
+        "trunk_dps": 1021,
+        "arm_dps": 4755,
+        "ete_pct": 80,
+        "speed_gain": 1.32,
+        "proper_seq": true,
+        "score": 82,
+        "peak_elbow_v": null,
+        "elbow_dps": null,
+        "peak_shoulder_v": 5055
+      },
+      "energy": {
+        "generation": {
+          "hip_R_W": 1282,
+          "hip_L_W": 1386,
+          "knee_R_W": 716,
+          "knee_L_W": 1383,
+          "shoulder_W": 3669,
+          "elbow_W": 4547,
+          "total_W": 12982,
+          "mech_energy_pelvis_J": 144,
+          "mech_energy_trunk_J": 592,
+          "mech_energy_humerus_J": 206,
+          "score": 78
+        },
+        "transfer": {
+          "ete_pct": 80,
+          "speed_gain_pt": 1.32,
+          "speed_gain_ta": 4.66,
+          "proper_seq": true,
+          "pelvis_to_trunk_lag_ms": 13.3,
+          "trunk_to_humerus_lag_ms": 66.7,
+          "humerus_to_forearm_lag_ms": 0.0,
+          "forearm_to_hand_lag_ms": -3.3,
+          "trunk_to_arm_lag_ms": 66.7,
+          "peak_forearm_v": 5844,
+          "score": 82,
+          "score_kinematic": 65,
+          "score_kinetic_ete": 98,
+          "ratio_humerus_to_pelvis_pct": 143.3,
+          "basis": "combined"
+        },
+        "leakage": {
+          "zone1_sequence": 88,
+          "zone2_x_factor": 21,
+          "zone3_lead_block": 98,
+          "zone4_trunk_at_fc": 78,
+          "zone5_shoulder_align": 84,
+          "zone6_pelvis_brake": 72,
+          "eli_score": 74,
+          "causal_chains": [
+            {
+              "zone": "zone2",
+              "zone_label": "골반-상체 분리 (X-팩터)",
+              "defect": "X-factor 미달",
+              "impact_kmh": -7.0
+            },
+            {
+              "zone": "zone6",
+              "zone_label": "골반 감속 (브레이크)",
+              "defect": "Pelvis braking 부족",
+              "impact_kmh": -2.7
+            },
+            {
+              "zone": "zone4",
+              "zone_label": "앞발 착지 시 몸통 자세",
+              "defect": "FC 시 트렁크 기울기 부적절",
+              "impact_kmh": -2.2
+            }
+          ]
+        }
+      },
+      "grf": {
+        "lhei": 93,
+        "rear_force_pct": 123.22,
+        "lead_force_pct": 59.53,
+        "type": "균형형",
+        "drive_propulsive_peak_pct_bw": 83.2,
+        "drive_propulsive_impulse_pct_bw_s": 36.51,
+        "drive_propulsive_peak_time_pct": 27.8,
+        "lead_braking_peak_pct_bw": 125.3,
+        "lead_braking_impulse_pct_bw_s": 27.46,
+        "lead_braking_peak_ms_after_fc": 113.3,
+        "lead_block_duration_ms": null,
+        "horizontal_to_vertical_ratio": 0.464,
+        "newtforce_turning_point_z_pct_bw": 33.8,
+        "newtforce_lead_negative_y_pct_bw": 3.6,
+        "newtforce_lead_negative_y_ms_after_br": 0.0,
+        "newtforce_time_of_transfer_ms": null
+      },
+      "faults": {
+        "x_factor_deg": 31.3,
+        "lead_knee_change": 12,
+        "release_height_sd_cm": 4.0,
+        "wrist_pos_sd_cm": 2.5,
+        "trunk_tilt_sd_deg": 1.8,
+        "consistency_score": 88,
+        "fault_score": 85,
+        "injury_risk": "low",
+        "fault_count": 1,
+        "shoulder_er_max_deg": 175.5,
+        "shoulder_abd_fp_deg": 64.4,
+        "scap_load_fp_deg": -40.0,
+        "elbow_flex_fp_deg": 129.7,
+        "torso_counter_rot_deg": -4.0,
+        "trunk_tilt_at_fc_deg": -4.9,
+        "torso_rot_fp_deg": 101.8,
+        "trunk_lat_tilt_deg": 33.9,
+        "torso_rot_br_deg": -14.6,
+        "stride_length_m": 1.511,
+        "lead_knee_ext_velo": 465.6
+      },
+      "cog": {
+        "max_velo": 2.8,
+        "decel": 1.79
+      }
+    }
+  ]
+}

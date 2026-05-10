@@ -2,7 +2,7 @@
   "session": {
     "date": "2026-05-15",
     "protocol": "Theia+GRF",
-    "cohort": "KR_59_v5.36"
+    "cohort": "KR_59_v5.37"
   },
   "results": [
     {
@@ -27,7 +27,10 @@
         "ete_pct": 80,
         "speed_gain": 1.43,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 390,
+        "elbow_dps": 390,
+        "peak_shoulder_v": 4651
       },
       "energy": {
         "generation": {
@@ -117,11 +120,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 181.5,
+        "shoulder_abd_fp_deg": 97.7,
+        "scap_load_fp_deg": -39.8,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.6,
+        "trunk_tilt_at_fc_deg": -11.8,
+        "torso_rot_fp_deg": 109.5,
+        "trunk_lat_tilt_deg": 25.4,
+        "torso_rot_br_deg": -13.8,
+        "stride_length_m": 1.384,
+        "lead_knee_ext_velo": 265.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.42,
+        "decel": 1.62
       }
     },
     {
@@ -146,7 +160,10 @@
         "ete_pct": 80,
         "speed_gain": 1.4,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 1164,
+        "elbow_dps": 1164,
+        "peak_shoulder_v": 4361
       },
       "energy": {
         "generation": {
@@ -236,11 +253,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 175.3,
+        "shoulder_abd_fp_deg": 70.2,
+        "scap_load_fp_deg": -55.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 2.2,
+        "trunk_tilt_at_fc_deg": -10.8,
+        "torso_rot_fp_deg": 74.3,
+        "trunk_lat_tilt_deg": 26.9,
+        "torso_rot_br_deg": -10.0,
+        "stride_length_m": 1.396,
+        "lead_knee_ext_velo": 267.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.41,
+        "decel": 1.04
       }
     },
     {
@@ -265,7 +293,10 @@
         "ete_pct": 80,
         "speed_gain": 1.35,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 757,
+        "elbow_dps": 757,
+        "peak_shoulder_v": 4152
       },
       "energy": {
         "generation": {
@@ -355,11 +386,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 192.5,
+        "shoulder_abd_fp_deg": 75.2,
+        "scap_load_fp_deg": -53.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 5.1,
+        "trunk_tilt_at_fc_deg": 2.7,
+        "torso_rot_fp_deg": 93.4,
+        "trunk_lat_tilt_deg": 18.7,
+        "torso_rot_br_deg": -2.4,
+        "stride_length_m": 1.543,
+        "lead_knee_ext_velo": 368.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.89,
+        "decel": 1.61
       }
     },
     {
@@ -384,7 +426,10 @@
         "ete_pct": 80,
         "speed_gain": 1.45,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 592,
+        "elbow_dps": 592,
+        "peak_shoulder_v": 4328
       },
       "energy": {
         "generation": {
@@ -474,11 +519,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 171.0,
+        "shoulder_abd_fp_deg": 77.1,
+        "scap_load_fp_deg": -60.1,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.0,
+        "trunk_tilt_at_fc_deg": 2.5,
+        "torso_rot_fp_deg": 81.0,
+        "trunk_lat_tilt_deg": 24.9,
+        "torso_rot_br_deg": -13.5,
+        "stride_length_m": 1.501,
+        "lead_knee_ext_velo": 667.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.73,
+        "decel": 1.23
       }
     },
     {
@@ -503,7 +559,10 @@
         "ete_pct": 80,
         "speed_gain": 1.6,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 833,
+        "elbow_dps": 833,
+        "peak_shoulder_v": 4698
       },
       "energy": {
         "generation": {
@@ -593,11 +652,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 183.1,
+        "shoulder_abd_fp_deg": 83.7,
+        "scap_load_fp_deg": -61.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 1.8,
+        "trunk_tilt_at_fc_deg": -3.8,
+        "torso_rot_fp_deg": 84.7,
+        "trunk_lat_tilt_deg": 13.9,
+        "torso_rot_br_deg": -8.6,
+        "stride_length_m": 1.467,
+        "lead_knee_ext_velo": 332.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.83,
+        "decel": 1.6
       }
     },
     {
@@ -622,7 +692,10 @@
         "ete_pct": 80,
         "speed_gain": 1.21,
         "proper_seq": true,
-        "score": 64
+        "score": 64,
+        "peak_elbow_v": 554,
+        "elbow_dps": 554,
+        "peak_shoulder_v": 3947
       },
       "energy": {
         "generation": {
@@ -712,11 +785,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 192.3,
+        "shoulder_abd_fp_deg": 75.1,
+        "scap_load_fp_deg": -76.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 8.6,
+        "trunk_tilt_at_fc_deg": -4.9,
+        "torso_rot_fp_deg": 90.3,
+        "trunk_lat_tilt_deg": 21.7,
+        "torso_rot_br_deg": 0.4,
+        "stride_length_m": 1.442,
+        "lead_knee_ext_velo": 308.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.59,
+        "decel": 1.35
       }
     },
     {
@@ -741,7 +825,10 @@
         "ete_pct": 80,
         "speed_gain": 1.5,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 579,
+        "elbow_dps": 579,
+        "peak_shoulder_v": 4337
       },
       "energy": {
         "generation": {
@@ -831,11 +918,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 171.6,
+        "shoulder_abd_fp_deg": 83.9,
+        "scap_load_fp_deg": -68.6,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 4.4,
+        "trunk_tilt_at_fc_deg": 2.5,
+        "torso_rot_fp_deg": 72.7,
+        "trunk_lat_tilt_deg": 27.0,
+        "torso_rot_br_deg": -11.2,
+        "stride_length_m": 1.491,
+        "lead_knee_ext_velo": 434.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.74,
+        "decel": 1.29
       }
     },
     {
@@ -860,7 +958,10 @@
         "ete_pct": 80,
         "speed_gain": 1.48,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 461,
+        "elbow_dps": 461,
+        "peak_shoulder_v": 3868
       },
       "energy": {
         "generation": {
@@ -950,11 +1051,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 192.2,
+        "shoulder_abd_fp_deg": 93.6,
+        "scap_load_fp_deg": -68.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -2.9,
+        "trunk_tilt_at_fc_deg": 1.0,
+        "torso_rot_fp_deg": 90.1,
+        "trunk_lat_tilt_deg": 30.9,
+        "torso_rot_br_deg": -2.9,
+        "stride_length_m": 1.395,
+        "lead_knee_ext_velo": 182.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.68,
+        "decel": 1.45
       }
     },
     {
@@ -979,7 +1091,10 @@
         "ete_pct": 80,
         "speed_gain": 1.17,
         "proper_seq": true,
-        "score": 63
+        "score": 63,
+        "peak_elbow_v": 423,
+        "elbow_dps": 423,
+        "peak_shoulder_v": 3752
       },
       "energy": {
         "generation": {
@@ -1069,11 +1184,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 162.1,
+        "shoulder_abd_fp_deg": 99.0,
+        "scap_load_fp_deg": -50.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -7.2,
+        "trunk_tilt_at_fc_deg": 14.6,
+        "torso_rot_fp_deg": 80.6,
+        "trunk_lat_tilt_deg": -24.7,
+        "torso_rot_br_deg": -9.7,
+        "stride_length_m": 1.301,
+        "lead_knee_ext_velo": 494.6
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.8,
+        "decel": 0.9
       }
     },
     {
@@ -1098,7 +1224,10 @@
         "ete_pct": 80,
         "speed_gain": 1.54,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 270,
+        "elbow_dps": 270,
+        "peak_shoulder_v": 4204
       },
       "energy": {
         "generation": {
@@ -1188,11 +1317,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 178.9,
+        "shoulder_abd_fp_deg": 71.3,
+        "scap_load_fp_deg": -51.6,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -3.7,
+        "trunk_tilt_at_fc_deg": 0.4,
+        "torso_rot_fp_deg": 96.7,
+        "trunk_lat_tilt_deg": 35.3,
+        "torso_rot_br_deg": -15.5,
+        "stride_length_m": 1.364,
+        "lead_knee_ext_velo": 317.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.52,
+        "decel": 1.48
       }
     },
     {
@@ -1217,7 +1357,10 @@
         "ete_pct": 80,
         "speed_gain": 1.74,
         "proper_seq": true,
-        "score": 70
+        "score": 70,
+        "peak_elbow_v": 334,
+        "elbow_dps": 334,
+        "peak_shoulder_v": 4082
       },
       "energy": {
         "generation": {
@@ -1307,11 +1450,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 189.3,
+        "shoulder_abd_fp_deg": 75.8,
+        "scap_load_fp_deg": -55.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -6.5,
+        "trunk_tilt_at_fc_deg": 8.5,
+        "torso_rot_fp_deg": 59.5,
+        "trunk_lat_tilt_deg": 31.7,
+        "torso_rot_br_deg": -4.1,
+        "stride_length_m": 1.554,
+        "lead_knee_ext_velo": 286.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.9,
+        "decel": 1.34
       }
     },
     {
@@ -1336,7 +1490,10 @@
         "ete_pct": 80,
         "speed_gain": 1.64,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 430,
+        "elbow_dps": 430,
+        "peak_shoulder_v": 3912
       },
       "energy": {
         "generation": {
@@ -1426,11 +1583,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 174.3,
+        "shoulder_abd_fp_deg": 71.1,
+        "scap_load_fp_deg": -59.8,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 6.4,
+        "trunk_tilt_at_fc_deg": -8.7,
+        "torso_rot_fp_deg": 96.9,
+        "trunk_lat_tilt_deg": 17.4,
+        "torso_rot_br_deg": 0.2,
+        "stride_length_m": 1.462,
+        "lead_knee_ext_velo": 351.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.49,
+        "decel": 1.32
       }
     },
     {
@@ -1455,7 +1623,10 @@
         "ete_pct": 80,
         "speed_gain": 1.51,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 327,
+        "elbow_dps": 327,
+        "peak_shoulder_v": 4187
       },
       "energy": {
         "generation": {
@@ -1545,11 +1716,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 172.9,
+        "shoulder_abd_fp_deg": 88.9,
+        "scap_load_fp_deg": -72.2,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.0,
+        "trunk_tilt_at_fc_deg": -6.3,
+        "torso_rot_fp_deg": 89.1,
+        "trunk_lat_tilt_deg": 24.1,
+        "torso_rot_br_deg": -12.9,
+        "stride_length_m": 1.377,
+        "lead_knee_ext_velo": 300.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.62,
+        "decel": 1.37
       }
     },
     {
@@ -1574,7 +1756,10 @@
         "ete_pct": 80,
         "speed_gain": 1.62,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 911,
+        "elbow_dps": 911,
+        "peak_shoulder_v": 3864
       },
       "energy": {
         "generation": {
@@ -1664,11 +1849,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 182.0,
+        "shoulder_abd_fp_deg": 69.6,
+        "scap_load_fp_deg": -58.5,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 4.0,
+        "trunk_tilt_at_fc_deg": -4.2,
+        "torso_rot_fp_deg": 103.1,
+        "trunk_lat_tilt_deg": 16.2,
+        "torso_rot_br_deg": -8.0,
+        "stride_length_m": 1.441,
+        "lead_knee_ext_velo": 358.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.59,
+        "decel": 1.45
       }
     },
     {
@@ -1693,7 +1889,10 @@
         "ete_pct": 80,
         "speed_gain": 1.38,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 636,
+        "elbow_dps": 636,
+        "peak_shoulder_v": 3812
       },
       "energy": {
         "generation": {
@@ -1783,11 +1982,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 171.2,
+        "shoulder_abd_fp_deg": 79.5,
+        "scap_load_fp_deg": -51.6,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 8.6,
+        "trunk_tilt_at_fc_deg": -5.1,
+        "torso_rot_fp_deg": 91.9,
+        "trunk_lat_tilt_deg": 35.0,
+        "torso_rot_br_deg": -4.3,
+        "stride_length_m": 1.404,
+        "lead_knee_ext_velo": 336.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.43,
+        "decel": 1.37
       }
     },
     {
@@ -1812,7 +2022,10 @@
         "ete_pct": 80,
         "speed_gain": 1.44,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 653,
+        "elbow_dps": 653,
+        "peak_shoulder_v": 4223
       },
       "energy": {
         "generation": {
@@ -1902,11 +2115,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 188.3,
+        "shoulder_abd_fp_deg": 89.7,
+        "scap_load_fp_deg": -46.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -3.7,
+        "trunk_tilt_at_fc_deg": -2.1,
+        "torso_rot_fp_deg": 97.5,
+        "trunk_lat_tilt_deg": 32.0,
+        "torso_rot_br_deg": -9.7,
+        "stride_length_m": 1.48,
+        "lead_knee_ext_velo": 330.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.79,
+        "decel": 1.39
       }
     },
     {
@@ -1931,7 +2155,10 @@
         "ete_pct": 80,
         "speed_gain": 1.32,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 620,
+        "elbow_dps": 620,
+        "peak_shoulder_v": 4543
       },
       "energy": {
         "generation": {
@@ -2021,11 +2248,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 192.4,
+        "shoulder_abd_fp_deg": 71.6,
+        "scap_load_fp_deg": -69.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 12.1,
+        "trunk_tilt_at_fc_deg": -3.6,
+        "torso_rot_fp_deg": 78.6,
+        "trunk_lat_tilt_deg": 24.2,
+        "torso_rot_br_deg": -2.0,
+        "stride_length_m": 1.497,
+        "lead_knee_ext_velo": 485.3
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.59,
+        "decel": 1.49
       }
     },
     {
@@ -2050,7 +2288,10 @@
         "ete_pct": 80,
         "speed_gain": 1.54,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 326,
+        "elbow_dps": 326,
+        "peak_shoulder_v": 4361
       },
       "energy": {
         "generation": {
@@ -2140,11 +2381,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 174.7,
+        "shoulder_abd_fp_deg": 87.5,
+        "scap_load_fp_deg": -37.7,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -2.9,
+        "trunk_tilt_at_fc_deg": 1.0,
+        "torso_rot_fp_deg": 88.2,
+        "trunk_lat_tilt_deg": 26.3,
+        "torso_rot_br_deg": -9.9,
+        "stride_length_m": 1.433,
+        "lead_knee_ext_velo": 540.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.54,
+        "decel": 1.19
       }
     },
     {
@@ -2169,7 +2421,10 @@
         "ete_pct": 80,
         "speed_gain": 1.47,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 539,
+        "elbow_dps": 539,
+        "peak_shoulder_v": 4643
       },
       "energy": {
         "generation": {
@@ -2259,11 +2514,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 169.8,
+        "shoulder_abd_fp_deg": 89.7,
+        "scap_load_fp_deg": -40.8,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 8.9,
+        "trunk_tilt_at_fc_deg": -1.4,
+        "torso_rot_fp_deg": 96.8,
+        "trunk_lat_tilt_deg": 28.4,
+        "torso_rot_br_deg": -11.7,
+        "stride_length_m": 1.291,
+        "lead_knee_ext_velo": 449.5
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.68,
+        "decel": 1.31
       }
     },
     {
@@ -2288,7 +2554,10 @@
         "ete_pct": 80,
         "speed_gain": 1.66,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 358,
+        "elbow_dps": 358,
+        "peak_shoulder_v": 4431
       },
       "energy": {
         "generation": {
@@ -2378,11 +2647,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 172.4,
+        "shoulder_abd_fp_deg": 83.3,
+        "scap_load_fp_deg": -46.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 0.9,
+        "trunk_tilt_at_fc_deg": -3.5,
+        "torso_rot_fp_deg": 85.4,
+        "trunk_lat_tilt_deg": 22.3,
+        "torso_rot_br_deg": -12.5,
+        "stride_length_m": 1.508,
+        "lead_knee_ext_velo": 404.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.88,
+        "decel": 1.51
       }
     },
     {
@@ -2407,7 +2687,10 @@
         "ete_pct": 80,
         "speed_gain": 1.61,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 278,
+        "elbow_dps": 278,
+        "peak_shoulder_v": 4557
       },
       "energy": {
         "generation": {
@@ -2497,11 +2780,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 166.0,
+        "shoulder_abd_fp_deg": 99.0,
+        "scap_load_fp_deg": -56.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.3,
+        "trunk_tilt_at_fc_deg": -7.3,
+        "torso_rot_fp_deg": 65.7,
+        "trunk_lat_tilt_deg": 31.7,
+        "torso_rot_br_deg": -8.6,
+        "stride_length_m": 1.595,
+        "lead_knee_ext_velo": 426.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 3.08,
+        "decel": 1.35
       }
     },
     {
@@ -2526,7 +2820,10 @@
         "ete_pct": 80,
         "speed_gain": 1.43,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 604,
+        "elbow_dps": 604,
+        "peak_shoulder_v": 3869
       },
       "energy": {
         "generation": {
@@ -2616,11 +2913,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 184.1,
+        "shoulder_abd_fp_deg": 92.3,
+        "scap_load_fp_deg": -46.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 0.7,
+        "trunk_tilt_at_fc_deg": -9.6,
+        "torso_rot_fp_deg": 98.9,
+        "trunk_lat_tilt_deg": 22.2,
+        "torso_rot_br_deg": -15.0,
+        "stride_length_m": 1.422,
+        "lead_knee_ext_velo": 311.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.4,
+        "decel": 1.29
       }
     },
     {
@@ -2645,7 +2953,10 @@
         "ete_pct": 80,
         "speed_gain": 1.29,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 271,
+        "elbow_dps": 271,
+        "peak_shoulder_v": 3766
       },
       "energy": {
         "generation": {
@@ -2735,11 +3046,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 179.3,
+        "shoulder_abd_fp_deg": 78.2,
+        "scap_load_fp_deg": -44.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -11.5,
+        "trunk_tilt_at_fc_deg": -0.4,
+        "torso_rot_fp_deg": 76.9,
+        "trunk_lat_tilt_deg": 17.1,
+        "torso_rot_br_deg": -16.8,
+        "stride_length_m": 1.319,
+        "lead_knee_ext_velo": 494.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.03,
+        "decel": 0.98
       }
     },
     {
@@ -2764,7 +3086,10 @@
         "ete_pct": 80,
         "speed_gain": 1.54,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 251,
+        "elbow_dps": 251,
+        "peak_shoulder_v": 3763
       },
       "energy": {
         "generation": {
@@ -2854,11 +3179,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 182.2,
+        "shoulder_abd_fp_deg": 89.2,
+        "scap_load_fp_deg": -46.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -10.5,
+        "trunk_tilt_at_fc_deg": -8.4,
+        "torso_rot_fp_deg": 101.9,
+        "trunk_lat_tilt_deg": 22.5,
+        "torso_rot_br_deg": -18.1,
+        "stride_length_m": 1.42,
+        "lead_knee_ext_velo": 292.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.3,
+        "decel": 1.09
       }
     },
     {
@@ -2883,7 +3219,10 @@
         "ete_pct": 80,
         "speed_gain": 1.58,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 618,
+        "elbow_dps": 618,
+        "peak_shoulder_v": 4641
       },
       "energy": {
         "generation": {
@@ -2973,11 +3312,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 184.9,
+        "shoulder_abd_fp_deg": 68.2,
+        "scap_load_fp_deg": -49.2,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 5.8,
+        "trunk_tilt_at_fc_deg": -5.6,
+        "torso_rot_fp_deg": 103.3,
+        "trunk_lat_tilt_deg": 41.1,
+        "torso_rot_br_deg": 1.1,
+        "stride_length_m": 1.397,
+        "lead_knee_ext_velo": 316.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.51,
+        "decel": 1.57
       }
     },
     {
@@ -3002,7 +3352,10 @@
         "ete_pct": 80,
         "speed_gain": 1.32,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 574,
+        "elbow_dps": 574,
+        "peak_shoulder_v": 3695
       },
       "energy": {
         "generation": {
@@ -3092,11 +3445,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 181.0,
+        "shoulder_abd_fp_deg": 79.3,
+        "scap_load_fp_deg": -65.1,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 8.0,
+        "trunk_tilt_at_fc_deg": 9.2,
+        "torso_rot_fp_deg": 63.3,
+        "trunk_lat_tilt_deg": 2.7,
+        "torso_rot_br_deg": -4.2,
+        "stride_length_m": 1.677,
+        "lead_knee_ext_velo": 422.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 3.14,
+        "decel": 1.56
       }
     },
     {
@@ -3121,7 +3485,10 @@
         "ete_pct": 80,
         "speed_gain": 1.48,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 822,
+        "elbow_dps": 822,
+        "peak_shoulder_v": 4404
       },
       "energy": {
         "generation": {
@@ -3211,11 +3578,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 172.0,
+        "shoulder_abd_fp_deg": 88.6,
+        "scap_load_fp_deg": -64.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 2.1,
+        "trunk_tilt_at_fc_deg": -2.6,
+        "torso_rot_fp_deg": 67.8,
+        "trunk_lat_tilt_deg": 18.4,
+        "torso_rot_br_deg": -7.9,
+        "stride_length_m": 1.457,
+        "lead_knee_ext_velo": 472.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.86,
+        "decel": 1.33
       }
     },
     {
@@ -3240,7 +3618,10 @@
         "ete_pct": 80,
         "speed_gain": 1.31,
         "proper_seq": true,
-        "score": 62
+        "score": 62,
+        "peak_elbow_v": 594,
+        "elbow_dps": 594,
+        "peak_shoulder_v": 3090
       },
       "energy": {
         "generation": {
@@ -3330,11 +3711,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 172.2,
+        "shoulder_abd_fp_deg": 76.7,
+        "scap_load_fp_deg": -48.7,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -9.4,
+        "trunk_tilt_at_fc_deg": -8.2,
+        "torso_rot_fp_deg": 91.4,
+        "trunk_lat_tilt_deg": 18.1,
+        "torso_rot_br_deg": -7.0,
+        "stride_length_m": 1.369,
+        "lead_knee_ext_velo": 301.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.51,
+        "decel": 1.08
       }
     },
     {
@@ -3359,7 +3751,10 @@
         "ete_pct": 80,
         "speed_gain": 1.36,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 499,
+        "elbow_dps": 499,
+        "peak_shoulder_v": 4150
       },
       "energy": {
         "generation": {
@@ -3449,11 +3844,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 183.0,
+        "shoulder_abd_fp_deg": 94.9,
+        "scap_load_fp_deg": -56.8,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 2.3,
+        "trunk_tilt_at_fc_deg": -6.4,
+        "torso_rot_fp_deg": 88.4,
+        "trunk_lat_tilt_deg": 23.1,
+        "torso_rot_br_deg": -10.2,
+        "stride_length_m": 1.382,
+        "lead_knee_ext_velo": 312.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.47,
+        "decel": 1.32
       }
     },
     {
@@ -3478,7 +3884,10 @@
         "ete_pct": 80,
         "speed_gain": 1.47,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 389,
+        "elbow_dps": 389,
+        "peak_shoulder_v": 4276
       },
       "energy": {
         "generation": {
@@ -3568,11 +3977,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 182.7,
+        "shoulder_abd_fp_deg": 78.8,
+        "scap_load_fp_deg": -49.5,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 1.2,
+        "trunk_tilt_at_fc_deg": -13.1,
+        "torso_rot_fp_deg": 98.3,
+        "trunk_lat_tilt_deg": 24.5,
+        "torso_rot_br_deg": -8.5,
+        "stride_length_m": 1.474,
+        "lead_knee_ext_velo": 273.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.57,
+        "decel": 1.47
       }
     },
     {
@@ -3597,7 +4017,10 @@
         "ete_pct": 80,
         "speed_gain": 1.29,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 524,
+        "elbow_dps": 524,
+        "peak_shoulder_v": 4600
       },
       "energy": {
         "generation": {
@@ -3687,11 +4110,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 186.9,
+        "shoulder_abd_fp_deg": 89.8,
+        "scap_load_fp_deg": -67.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 2.8,
+        "trunk_tilt_at_fc_deg": -13.8,
+        "torso_rot_fp_deg": 87.7,
+        "trunk_lat_tilt_deg": 23.1,
+        "torso_rot_br_deg": -7.0,
+        "stride_length_m": 1.331,
+        "lead_knee_ext_velo": 281.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.25,
+        "decel": 1.28
       }
     },
     {
@@ -3716,7 +4150,10 @@
         "ete_pct": 80,
         "speed_gain": 1.41,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 727,
+        "elbow_dps": 727,
+        "peak_shoulder_v": 4092
       },
       "energy": {
         "generation": {
@@ -3806,11 +4243,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 187.9,
+        "shoulder_abd_fp_deg": 75.3,
+        "scap_load_fp_deg": -63.7,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.4,
+        "trunk_tilt_at_fc_deg": 2.1,
+        "torso_rot_fp_deg": 72.3,
+        "trunk_lat_tilt_deg": 28.5,
+        "torso_rot_br_deg": -3.3,
+        "stride_length_m": 1.539,
+        "lead_knee_ext_velo": 406.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.77,
+        "decel": 1.68
       }
     },
     {
@@ -3835,7 +4283,10 @@
         "ete_pct": 80,
         "speed_gain": 1.36,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 720,
+        "elbow_dps": 720,
+        "peak_shoulder_v": 5085
       },
       "energy": {
         "generation": {
@@ -3925,11 +4376,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 174.9,
+        "shoulder_abd_fp_deg": 74.6,
+        "scap_load_fp_deg": -57.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.9,
+        "trunk_tilt_at_fc_deg": -7.5,
+        "torso_rot_fp_deg": 87.2,
+        "trunk_lat_tilt_deg": 34.9,
+        "torso_rot_br_deg": -3.0,
+        "stride_length_m": 1.48,
+        "lead_knee_ext_velo": 338.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.86,
+        "decel": 1.52
       }
     },
     {
@@ -3954,7 +4416,10 @@
         "ete_pct": 80,
         "speed_gain": 1.54,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 315,
+        "elbow_dps": 315,
+        "peak_shoulder_v": 4148
       },
       "energy": {
         "generation": {
@@ -4044,11 +4509,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 172.8,
+        "shoulder_abd_fp_deg": 85.3,
+        "scap_load_fp_deg": -78.2,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -4.5,
+        "trunk_tilt_at_fc_deg": -0.4,
+        "torso_rot_fp_deg": 81.0,
+        "trunk_lat_tilt_deg": 20.9,
+        "torso_rot_br_deg": -13.8,
+        "stride_length_m": 1.414,
+        "lead_knee_ext_velo": 745.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.54,
+        "decel": 1.36
       }
     },
     {
@@ -4073,7 +4549,10 @@
         "ete_pct": 80,
         "speed_gain": 1.19,
         "proper_seq": true,
-        "score": 64
+        "score": 64,
+        "peak_elbow_v": 786,
+        "elbow_dps": 786,
+        "peak_shoulder_v": 4230
       },
       "energy": {
         "generation": {
@@ -4163,11 +4642,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 185.6,
+        "shoulder_abd_fp_deg": 92.4,
+        "scap_load_fp_deg": -65.1,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.1,
+        "trunk_tilt_at_fc_deg": -2.9,
+        "torso_rot_fp_deg": 88.7,
+        "trunk_lat_tilt_deg": 21.7,
+        "torso_rot_br_deg": -2.8,
+        "stride_length_m": 1.563,
+        "lead_knee_ext_velo": 369.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.64,
+        "decel": 1.39
       }
     },
     {
@@ -4192,7 +4682,10 @@
         "ete_pct": 80,
         "speed_gain": 1.33,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 408,
+        "elbow_dps": 408,
+        "peak_shoulder_v": 4558
       },
       "energy": {
         "generation": {
@@ -4282,11 +4775,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 184.2,
+        "shoulder_abd_fp_deg": 79.2,
+        "scap_load_fp_deg": -75.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -3.8,
+        "trunk_tilt_at_fc_deg": -8.3,
+        "torso_rot_fp_deg": 92.9,
+        "trunk_lat_tilt_deg": 36.3,
+        "torso_rot_br_deg": -3.4,
+        "stride_length_m": 1.399,
+        "lead_knee_ext_velo": 289.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.61,
+        "decel": 1.47
       }
     },
     {
@@ -4311,7 +4815,10 @@
         "ete_pct": 80,
         "speed_gain": 1.52,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 504,
+        "elbow_dps": 504,
+        "peak_shoulder_v": 3943
       },
       "energy": {
         "generation": {
@@ -4401,11 +4908,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 191.0,
+        "shoulder_abd_fp_deg": 82.7,
+        "scap_load_fp_deg": -66.9,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 8.8,
+        "trunk_tilt_at_fc_deg": -7.1,
+        "torso_rot_fp_deg": 101.7,
+        "trunk_lat_tilt_deg": 23.4,
+        "torso_rot_br_deg": -3.7,
+        "stride_length_m": 1.421,
+        "lead_knee_ext_velo": 321.6
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.49,
+        "decel": 1.18
       }
     },
     {
@@ -4430,7 +4948,10 @@
         "ete_pct": 80,
         "speed_gain": 1.33,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 523,
+        "elbow_dps": 523,
+        "peak_shoulder_v": 4609
       },
       "energy": {
         "generation": {
@@ -4520,11 +5041,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 175.5,
+        "shoulder_abd_fp_deg": 64.4,
+        "scap_load_fp_deg": -41.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -4.3,
+        "trunk_tilt_at_fc_deg": -5.0,
+        "torso_rot_fp_deg": 101.8,
+        "trunk_lat_tilt_deg": 34.0,
+        "torso_rot_br_deg": -14.4,
+        "stride_length_m": 1.511,
+        "lead_knee_ext_velo": 477.3
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.8,
+        "decel": 1.79
       }
     },
     {
@@ -4549,7 +5081,10 @@
         "ete_pct": 80,
         "speed_gain": 1.53,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 701,
+        "elbow_dps": 701,
+        "peak_shoulder_v": 4263
       },
       "energy": {
         "generation": {
@@ -4639,11 +5174,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 177.7,
+        "shoulder_abd_fp_deg": 85.1,
+        "scap_load_fp_deg": -71.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.7,
+        "trunk_tilt_at_fc_deg": -10.9,
+        "torso_rot_fp_deg": 93.9,
+        "trunk_lat_tilt_deg": 12.1,
+        "torso_rot_br_deg": 9.5,
+        "stride_length_m": 1.471,
+        "lead_knee_ext_velo": 400.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.67,
+        "decel": 1.32
       }
     },
     {
@@ -4668,7 +5214,10 @@
         "ete_pct": 80,
         "speed_gain": 1.46,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 771,
+        "elbow_dps": 771,
+        "peak_shoulder_v": 3961
       },
       "energy": {
         "generation": {
@@ -4758,11 +5307,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 187.7,
+        "shoulder_abd_fp_deg": 92.7,
+        "scap_load_fp_deg": -61.9,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 0.5,
+        "trunk_tilt_at_fc_deg": -8.8,
+        "torso_rot_fp_deg": 94.6,
+        "trunk_lat_tilt_deg": 13.5,
+        "torso_rot_br_deg": -8.5,
+        "stride_length_m": 1.419,
+        "lead_knee_ext_velo": 376.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.29,
+        "decel": 1.21
       }
     },
     {
@@ -4787,7 +5347,10 @@
         "ete_pct": 80,
         "speed_gain": 1.58,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 319,
+        "elbow_dps": 319,
+        "peak_shoulder_v": 3584
       },
       "energy": {
         "generation": {
@@ -4877,11 +5440,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 175.4,
+        "shoulder_abd_fp_deg": 84.2,
+        "scap_load_fp_deg": -54.5,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -2.9,
+        "trunk_tilt_at_fc_deg": -6.5,
+        "torso_rot_fp_deg": 63.3,
+        "trunk_lat_tilt_deg": 27.1,
+        "torso_rot_br_deg": 1.4,
+        "stride_length_m": 1.586,
+        "lead_knee_ext_velo": 391.6
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.78,
+        "decel": 1.2
       }
     },
     {
@@ -4906,7 +5480,10 @@
         "ete_pct": 80,
         "speed_gain": 1.74,
         "proper_seq": true,
-        "score": 70
+        "score": 70,
+        "peak_elbow_v": 439,
+        "elbow_dps": 439,
+        "peak_shoulder_v": 4034
       },
       "energy": {
         "generation": {
@@ -4996,11 +5573,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 157.8,
+        "shoulder_abd_fp_deg": 86.1,
+        "scap_load_fp_deg": -61.5,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -0.9,
+        "trunk_tilt_at_fc_deg": -9.3,
+        "torso_rot_fp_deg": 77.5,
+        "trunk_lat_tilt_deg": 18.1,
+        "torso_rot_br_deg": 0.9,
+        "stride_length_m": 1.506,
+        "lead_knee_ext_velo": 259.6
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.81,
+        "decel": 1.2
       }
     },
     {
@@ -5025,7 +5613,10 @@
         "ete_pct": 80,
         "speed_gain": 1.48,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 304,
+        "elbow_dps": 304,
+        "peak_shoulder_v": 4629
       },
       "energy": {
         "generation": {
@@ -5115,11 +5706,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 177.5,
+        "shoulder_abd_fp_deg": 87.5,
+        "scap_load_fp_deg": -67.6,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 6.5,
+        "trunk_tilt_at_fc_deg": -3.6,
+        "torso_rot_fp_deg": 71.4,
+        "trunk_lat_tilt_deg": 29.7,
+        "torso_rot_br_deg": -1.0,
+        "stride_length_m": 1.447,
+        "lead_knee_ext_velo": 427.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.64,
+        "decel": 1.45
       }
     },
     {
@@ -5144,7 +5746,10 @@
         "ete_pct": 80,
         "speed_gain": 1.82,
         "proper_seq": true,
-        "score": 71
+        "score": 71,
+        "peak_elbow_v": 401,
+        "elbow_dps": 401,
+        "peak_shoulder_v": 4217
       },
       "energy": {
         "generation": {
@@ -5234,11 +5839,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 183.7,
+        "shoulder_abd_fp_deg": 95.9,
+        "scap_load_fp_deg": -52.1,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -11.1,
+        "trunk_tilt_at_fc_deg": -10.9,
+        "torso_rot_fp_deg": 106.0,
+        "trunk_lat_tilt_deg": 17.4,
+        "torso_rot_br_deg": -9.5,
+        "stride_length_m": 1.309,
+        "lead_knee_ext_velo": 525.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.23,
+        "decel": 1.2
       }
     },
     {
@@ -5263,7 +5879,10 @@
         "ete_pct": 80,
         "speed_gain": 1.97,
         "proper_seq": true,
-        "score": 73
+        "score": 73,
+        "peak_elbow_v": 737,
+        "elbow_dps": 737,
+        "peak_shoulder_v": 3445
       },
       "energy": {
         "generation": {
@@ -5353,11 +5972,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 187.0,
+        "shoulder_abd_fp_deg": 79.1,
+        "scap_load_fp_deg": -76.6,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 13.4,
+        "trunk_tilt_at_fc_deg": 7.9,
+        "torso_rot_fp_deg": 74.6,
+        "trunk_lat_tilt_deg": 36.4,
+        "torso_rot_br_deg": -2.4,
+        "stride_length_m": 1.563,
+        "lead_knee_ext_velo": 485.5
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 3.0,
+        "decel": 1.64
       }
     },
     {
@@ -5382,7 +6012,10 @@
         "ete_pct": 80,
         "speed_gain": 1.39,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 733,
+        "elbow_dps": 733,
+        "peak_shoulder_v": 4373
       },
       "energy": {
         "generation": {
@@ -5472,11 +6105,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 185.8,
+        "shoulder_abd_fp_deg": 89.7,
+        "scap_load_fp_deg": -69.2,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 2.8,
+        "trunk_tilt_at_fc_deg": -5.8,
+        "torso_rot_fp_deg": 91.9,
+        "trunk_lat_tilt_deg": 18.7,
+        "torso_rot_br_deg": -6.4,
+        "stride_length_m": 1.474,
+        "lead_knee_ext_velo": 430.3
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.69,
+        "decel": 1.49
       }
     },
     {
@@ -5501,7 +6145,10 @@
         "ete_pct": 80,
         "speed_gain": 1.43,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 531,
+        "elbow_dps": 531,
+        "peak_shoulder_v": 4101
       },
       "energy": {
         "generation": {
@@ -5591,11 +6238,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 179.4,
+        "shoulder_abd_fp_deg": 69.8,
+        "scap_load_fp_deg": -58.4,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 5.9,
+        "trunk_tilt_at_fc_deg": -0.4,
+        "torso_rot_fp_deg": 101.6,
+        "trunk_lat_tilt_deg": 24.7,
+        "torso_rot_br_deg": -4.7,
+        "stride_length_m": 1.474,
+        "lead_knee_ext_velo": 424.4
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.64,
+        "decel": 1.69
       }
     },
     {
@@ -5620,7 +6278,10 @@
         "ete_pct": 80,
         "speed_gain": 1.58,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 471,
+        "elbow_dps": 471,
+        "peak_shoulder_v": 4386
       },
       "energy": {
         "generation": {
@@ -5710,11 +6371,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 180.6,
+        "shoulder_abd_fp_deg": 81.6,
+        "scap_load_fp_deg": -52.9,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 6.7,
+        "trunk_tilt_at_fc_deg": 1.3,
+        "torso_rot_fp_deg": 79.3,
+        "trunk_lat_tilt_deg": 32.8,
+        "torso_rot_br_deg": 1.6,
+        "stride_length_m": 1.587,
+        "lead_knee_ext_velo": 599.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.91,
+        "decel": 1.54
       }
     },
     {
@@ -5739,7 +6411,10 @@
         "ete_pct": 80,
         "speed_gain": 1.3,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 506,
+        "elbow_dps": 506,
+        "peak_shoulder_v": 4703
       },
       "energy": {
         "generation": {
@@ -5829,11 +6504,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 189.2,
+        "shoulder_abd_fp_deg": 100.1,
+        "scap_load_fp_deg": -67.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.7,
+        "trunk_tilt_at_fc_deg": -6.6,
+        "torso_rot_fp_deg": 94.3,
+        "trunk_lat_tilt_deg": 21.0,
+        "torso_rot_br_deg": -7.9,
+        "stride_length_m": 1.438,
+        "lead_knee_ext_velo": 323.0
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.73,
+        "decel": 1.62
       }
     },
     {
@@ -5858,7 +6544,10 @@
         "ete_pct": 80,
         "speed_gain": 1.6,
         "proper_seq": true,
-        "score": 69
+        "score": 69,
+        "peak_elbow_v": 272,
+        "elbow_dps": 272,
+        "peak_shoulder_v": 4588
       },
       "energy": {
         "generation": {
@@ -5948,11 +6637,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 181.9,
+        "shoulder_abd_fp_deg": 70.4,
+        "scap_load_fp_deg": -61.9,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 6.7,
+        "trunk_tilt_at_fc_deg": -0.2,
+        "torso_rot_fp_deg": 72.5,
+        "trunk_lat_tilt_deg": 25.2,
+        "torso_rot_br_deg": -5.6,
+        "stride_length_m": 1.472,
+        "lead_knee_ext_velo": 403.7
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.57,
+        "decel": 1.32
       }
     },
     {
@@ -5977,7 +6677,10 @@
         "ete_pct": 80,
         "speed_gain": 1.38,
         "proper_seq": true,
-        "score": 66
+        "score": 66,
+        "peak_elbow_v": 627,
+        "elbow_dps": 627,
+        "peak_shoulder_v": 4596
       },
       "energy": {
         "generation": {
@@ -6067,11 +6770,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 171.8,
+        "shoulder_abd_fp_deg": 64.8,
+        "scap_load_fp_deg": -52.9,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -1.2,
+        "trunk_tilt_at_fc_deg": -7.5,
+        "torso_rot_fp_deg": 88.4,
+        "trunk_lat_tilt_deg": 31.3,
+        "torso_rot_br_deg": -12.3,
+        "stride_length_m": 1.433,
+        "lead_knee_ext_velo": 578.5
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.51,
+        "decel": 1.29
       }
     },
     {
@@ -6096,7 +6810,10 @@
         "ete_pct": 80,
         "speed_gain": 1.5,
         "proper_seq": true,
-        "score": 67
+        "score": 67,
+        "peak_elbow_v": 365,
+        "elbow_dps": 365,
+        "peak_shoulder_v": 4033
       },
       "energy": {
         "generation": {
@@ -6186,11 +6903,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 165.7,
+        "shoulder_abd_fp_deg": 87.3,
+        "scap_load_fp_deg": -57.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -3.9,
+        "trunk_tilt_at_fc_deg": -8.4,
+        "torso_rot_fp_deg": 86.7,
+        "trunk_lat_tilt_deg": 23.0,
+        "torso_rot_br_deg": -13.0,
+        "stride_length_m": 1.47,
+        "lead_knee_ext_velo": 423.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.63,
+        "decel": 1.37
       }
     },
     {
@@ -6215,7 +6943,10 @@
         "ete_pct": 80,
         "speed_gain": 1.56,
         "proper_seq": true,
-        "score": 68
+        "score": 68,
+        "peak_elbow_v": 797,
+        "elbow_dps": 797,
+        "peak_shoulder_v": 4101
       },
       "energy": {
         "generation": {
@@ -6305,11 +7036,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 195.7,
+        "shoulder_abd_fp_deg": 95.2,
+        "scap_load_fp_deg": -48.0,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 4.0,
+        "trunk_tilt_at_fc_deg": -6.5,
+        "torso_rot_fp_deg": 90.8,
+        "trunk_lat_tilt_deg": 25.2,
+        "torso_rot_br_deg": 0.9,
+        "stride_length_m": 1.521,
+        "lead_knee_ext_velo": 467.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.82,
+        "decel": 1.54
       }
     },
     {
@@ -6334,7 +7076,10 @@
         "ete_pct": 80,
         "speed_gain": 1.69,
         "proper_seq": true,
-        "score": 70
+        "score": 70,
+        "peak_elbow_v": 499,
+        "elbow_dps": 499,
+        "peak_shoulder_v": 4251
       },
       "energy": {
         "generation": {
@@ -6424,11 +7169,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 167.0,
+        "shoulder_abd_fp_deg": 96.3,
+        "scap_load_fp_deg": -41.5,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.3,
+        "trunk_tilt_at_fc_deg": -7.6,
+        "torso_rot_fp_deg": 81.1,
+        "trunk_lat_tilt_deg": 28.3,
+        "torso_rot_br_deg": -23.9,
+        "stride_length_m": 1.524,
+        "lead_knee_ext_velo": 348.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.71,
+        "decel": 1.64
       }
     },
     {
@@ -6453,7 +7209,10 @@
         "ete_pct": 80,
         "speed_gain": 1.33,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 561,
+        "elbow_dps": 561,
+        "peak_shoulder_v": 3945
       },
       "energy": {
         "generation": {
@@ -6543,11 +7302,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 176.4,
+        "shoulder_abd_fp_deg": 92.1,
+        "scap_load_fp_deg": -71.7,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 0.3,
+        "trunk_tilt_at_fc_deg": -14.5,
+        "torso_rot_fp_deg": 98.8,
+        "trunk_lat_tilt_deg": 13.9,
+        "torso_rot_br_deg": -6.9,
+        "stride_length_m": 1.419,
+        "lead_knee_ext_velo": 199.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.65,
+        "decel": 1.21
       }
     },
     {
@@ -6572,7 +7342,10 @@
         "ete_pct": 80,
         "speed_gain": 1.1,
         "proper_seq": true,
-        "score": 63
+        "score": 63,
+        "peak_elbow_v": 742,
+        "elbow_dps": 742,
+        "peak_shoulder_v": 4308
       },
       "energy": {
         "generation": {
@@ -6662,11 +7435,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 176.9,
+        "shoulder_abd_fp_deg": 91.5,
+        "scap_load_fp_deg": -61.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 0.4,
+        "trunk_tilt_at_fc_deg": -7.5,
+        "torso_rot_fp_deg": 86.0,
+        "trunk_lat_tilt_deg": 36.7,
+        "torso_rot_br_deg": -0.8,
+        "stride_length_m": 1.55,
+        "lead_knee_ext_velo": 279.5
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.73,
+        "decel": 1.29
       }
     },
     {
@@ -6691,7 +7475,10 @@
         "ete_pct": 80,
         "speed_gain": 1.34,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 626,
+        "elbow_dps": 626,
+        "peak_shoulder_v": 3944
       },
       "energy": {
         "generation": {
@@ -6781,11 +7568,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 201.5,
+        "shoulder_abd_fp_deg": 70.9,
+        "scap_load_fp_deg": -89.1,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 3.7,
+        "trunk_tilt_at_fc_deg": 1.6,
+        "torso_rot_fp_deg": 66.5,
+        "trunk_lat_tilt_deg": 29.1,
+        "torso_rot_br_deg": -1.2,
+        "stride_length_m": 1.427,
+        "lead_knee_ext_velo": 347.8
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.71,
+        "decel": 1.49
       }
     },
     {
@@ -6810,7 +7608,10 @@
         "ete_pct": 80,
         "speed_gain": 1.33,
         "proper_seq": true,
-        "score": 65
+        "score": 65,
+        "peak_elbow_v": 1063,
+        "elbow_dps": 1063,
+        "peak_shoulder_v": 3533
       },
       "energy": {
         "generation": {
@@ -6900,11 +7701,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 178.1,
+        "shoulder_abd_fp_deg": 81.2,
+        "scap_load_fp_deg": -51.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": -4.9,
+        "trunk_tilt_at_fc_deg": -7.4,
+        "torso_rot_fp_deg": 97.1,
+        "trunk_lat_tilt_deg": 22.9,
+        "torso_rot_br_deg": -11.5,
+        "stride_length_m": 1.421,
+        "lead_knee_ext_velo": 347.1
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.38,
+        "decel": 1.32
       }
     },
     {
@@ -6929,7 +7741,10 @@
         "ete_pct": 80,
         "speed_gain": 1.21,
         "proper_seq": true,
-        "score": 64
+        "score": 64,
+        "peak_elbow_v": 493,
+        "elbow_dps": 493,
+        "peak_shoulder_v": 4552
       },
       "energy": {
         "generation": {
@@ -7019,11 +7834,22 @@
         "consistency_score": 88,
         "fault_score": 85,
         "injury_risk": "low",
-        "fault_count": 1
+        "fault_count": 1,
+        "shoulder_er_max_deg": 187.5,
+        "shoulder_abd_fp_deg": 94.4,
+        "scap_load_fp_deg": -58.3,
+        "elbow_flex_fp_deg": null,
+        "torso_counter_rot_deg": 5.3,
+        "trunk_tilt_at_fc_deg": -12.4,
+        "torso_rot_fp_deg": 98.6,
+        "trunk_lat_tilt_deg": 17.2,
+        "torso_rot_br_deg": -3.3,
+        "stride_length_m": 1.548,
+        "lead_knee_ext_velo": 330.2
       },
       "cog": {
-        "max_velo": null,
-        "decel": null
+        "max_velo": 2.76,
+        "decel": 1.54
       }
     }
   ]

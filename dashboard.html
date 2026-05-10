@@ -630,9 +630,9 @@
     <div class="panel">
       <h2 style="font-size:15px">3-1. 메카닉 5 모델 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline 표준</span></h2>
       <div class="chart-wrap" style="height:300px"><canvas id="p-radar"></canvas></div>
-      <!-- v5.24: Driveline 변인 Per 1mph 표 (분석가용 details 폴더) -->
+      <!-- v5.36: Driveline 변인 Per 1km/h 표 (분석가용 details 폴더) -->
       <details style="margin-top:12px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
-        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 5 모델 변인 상세 + Per 1mph (분석가용)</summary>
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 5 모델 변인 상세 + Per 1km/h (분석가용)</summary>
         <table style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
           <thead>
             <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
@@ -641,16 +641,16 @@
               <th style="text-align:right;padding:5px 6px;color:var(--muted)">본인</th>
               <th style="text-align:right;padding:5px 6px;color:var(--muted)">Median Elite</th>
               <th style="text-align:center;padding:5px 6px;color:var(--muted)">중요도</th>
-              <th style="text-align:right;padding:5px 6px;color:var(--muted)">Per 1mph</th>
-              <th style="text-align:right;padding:5px 6px;color:var(--muted)">차이 (mph)</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">Per 1km/h</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">차이 (km/h)</th>
             </tr>
           </thead>
           <tbody id="p-driveline-vars-body"></tbody>
         </table>
         <div class="footnote" style="font-size:10.5px;margin-top:8px;line-height:1.55">
-          Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph cohort 50th percentile.
-          <b>Per 1mph</b> = "1mph 향상에 필요한 변인 변화량".
-          <b>차이</b> = (본인 − Median Elite) / Per 1mph (mph 환산, 양수 = elite 대비 우수).<br>
+          Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph (≈ 145 km/h) cohort 50th percentile.
+          <b>Per 1km/h</b> = "1 km/h 향상에 필요한 변인 변화량" (학술 reference의 Per 1mph × 0.621).
+          <b>차이</b> = (본인 − Median Elite) / Per 1km/h (km/h 환산, 양수 = elite 대비 우수).<br>
           영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
           <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
         </div>
@@ -6336,14 +6336,22 @@ function v514_renderMechanicTables(m, p){
       peak_shoulder_v: m.sequence?.peak_shoulder_v,
       peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
       arm_dps:         m.sequence?.arm_dps,
-      x_factor:           m.faults?.x_factor_deg,
-      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg,
-      trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      shoulder_abd_fp_deg:    m.faults?.shoulder_abd_fp_deg,
+      scap_load_fp_deg:       m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg:      m.faults?.elbow_flex_fp_deg,
+      x_factor:               m.faults?.x_factor_deg,
+      trunk_forward_tilt:     m.faults?.trunk_tilt_at_fc_deg,
+      trunk_lateral_tilt:     m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg:  m.faults?.torso_counter_rot_deg,
+      torso_rot_fp_deg:       m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg:       m.faults?.torso_rot_br_deg,
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
-      lead_knee_change: m.faults?.lead_knee_change,
-      stride_length:    m.faults?.stride_length_m,
+      lead_knee_change:   m.faults?.lead_knee_change,
+      stride_length:      m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
+      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
       max_cog_velo: m.cog?.max_velo
     });
     if(dvl5){
@@ -6360,17 +6368,21 @@ function v514_renderMechanicTables(m, p){
         const md = dvl5[mk];
         if(!md || !md.metrics) return;
         Object.entries(md.metrics).forEach(([k, mt], i) => {
-          const diff = (mt.value != null && mt.median_elite != null && mt.per_1mph) ?
+          // v5.36: mph → km/h 표시 변환 (1 mph = 1.609 km/h, per_1km/h = per_1mph × 0.621)
+          const diff_mph = (mt.value != null && mt.median_elite != null && mt.per_1mph) ?
             ((mt.value - mt.median_elite) / mt.per_1mph) : null;
-          const diffColor = diff == null ? '#656d76' : diff > 0 ? '#1a7f37' : '#cf222e';
-          const diffStr = diff == null ? '—' : (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' mph';
+          const diff_kmh = diff_mph == null ? null : diff_mph * 1.609;
+          const diffColor = diff_kmh == null ? '#656d76' : diff_kmh > 0 ? '#1a7f37' : '#cf222e';
+          const diffStr = diff_kmh == null ? '—' : (diff_kmh >= 0 ? '+' : '') + diff_kmh.toFixed(1) + ' km/h';
+          // per_1km/h = per_1mph * 0.621 (1 km/h 향상에 필요한 변인 변화량)
+          const per_1kmh = mt.per_1mph != null ? mt.per_1mph * 0.621 : null;
           html += `<tr style="border-bottom:1px solid #f0f3f6">
             <td style="padding:5px 6px;color:var(--muted);font-size:10.5px">${i === 0 ? modelLabel[mk] : ''}</td>
             <td style="padding:5px 6px">${mt.label}</td>
             <td style="text-align:right;padding:5px 6px;font-weight:600">${fmtV(mt.value, mt.unit)} <span style="color:var(--muted);font-size:10px">${mt.unit}</span></td>
             <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(mt.median_elite, mt.unit)}</td>
             <td style="text-align:center;padding:5px 6px;color:${impColor(mt.importance)};font-size:10px;font-weight:600">${impLabel(mt.importance)}</td>
-            <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(mt.per_1mph, mt.unit)}</td>
+            <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(per_1kmh, mt.unit)}</td>
             <td style="text-align:right;padding:5px 6px;color:${diffColor};font-weight:600">${diffStr}</td>
           </tr>`;
         });
@@ -6933,14 +6945,22 @@ function v514_renderSummaryAction(m, p){
       peak_shoulder_v: m.sequence?.peak_shoulder_v,
       peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
       arm_dps:         m.sequence?.arm_dps,
-      x_factor:           m.faults?.x_factor_deg,
-      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg,
-      trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      shoulder_abd_fp_deg:    m.faults?.shoulder_abd_fp_deg,
+      scap_load_fp_deg:       m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg:      m.faults?.elbow_flex_fp_deg,
+      x_factor:               m.faults?.x_factor_deg,
+      trunk_forward_tilt:     m.faults?.trunk_tilt_at_fc_deg,
+      trunk_lateral_tilt:     m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg:  m.faults?.torso_counter_rot_deg,
+      torso_rot_fp_deg:       m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg:       m.faults?.torso_rot_br_deg,
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
-      lead_knee_change: m.faults?.lead_knee_change,
-      stride_length:    m.faults?.stride_length_m,
+      lead_knee_change:   m.faults?.lead_knee_change,
+      stride_length:      m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
+      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
       max_cog_velo: m.cog?.max_velo
     });
     const ceil = A.drivelineMechanicalCeiling(dvl5, measured);

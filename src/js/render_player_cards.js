@@ -275,14 +275,22 @@ function v514_renderMechanicTables(m, p){
       peak_shoulder_v: m.sequence?.peak_shoulder_v,
       peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
       arm_dps:         m.sequence?.arm_dps,
-      x_factor:           m.faults?.x_factor_deg,
-      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg,
-      trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      shoulder_abd_fp_deg:    m.faults?.shoulder_abd_fp_deg,
+      scap_load_fp_deg:       m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg:      m.faults?.elbow_flex_fp_deg,
+      x_factor:               m.faults?.x_factor_deg,
+      trunk_forward_tilt:     m.faults?.trunk_tilt_at_fc_deg,
+      trunk_lateral_tilt:     m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg:  m.faults?.torso_counter_rot_deg,
+      torso_rot_fp_deg:       m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg:       m.faults?.torso_rot_br_deg,
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
-      lead_knee_change: m.faults?.lead_knee_change,
-      stride_length:    m.faults?.stride_length_m,
+      lead_knee_change:   m.faults?.lead_knee_change,
+      stride_length:      m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
+      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
       max_cog_velo: m.cog?.max_velo
     });
     if(dvl5){
@@ -299,17 +307,21 @@ function v514_renderMechanicTables(m, p){
         const md = dvl5[mk];
         if(!md || !md.metrics) return;
         Object.entries(md.metrics).forEach(([k, mt], i) => {
-          const diff = (mt.value != null && mt.median_elite != null && mt.per_1mph) ?
+          // v5.36: mph → km/h 표시 변환 (1 mph = 1.609 km/h, per_1km/h = per_1mph × 0.621)
+          const diff_mph = (mt.value != null && mt.median_elite != null && mt.per_1mph) ?
             ((mt.value - mt.median_elite) / mt.per_1mph) : null;
-          const diffColor = diff == null ? '#656d76' : diff > 0 ? '#1a7f37' : '#cf222e';
-          const diffStr = diff == null ? '—' : (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' mph';
+          const diff_kmh = diff_mph == null ? null : diff_mph * 1.609;
+          const diffColor = diff_kmh == null ? '#656d76' : diff_kmh > 0 ? '#1a7f37' : '#cf222e';
+          const diffStr = diff_kmh == null ? '—' : (diff_kmh >= 0 ? '+' : '') + diff_kmh.toFixed(1) + ' km/h';
+          // per_1km/h = per_1mph * 0.621 (1 km/h 향상에 필요한 변인 변화량)
+          const per_1kmh = mt.per_1mph != null ? mt.per_1mph * 0.621 : null;
           html += `<tr style="border-bottom:1px solid #f0f3f6">
             <td style="padding:5px 6px;color:var(--muted);font-size:10.5px">${i === 0 ? modelLabel[mk] : ''}</td>
             <td style="padding:5px 6px">${mt.label}</td>
             <td style="text-align:right;padding:5px 6px;font-weight:600">${fmtV(mt.value, mt.unit)} <span style="color:var(--muted);font-size:10px">${mt.unit}</span></td>
             <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(mt.median_elite, mt.unit)}</td>
             <td style="text-align:center;padding:5px 6px;color:${impColor(mt.importance)};font-size:10px;font-weight:600">${impLabel(mt.importance)}</td>
-            <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(mt.per_1mph, mt.unit)}</td>
+            <td style="text-align:right;padding:5px 6px;color:var(--muted)">${fmtV(per_1kmh, mt.unit)}</td>
             <td style="text-align:right;padding:5px 6px;color:${diffColor};font-weight:600">${diffStr}</td>
           </tr>`;
         });
@@ -872,14 +884,22 @@ function v514_renderSummaryAction(m, p){
       peak_shoulder_v: m.sequence?.peak_shoulder_v,
       peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
       arm_dps:         m.sequence?.arm_dps,
-      x_factor:           m.faults?.x_factor_deg,
-      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg,
-      trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      shoulder_abd_fp_deg:    m.faults?.shoulder_abd_fp_deg,
+      scap_load_fp_deg:       m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg:      m.faults?.elbow_flex_fp_deg,
+      x_factor:               m.faults?.x_factor_deg,
+      trunk_forward_tilt:     m.faults?.trunk_tilt_at_fc_deg,
+      trunk_lateral_tilt:     m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg:  m.faults?.torso_counter_rot_deg,
+      torso_rot_fp_deg:       m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg:       m.faults?.torso_rot_br_deg,
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
-      lead_knee_change: m.faults?.lead_knee_change,
-      stride_length:    m.faults?.stride_length_m,
+      lead_knee_change:   m.faults?.lead_knee_change,
+      stride_length:      m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
+      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
       max_cog_velo: m.cog?.max_velo
     });
     const ceil = A.drivelineMechanicalCeiling(dvl5, measured);
