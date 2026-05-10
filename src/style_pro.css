@@ -1,0 +1,508 @@
+/* ════════════════════════════════════════════════════════
+   KBO Pro Edition — Driveline+ / MLB Statcast 풍 (v6.0)
+   • 텍스트 + 차트 + 표만 (뱃지·칩·아바타·라이브 태그 모두 제거)
+   • 네이비 #14213d + 빨강 #e63946 accent
+   ════════════════════════════════════════════════════════ */
+
+:root{
+  /* 회색 9단계 */
+  --gray-50:#fafafa;
+  --gray-100:#f5f5f5;
+  --gray-200:#e5e5e5;
+  --gray-300:#d4d4d4;
+  --gray-400:#a3a3a3;
+  --gray-500:#737373;
+  --gray-600:#525252;
+  --gray-700:#404040;
+  --gray-800:#262626;
+  --gray-900:#171717;
+
+  /* Premium Baseball Brand */
+  --bg:         #ffffff;
+  --panel:      #ffffff;
+  --panel2:     #fafafa;
+  --line:       #e5e5e5;
+  --line-soft:  #f0f0f0;
+
+  --text:       #14213d;        /* 진한 네이비 — 본문 */
+  --text-soft:  #2c3e5c;
+  --muted:      #6c757d;
+
+  --accent:     #e63946;        /* 강조 빨강 (team color 자리) */
+  --accent-soft:#ff6b6b;
+  --accent-bg:  #fef2f2;
+
+  --header-bg:  #14213d;        /* 헤더 다크 네이비 */
+  --header-bg-2:#1a2a47;
+  --header-text:#ffffff;
+
+  /* 등급 색깔 (텍스트 컬러로만 사용 — 뱃지 없음) */
+  --grade-elite: #00854a;
+  --grade-above: #14213d;
+  --grade-avg:   #6c757d;
+  --grade-below: #ca8a04;
+  --grade-poor:  #e63946;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{
+  font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo",sans-serif;
+  font-size:14px;
+  line-height:1.55;
+  font-feature-settings:"ss01","cv11";
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ────────────────── HEADER (다크 네이비) ────────────────── */
+header.pro-header{
+  background:var(--header-bg);
+  color:var(--header-text);
+  padding:28px 48px;
+  position:relative;
+  overflow:hidden;
+}
+/* 헤더 우측에 미세한 그라데이션 — 시각 깊이만 더하고 별도 그래픽 없음 */
+header.pro-header::after{
+  content:'';
+  position:absolute;
+  top:0; right:0; bottom:0; width:40%;
+  background:linear-gradient(90deg, transparent, var(--header-bg-2));
+  pointer-events:none;
+}
+header.pro-header .top{
+  position:relative; z-index:1;
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;
+}
+header.pro-header .athlete{
+  /* 선수 이름 + 메타 */
+}
+header.pro-header .athlete h1{
+  margin:0;
+  font-size:30px; font-weight:700; letter-spacing:-0.02em;
+  color:var(--header-text);
+}
+header.pro-header .athlete .sub{
+  margin-top:6px;
+  color:rgba(255,255,255,0.75);
+  font-size:14px; font-weight:500;
+}
+header.pro-header .meta{
+  text-align:right;
+  color:rgba(255,255,255,0.75);
+  font-size:12px;
+  line-height:1.6;
+}
+header.pro-header .meta b{ color:var(--header-text); font-weight:600; }
+
+/* 좌측 빨강 accent bar */
+header.pro-header::before{
+  content:'';
+  position:absolute;
+  top:0; left:0; bottom:0;
+  width:4px;
+  background:var(--accent);
+  z-index:1;
+}
+
+/* ────────────────── MAIN ────────────────── */
+main{
+  padding:32px 48px;
+  max-width:1280px;
+  margin:0 auto;
+}
+
+/* 섹션 헤더 — 단순 텍스트만 */
+.section-head{
+  margin:0 0 20px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--line);
+}
+.section-head h2{
+  margin:0;
+  font-size:18px; font-weight:700;
+  letter-spacing:-0.01em;
+  color:var(--text);
+}
+.section-head .desc{
+  margin-top:6px;
+  font-size:13px; color:var(--muted);
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:28px 32px;
+  margin-bottom:24px;
+}
+
+/* ────────────────── COMPOSITE (도넛 + 5 모델 bar) ────────────────── */
+.composite{
+  display:grid;
+  grid-template-columns:240px 1fr;
+  gap:48px;
+  align-items:center;
+}
+
+/* 도넛 — Conic-gradient SVG-less */
+.composite-donut{
+  position:relative;
+  width:200px; height:200px;
+  display:grid; place-items:center;
+}
+.composite-donut .ring{
+  width:200px; height:200px;
+  border-radius:50%;
+  /* --pct 변수로 진행도 (0~360 deg). 인라인 style 로 지정 */
+  background:conic-gradient(
+    var(--accent) 0deg var(--ring-deg, 263deg),
+    var(--gray-100) var(--ring-deg, 263deg) 360deg
+  );
+  display:grid; place-items:center;
+}
+.composite-donut .inner{
+  width:164px; height:164px;
+  border-radius:50%;
+  background:var(--panel);
+  display:grid; place-items:center;
+  text-align:center;
+}
+.composite-donut .score-num{
+  font-size:54px; font-weight:800;
+  color:var(--text);
+  font-feature-settings:"tnum";
+  line-height:1;
+  letter-spacing:-0.04em;
+}
+.composite-donut .score-label{
+  margin-top:6px;
+  font-size:11px; color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  font-weight:600;
+}
+
+/* 5 모델 bar */
+.composite-bars{ display:grid; gap:14px; }
+.bar-row{
+  display:grid;
+  grid-template-columns:90px 1fr 90px;
+  gap:16px; align-items:center;
+  font-size:13px;
+}
+.bar-row .bar-label{ font-weight:600; color:var(--text); }
+.bar-row .bar-track{
+  height:10px;
+  background:var(--gray-100);
+  border-radius:5px;
+  overflow:hidden;
+  position:relative;
+}
+.bar-row .bar-fill{
+  height:100%;
+  background:linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+  border-radius:5px;
+  transition:width 400ms ease-out;
+}
+.bar-row .bar-value{
+  text-align:right;
+  font-feature-settings:"tnum";
+  font-size:13px;
+  color:var(--text);
+}
+.bar-row .bar-value .num{ font-weight:700; font-size:15px; }
+.bar-row .bar-value .grade{ font-size:11px; margin-left:4px; font-weight:600; }
+.bar-row .bar-value .grade.elite { color:var(--grade-elite); }
+.bar-row .bar-value .grade.above { color:var(--grade-above); }
+.bar-row .bar-value .grade.avg   { color:var(--grade-avg); }
+.bar-row .bar-value .grade.below { color:var(--grade-below); }
+.bar-row .bar-value .grade.poor  { color:var(--grade-poor); }
+
+/* ────────────────── 변인 표 ────────────────── */
+table.metrics{
+  width:100%; border-collapse:collapse;
+  font-size:13px;
+}
+table.metrics th{
+  text-align:left;
+  padding:12px 14px;
+  background:var(--text);
+  color:var(--header-text);
+  font-size:11px; font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+}
+table.metrics th:nth-child(2),
+table.metrics th:nth-child(3) { text-align:right; }
+table.metrics th:last-child { text-align:right; }
+table.metrics td{
+  padding:12px 14px;
+  border-bottom:1px solid var(--line);
+  font-feature-settings:"tnum";
+  color:var(--text);
+}
+table.metrics td.var-name{
+  font-weight:500;
+}
+table.metrics td.var-value,
+table.metrics td.var-pct,
+table.metrics td.var-grade{
+  text-align:right;
+}
+table.metrics td.var-value{
+  font-weight:700;
+  font-family:"Inter","Pretendard",sans-serif;
+}
+table.metrics td.var-pct{
+  color:var(--muted);
+}
+table.metrics td.var-grade{ font-weight:600; }
+table.metrics td.var-grade.elite{ color:var(--grade-elite); }
+table.metrics td.var-grade.above{ color:var(--grade-above); }
+table.metrics td.var-grade.avg  { color:var(--grade-avg); }
+table.metrics td.var-grade.below{ color:var(--grade-below); }
+table.metrics td.var-grade.poor { color:var(--grade-poor); }
+table.metrics tr:hover td{ background:var(--panel2); }
+
+/* ────────────────── KPI (도넛 + bar 외 상단 보조) ────────────────── */
+.kpi-row{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:24px;
+  margin-bottom:24px;
+}
+.kpi{
+  /* 카드 아니라 텍스트 블록만 — border 없음 */
+  padding:0;
+}
+.kpi .label{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  margin-bottom:8px;
+}
+.kpi .value{
+  font-size:36px; font-weight:700;
+  color:var(--text);
+  letter-spacing:-0.02em;
+  font-feature-settings:"tnum";
+  line-height:1.1;
+}
+.kpi .value .unit{
+  font-size:16px; color:var(--muted); font-weight:500; margin-left:4px;
+}
+.kpi .delta{
+  font-size:12px; color:var(--muted);
+  margin-top:6px; font-weight:500;
+}
+.kpi .delta.up   { color:var(--grade-elite); }
+.kpi .delta.down { color:var(--accent); }
+
+/* KPI 간 구분 — 세로 line */
+.kpi-row .kpi + .kpi{
+  border-left:1px solid var(--line);
+  padding-left:24px;
+}
+
+/* ────────────────── ETE — 분절간 에너지 전이 ────────────────── */
+.ete-grid{
+  display:grid;
+  grid-template-columns:1fr 280px;
+  gap:32px;
+  align-items:start;
+}
+
+/* 좌측: 4 transition lag bar */
+.ete-bars{ display:grid; gap:14px; }
+.ete-row{
+  display:grid;
+  grid-template-columns:140px 1fr 110px;
+  gap:16px; align-items:center;
+  font-size:13px;
+}
+.ete-row .label{ font-weight:600; color:var(--text); }
+.ete-row .label .num{
+  display:inline-block;
+  width:18px; color:var(--muted); font-weight:500; font-size:12px;
+}
+.ete-row .lag-track{
+  position:relative;
+  height:24px;
+  background:var(--gray-100);
+  border-radius:4px;
+  overflow:hidden;
+}
+.ete-row .lag-fill{
+  height:100%;
+  background:linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+  border-radius:4px;
+  display:flex; align-items:center; justify-content:flex-end;
+  padding:0 10px;
+  color:#fff; font-size:11px; font-weight:700;
+  font-feature-settings:"tnum";
+  min-width:48px;
+}
+.ete-row .lag-fill.below{
+  background:linear-gradient(90deg, var(--grade-below) 0%, #fbbf24 100%);
+}
+.ete-row .lag-fill.poor{
+  background:linear-gradient(90deg, var(--grade-poor) 0%, var(--accent-soft) 100%);
+}
+.ete-row .ete-value{
+  text-align:right;
+  font-feature-settings:"tnum";
+}
+.ete-row .ete-value .score{ font-weight:700; font-size:15px; color:var(--text); }
+.ete-row .ete-value .grade{ font-size:11px; margin-left:4px; font-weight:600; }
+.ete-row .ete-value .grade.elite{ color:var(--grade-elite); }
+.ete-row .ete-value .grade.above{ color:var(--grade-above); }
+.ete-row .ete-value .grade.below{ color:var(--grade-below); }
+.ete-row .ete-value .grade.poor{ color:var(--grade-poor); }
+
+/* 우측: 분절 sequence timeline */
+.sequence-diagram{
+  background:var(--panel2);
+  border-radius:6px;
+  padding:20px 16px;
+}
+.sequence-diagram .title{
+  font-size:11px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.8px;
+  font-weight:600;
+  margin-bottom:14px;
+}
+.seq-svg{ width:100%; height:auto; display:block; }
+
+/* ────────────────── GRF + 마네킹 ────────────────── */
+.grf-grid{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  gap:32px;
+  align-items:stretch;
+}
+
+/* 좌측 — 단순화된 마네킹 (silhouette + energy chain) */
+.mannequin-wrap{
+  background:var(--panel2);
+  border-radius:6px;
+  padding:16px;
+  display:grid; place-items:center;
+}
+.mannequin-svg{
+  width:100%;
+  max-height:420px;
+  display:block;
+}
+
+/* 우측 — GRF 데이터 패널 */
+.grf-panel{ display:grid; gap:14px; align-content:start; }
+.grf-card{
+  background:var(--panel2);
+  border-radius:6px;
+  padding:18px 22px;
+  border-left:3px solid var(--accent);
+}
+.grf-card.drive{ border-left-color:var(--text); }
+.grf-card .label{
+  font-size:11px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.8px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+.grf-card .row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  padding:6px 0;
+  font-size:13px;
+}
+.grf-card .row + .row{ border-top:1px solid var(--line); }
+.grf-card .row .name{ color:var(--text-soft); }
+.grf-card .row .val{
+  font-weight:700; color:var(--text);
+  font-feature-settings:"tnum";
+}
+.grf-card .row .val .unit{
+  color:var(--muted); font-weight:500; font-size:12px; margin-left:2px;
+}
+
+/* ────────────────── 약점 Top 3 + 처방 ────────────────── */
+.weakness-list{ display:grid; gap:0; }
+.weakness-item{
+  display:grid;
+  grid-template-columns:48px 1fr 140px;
+  gap:20px;
+  padding:18px 0;
+  border-bottom:1px solid var(--line);
+  align-items:start;
+}
+.weakness-item:first-child{ padding-top:0; }
+.weakness-item:last-child{ border-bottom:none; padding-bottom:0; }
+.weakness-rank{
+  font-size:32px; font-weight:800;
+  color:var(--accent);
+  font-feature-settings:"tnum";
+  letter-spacing:-0.02em;
+  line-height:1;
+}
+.weakness-body .category{
+  font-size:12px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.8px;
+  font-weight:600;
+  margin-bottom:4px;
+}
+.weakness-body .name{
+  font-size:16px; font-weight:700;
+  color:var(--text);
+  margin-bottom:6px;
+}
+.weakness-body .prescription{
+  font-size:13px; color:var(--text-soft);
+  line-height:1.55;
+}
+.weakness-body .current-vs-target{
+  margin-top:8px;
+  font-size:12px; color:var(--muted);
+  font-feature-settings:"tnum";
+}
+.weakness-body .current-vs-target b{
+  color:var(--text); font-weight:700;
+}
+.weakness-impact{
+  text-align:right;
+}
+.weakness-impact .gain{
+  font-size:24px; font-weight:800;
+  color:var(--grade-elite);
+  font-feature-settings:"tnum";
+  letter-spacing:-0.02em;
+  line-height:1;
+}
+.weakness-impact .gain-unit{
+  font-size:13px; color:var(--muted); font-weight:500;
+  margin-top:2px;
+}
+.weakness-impact .gain-label{
+  font-size:10px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.8px;
+  font-weight:600;
+  margin-top:4px;
+}
+
+/* ────────────────── 미세 디테일 ────────────────── */
+::selection{ background:var(--accent-bg); color:var(--text); }
+
+/* ────────────────── 인쇄 ────────────────── */
+@media print{
+  header.pro-header{
+    background:var(--header-bg) !important;
+    -webkit-print-color-adjust:exact;
+    color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  .panel{ break-inside:avoid; border:1px solid #bbb; }
+  main{ padding:0 16px; max-width:none; }
+}
