@@ -11,12 +11,12 @@ function compactPlayerCard(pid, sid){
   const isReal = REAL_DATA_KEYS.has(`${pid}:${sid}`);
   const dataMark = isReal ? '● 실측' : '○ 샘플';
 
-  // 5축 mini-radar (SVG, Chart.js 의존성 없이 인쇄 안정)
+  // v5.40: 5축 mini-radar (Driveline 5 모델 평균 + ETE + GRF + 손실 + 결함·제구)
   const axes = [
-    {lbl:'출력', v:eg.score ?? 0},
-    {lbl:'전달', v:et.score ?? 0},
-    {lbl:'누수관리', v:el.eli_score ?? 0},
-    {lbl:'GRF', v:m.grf?.lhei ?? 0},
+    {lbl:'5 모델', v: (et.mech_avg) ?? eg.score ?? 0},
+    {lbl:'ETE',    v: et.score ?? 0},
+    {lbl:'GRF',    v: m.grf?.lhei ?? 0},
+    {lbl:'손실↑',  v: 100 - (et.energy_loss_kmh ? Math.min(100, et.energy_loss_kmh * 8) : 0)},
     {lbl:'결함·제구', v: avg([m.faults.fault_score, m.faults.consistency_score]) || 0}
   ];
   const cx=80, cy=70, R=55;
@@ -114,10 +114,10 @@ function compactPlayerCard(pid, sid){
       </div>
     </div>
 
-    <div class="sec-title">⚡ 에너지 분석 — 출력·전달·누수</div>
+    <div class="sec-title">⚡ 메카닉 — Driveline 5 모델 + 분절간 ETE + 관절 파워 (v5.40)</div>
     <div class="row3">
       <div class="mini-card">
-        <div class="ttl" style="color:#0969da">① 생성 (Output) <span style="float:right">${eg.score ?? '—'}</span></div>
+        <div class="ttl" style="color:#0969da">① 분절 운동에너지 + 관절 파워 <span style="float:right">${eg.score ?? '—'}</span></div>
         <div class="kv"><span>투구 어깨 / 팔꿈치 (W)</span><b>${eg.shoulder_W ?? '—'} / ${eg.elbow_W ?? '—'}</b></div>
         <div class="kv"><span>힙 R/L (W)</span><b>${eg.hip_R_W ?? '—'} / ${eg.hip_L_W ?? '—'}</b></div>
         <div class="kv"><span>무릎 R/L (W)</span><b>${eg.knee_R_W ?? '—'} / ${eg.knee_L_W ?? '—'}</b></div>
@@ -125,7 +125,7 @@ function compactPlayerCard(pid, sid){
         <div class="kv"><span>Mech E (P/T/H, J)</span><b>${eg.mech_energy_pelvis_J}/${eg.mech_energy_trunk_J}/${eg.mech_energy_humerus_J}</b></div>
       </div>
       <div class="mini-card">
-        <div class="ttl" style="color:#1a7f37">② 전달 (Transfer) <span style="float:right">${et.score ?? '—'}</span></div>
+        <div class="ttl" style="color:#1a7f37">② 분절간 ETE (4 transition) <span style="float:right">${et.score ?? '—'}</span></div>
         <div class="kv"><span>ETE 전달율</span><b>${et.ete_pct}%</b></div>
         <div class="kv"><span>Speed Gain P→T</span><b>${et.speed_gain_pt}×</b></div>
         <div class="kv"><span>Speed Gain T→A</span><b>${et.speed_gain_ta}×</b></div>
@@ -133,12 +133,13 @@ function compactPlayerCard(pid, sid){
         <div class="kv"><span>P→T / T→A lag (ms)</span><b>${et.pelvis_to_trunk_lag_ms} / ${et.trunk_to_arm_lag_ms}</b></div>
       </div>
       <div class="mini-card">
-        <div class="ttl" style="color:#cf222e">③ 누수 ELI <span style="float:right">${el.eli_score ?? '—'}</span></div>
+        <div class="ttl" style="color:#cf222e">③ 에너지 손실 Top 3 (km/h)</div>
+        <div class="kv" style="font-size:10px;color:#666;margin-bottom:4px">5 모델 high-importance 변인의 음의 차이 + ETE bottleneck</div>
         ${zoneBars}
       </div>
     </div>
 
-    <div class="sec-title lk">🔗 결함 → 손실 인과 (우선순위 Top 3)</div>
+    <div class="sec-title lk">🔗 메카닉 결함 → 구속 손실 (Top 3)</div>
     ${causal}
 
     <div class="sec-title gr">🩹 부상위험 · 제구 일관성</div>
@@ -162,14 +163,33 @@ function coachReport(sid){
   const meas = PLAYERS.map(p=>({p, m: DATA[p.id][sid]}));
   const total = meas.length;
 
+  // v5.40: team aggregate — Driveline 5 모델 평균 + ETE + GRF
+  const _teamMech = avg(meas.map(x=>{
+    if(!A.drivelineFiveModelDiagnosis) return null;
+    const m = x.m;
+    const d = A.drivelineFiveModelDiagnosis({
+      shoulder_er_max_deg: m.faults?.shoulder_er_max_deg, peak_shoulder_v: m.sequence?.peak_shoulder_v,
+      peak_elbow_v: m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps, arm_dps: m.sequence?.arm_dps,
+      shoulder_abd_fp_deg: m.faults?.shoulder_abd_fp_deg, scap_load_fp_deg: m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg: m.faults?.elbow_flex_fp_deg, x_factor: m.faults?.x_factor_deg,
+      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg, trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg: m.faults?.torso_counter_rot_deg, torso_rot_fp_deg: m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg: m.faults?.torso_rot_br_deg, trunk_dps: m.sequence?.trunk_dps, pelvis_dps: m.sequence?.pelvis_dps,
+      lead_knee_change: m.faults?.lead_knee_change, stride_length: m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
+      cog_decel: m.cog?.decel, cog_decel_ae: m.cog?.decel_ae, max_cog_velo: m.cog?.max_velo
+    });
+    if(!d) return null;
+    const scs = ['arm_action','posture','rotation','block','cog'].map(k => d[k]?.score).filter(s => s!=null);
+    return scs.length ? Math.min(100, scs.reduce((a,b)=>a+b,0)/scs.length * 100/150 * 1.5) : null;
+  }).filter(v=>v!=null));
   const team = {
     velo: avg(meas.map(x=>x.m.velocity.measured_kmh)),
     veloMax: Math.max(...meas.map(x=>x.m.velocity.measured_kmh)),
     veloMin: Math.min(...meas.map(x=>x.m.velocity.measured_kmh)),
     score: avg(meas.map(x=>x.m.velocity.score)),
-    gen:   avg(meas.map(x=>x.m.energy?.generation?.score).filter(v=>v!=null)),
-    trf:   avg(meas.map(x=>x.m.energy?.transfer?.score).filter(v=>v!=null)),
-    eli:   avg(meas.map(x=>x.m.energy?.leakage?.eli_score).filter(v=>v!=null)),
+    mech:  _teamMech,
+    ete:   avg(meas.map(x=>x.m.energy?.transfer?.score).filter(v=>v!=null)),
     grf:   avg(meas.map(x=>x.m.grf?.lhei).filter(v=>v!=null)),
   };
 
@@ -190,17 +210,52 @@ function coachReport(sid){
   const high = meas.filter(x=>x.m.faults.injury_risk==='high');
   const mid  = meas.filter(x=>x.m.faults.injury_risk==='mid');
 
-  // 팀 결함 패턴 — ELI zone별 평균 점수, 가장 낮은 3개
+  // v5.40: 팀 약점 패턴 — Driveline 5 모델 + ETE 4 transition 평균 점수, 가장 낮은 3개
+  const _calcMech = (m, modelKey) => {
+    if(!A.drivelineFiveModelDiagnosis) return null;
+    const d = A.drivelineFiveModelDiagnosis({
+      shoulder_er_max_deg: m.faults?.shoulder_er_max_deg, peak_shoulder_v: m.sequence?.peak_shoulder_v,
+      peak_elbow_v: m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps, arm_dps: m.sequence?.arm_dps,
+      shoulder_abd_fp_deg: m.faults?.shoulder_abd_fp_deg, scap_load_fp_deg: m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg: m.faults?.elbow_flex_fp_deg, x_factor: m.faults?.x_factor_deg,
+      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg, trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg: m.faults?.torso_counter_rot_deg, torso_rot_fp_deg: m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg: m.faults?.torso_rot_br_deg, trunk_dps: m.sequence?.trunk_dps, pelvis_dps: m.sequence?.pelvis_dps,
+      lead_knee_change: m.faults?.lead_knee_change, stride_length: m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
+      cog_decel: m.cog?.decel, cog_decel_ae: m.cog?.decel_ae, max_cog_velo: m.cog?.max_velo
+    });
+    return d?.[modelKey]?.score ?? null;
+  };
+  const _calcETETrans = (m, transKey) => {
+    if(!A.segmentTransitionETE) return null;
+    const t = A.segmentTransitionETE({
+      peak_pelvis_v: m.sequence?.pelvis_dps, peak_trunk_v: m.sequence?.trunk_dps,
+      peak_humerus_v: m.sequence?.arm_dps, peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+      peak_hand_v: m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+      pelvis_to_trunk_lag_ms: m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+      trunk_to_humerus_lag_ms: m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+      humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+      forearm_to_hand_lag_ms: m.energy?.transfer?.forearm_to_hand_lag_ms
+    });
+    return t?.[transKey]?.score ?? null;
+  };
+  // 9 약점 카테고리 (5 모델 + 4 ETE transition)
   const zoneKeys = [
-    {k:'zone1_sequence',       lbl:'시퀀스 어긋남',          drill:'골반→몸통→팔 순차 가속 드릴 (towel drill, walking windup)'},
-    {k:'zone2_x_factor',       lbl:'X-팩터 분리 부족',       drill:'골반-상체 분리 강화 (medball rotational throw, hip-shoulder separation)'},
-    {k:'zone3_lead_block',     lbl:'앞발 받쳐주기 약함',     drill:'앞발 착지 안정화 (knee extension hold, single-leg landing)'},
-    {k:'zone4_trunk_at_fc',    lbl:'FC 몸통 자세 불량',      drill:'트렁크 컨트롤 (FC 시점 plank hold, trunk lateral tilt drill)'},
-    {k:'zone5_shoulder_align', lbl:'어깨 정렬·외회전 부족',  drill:'어깨 가동성·정렬 (sleeper stretch, throwers ten)'},
-    {k:'zone6_pelvis_brake',   lbl:'골반 감속(브레이크) 부족', drill:'골반 감속 강화 (anti-rotation hold, follow-through 안정화)'},
+    {k:'arm_action',         lbl:'🚀 팔동작 (Arm Action)',           kind:'mech', drill:'Layback + 어깨 외회전 강화 (sleeper stretch, plyo-ball Layback)'},
+    {k:'posture',            lbl:'🛡 자세 (Posture)',                 kind:'mech', drill:'X-factor 분리 + trunk forward tilt (medball rotational throw, FC plank hold)'},
+    {k:'rotation',           lbl:'🔄 회전 속도 (Rotation)',           kind:'mech', drill:'몸통·골반 회전 가속 (medball heavy → light throw, 코어 power)'},
+    {k:'block',              lbl:'🦵 앞다리 제동 (Block)',            kind:'mech', drill:'앞발 신전 + lead leg block (RDL, lateral squat, 단발 throw)'},
+    {k:'cog',                lbl:'🎯 체중이동 (CoG)',                 kind:'mech', drill:'CoG 가속·감속 (explosive stride drill, KB swing)'},
+    {k:'pelvis_to_trunk',    lbl:'① 골반 → 몸통 (lag/gain)',         kind:'ete',  drill:'골반→몸통 sequencing (towel drill, walking windup, 골반 단독 회전)'},
+    {k:'trunk_to_humerus',   lbl:'② 몸통 → 위팔 (lag/gain)',         kind:'ete',  drill:'몸통→위팔 lag 보정 (Layback 유지 → 폭발적 내회전 plyo)'},
+    {k:'humerus_to_forearm', lbl:'③ 위팔 → 아래팔 (lag/gain)',       kind:'ete',  drill:'위팔→아래팔 — 너무 이른 elbow 신전 방지 (wrist weight + slow throw)'},
+    {k:'forearm_to_hand',    lbl:'④ 아래팔 → 손 (lag/gain)',         kind:'ete',  drill:'release 시점 손 가속 cueing (towel drill, 짧은 ball)'}
   ];
   const zoneAvgs = zoneKeys.map(z=>{
-    const vals = meas.map(x=>x.m.energy?.leakage?.[z.k]).filter(v=>v!=null);
+    const vals = meas.map(x => z.kind==='mech' ? _calcMech(x.m, z.k) : _calcETETrans(x.m, z.k))
+                    .filter(v => v!=null)
+                    .map(v => z.kind==='mech' ? Math.min(100, v * 100/150 * 1.5) : v);  // mech: 150 → 100 scale
     return {...z, avg: avg(vals), under70: vals.filter(v=>v<70).length, n: vals.length};
   }).sort((a,b)=>a.avg-b.avg);
   const weakZones = zoneAvgs.slice(0,3);
@@ -219,18 +274,81 @@ function coachReport(sid){
     }).slice(0,5);
 
   // 부록 표 행
+  // v5.40: 부록 표 — 5 모델 평균 / ETE / GRF/LHEI / 에너지 손실 Top 3 (km/h)
+  const _calcLoss = (m) => {
+    if(!A.drivelineFiveModelDiagnosis) return null;
+    const d = A.drivelineFiveModelDiagnosis({
+      shoulder_er_max_deg: m.faults?.shoulder_er_max_deg, peak_shoulder_v: m.sequence?.peak_shoulder_v,
+      peak_elbow_v: m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps, arm_dps: m.sequence?.arm_dps,
+      shoulder_abd_fp_deg: m.faults?.shoulder_abd_fp_deg, scap_load_fp_deg: m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg: m.faults?.elbow_flex_fp_deg, x_factor: m.faults?.x_factor_deg,
+      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg, trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg: m.faults?.torso_counter_rot_deg, torso_rot_fp_deg: m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg: m.faults?.torso_rot_br_deg, trunk_dps: m.sequence?.trunk_dps, pelvis_dps: m.sequence?.pelvis_dps,
+      lead_knee_change: m.faults?.lead_knee_change, stride_length: m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
+      cog_decel: m.cog?.decel, cog_decel_ae: m.cog?.decel_ae, max_cog_velo: m.cog?.max_velo
+    });
+    if(!d) return null;
+    const cands = [];
+    ['arm_action','posture','rotation','block','cog'].forEach(k => {
+      const md = d[k]; if(!md) return;
+      Object.values(md.metrics).forEach(vv => {
+        if(vv.value == null || vv.median_elite == null || !vv.per_1mph) return;
+        const diff_kmh = (vv.value - vv.median_elite)/vv.per_1mph * 1.609;
+        if(diff_kmh < 0 && vv.importance === 'high') cands.push(Math.abs(diff_kmh));
+      });
+    });
+    cands.sort((a,b)=>b-a);
+    return Math.round(cands.slice(0,3).reduce((a,b)=>a+b,0) * 10) / 10;
+  };
+  const _calcMechAvg = (m) => {
+    if(!A.drivelineFiveModelDiagnosis) return null;
+    const d = A.drivelineFiveModelDiagnosis({
+      shoulder_er_max_deg: m.faults?.shoulder_er_max_deg, peak_shoulder_v: m.sequence?.peak_shoulder_v,
+      peak_elbow_v: m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps, arm_dps: m.sequence?.arm_dps,
+      shoulder_abd_fp_deg: m.faults?.shoulder_abd_fp_deg, scap_load_fp_deg: m.faults?.scap_load_fp_deg,
+      elbow_flex_fp_deg: m.faults?.elbow_flex_fp_deg, x_factor: m.faults?.x_factor_deg,
+      trunk_forward_tilt: m.faults?.trunk_tilt_at_fc_deg, trunk_lateral_tilt: m.faults?.trunk_lat_tilt_deg,
+      torso_counter_rot_deg: m.faults?.torso_counter_rot_deg, torso_rot_fp_deg: m.faults?.torso_rot_fp_deg,
+      torso_rot_br_deg: m.faults?.torso_rot_br_deg, trunk_dps: m.sequence?.trunk_dps, pelvis_dps: m.sequence?.pelvis_dps,
+      lead_knee_change: m.faults?.lead_knee_change, stride_length: m.faults?.stride_length_m,
+      lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
+      cog_decel: m.cog?.decel, cog_decel_ae: m.cog?.decel_ae, max_cog_velo: m.cog?.max_velo
+    });
+    if(!d) return null;
+    const scs = ['arm_action','posture','rotation','block','cog'].map(k => d[k]?.score).filter(s => s!=null);
+    return scs.length ? Math.min(100, Math.round(scs.reduce((a,b)=>a+b,0)/scs.length * 100/150 * 1.5)) : null;
+  };
+  const _calcETE = (m) => {
+    if(!A.segmentTransitionETE) return null;
+    const t = A.segmentTransitionETE({
+      peak_pelvis_v: m.sequence?.pelvis_dps, peak_trunk_v: m.sequence?.trunk_dps,
+      peak_humerus_v: m.sequence?.arm_dps, peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+      peak_hand_v: m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+      pelvis_to_trunk_lag_ms: m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+      trunk_to_humerus_lag_ms: m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+      humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+      forearm_to_hand_lag_ms: m.energy?.transfer?.forearm_to_hand_lag_ms
+    });
+    return t?.overall_score ?? null;
+  };
   const tableRows = [...meas].sort((a,b)=>b.m.velocity.score - a.m.velocity.score).map(x=>{
     const m = x.m;
+    const mechAvg = _calcMechAvg(m);
+    const ete = _calcETE(m);
+    const loss = _calcLoss(m);
+    const lossColor = loss==null ? '#666' : loss > 8 ? '#cf222e' : loss > 4 ? '#bf8700' : '#1a7f37';
     return `<tr>
       <td><b>${x.p.name}</b></td>
       <td>${x.p.arm}</td>
       <td>${m.velocity.measured_kmh}</td>
       <td>${m.velocity.potential_kmh}</td>
       <td><b style="color:${scoreColor(m.velocity.score)}">${m.velocity.score}</b></td>
-      <td>${fmt0(m.energy?.generation?.score)}</td>
-      <td>${fmt0(m.energy?.transfer?.score)}</td>
-      <td>${fmt0(m.energy?.leakage?.eli_score)}</td>
+      <td>${fmt0(mechAvg)}</td>
+      <td>${fmt0(ete)}</td>
       <td>${fmt0(m.grf?.lhei)}</td>
+      <td style="color:${lossColor};font-weight:600">${loss==null?'—':'-'+loss.toFixed(1)}</td>
       <td style="color:${m.faults.injury_risk==='high'?'#cf222e':m.faults.injury_risk==='mid'?'#bf8700':'#1a7f37'}">${riskLabel(m.faults.injury_risk)}</td>
     </tr>`;
   }).join('');
@@ -246,8 +364,8 @@ function coachReport(sid){
     <h2>📊 팀 평균 (헤드라인)</h2>
     <div class="grid4">
       <div class="gr-kpi"><div class="lbl">평균 측정 구속</div><div class="val">${fmt(team.velo,1)} <span style="font-size:11px">km/h</span></div><div class="sub">${fmt(team.veloMin,1)}~${fmt(team.veloMax,1)} 범위</div></div>
-      <div class="gr-kpi"><div class="lbl">평균 종합점수</div><div class="val" style="color:${scoreColor(team.score)}">${fmt(team.score,1)}</div><div class="sub">출력 ${fmt(team.gen,0)} · 전달 ${fmt(team.trf,0)} · 누수관리 ${fmt(team.eli,0)}</div></div>
-      <div class="gr-kpi"><div class="lbl">평균 GRF·LHEI</div><div class="val">${fmt(team.grf,1)}</div><div class="sub">하체 종합 효율</div></div>
+      <div class="gr-kpi"><div class="lbl">팀 평균 메카닉 (5 모델)</div><div class="val" style="color:${scoreColor(team.mech)}">${fmt(team.mech,1)}</div><div class="sub">팔동작·자세·회전·앞다리·체중이동 평균</div></div>
+      <div class="gr-kpi"><div class="lbl">팀 평균 ETE / GRF</div><div class="val">${fmt(team.ete,0)} / ${fmt(team.grf,0)}</div><div class="sub">분절간 4 transition · Lead+Hip</div></div>
       <div class="gr-kpi"><div class="lbl">부상위험 알림</div><div class="val" style="color:${(high.length+mid.length)>5?'#cf222e':(high.length+mid.length)>2?'#bf8700':'#1a7f37'}">${high.length + mid.length}명</div><div class="sub">High ${high.length} · Mid ${mid.length}</div></div>
     </div>
 
@@ -266,10 +384,10 @@ function coachReport(sid){
     ${high.map(x=>`<div class="action warn"><b style="color:#cf222e">[High] ${x.p.name}</b> · X-factor ${x.m.faults.x_factor_deg}° · Lead knee ${x.m.faults.lead_knee_change}° · 결함 ${x.m.faults.fault_count}개 검출 → 즉시 의료진 상담 + 투구량 조절 권고</div>`).join('')}
     ${mid.map(x=>`<div class="action" style="background:#fff8c5;border-color:#d4a72c"><b style="color:#9a6700">[Mid] ${x.p.name}</b> · X-factor ${x.m.faults.x_factor_deg}° · 결함 ${x.m.faults.fault_count}개 → 메카닉 교정 우선</div>`).join('')}
 
-    <h2>🔍 팀 결함 패턴 — 취약 ELI zone Top 3 + 그룹 훈련 추천</h2>
+    <h2>🔍 팀 약점 패턴 — Driveline 5 모델 + ETE bottleneck Top 3 + 그룹 훈련 추천 (v5.40)</h2>
     ${weakZones.map((z,i)=>`
       <div class="pattern">
-        <b>${i+1}. ${z.lbl}</b> · 팀 평균 점수 ${fmt(z.avg,1)} (낮을수록 누수 큼) · ${z.under70}/${z.n}명에서 70 미만<br>
+        <b>${i+1}. ${z.lbl}</b> · 팀 평균 점수 ${fmt(z.avg,1)} (낮을수록 약점) · ${z.under70}/${z.n}명에서 70 미만<br>
         <span style="color:#666;font-size:11px">→ <b>그룹 훈련 추천:</b> ${z.drill}</span>
       </div>
     `).join('')}
@@ -292,14 +410,13 @@ function coachReport(sid){
     <table>
       <thead><tr>
         <th>선수</th><th>투구</th><th>구속</th><th>잠재</th><th>종합</th>
-        <th>출력</th><th>전달</th><th>누수↑</th><th>GRF</th><th>부상</th>
+        <th>5 모델</th><th>ETE</th><th>GRF/LHEI</th><th>손실↑</th><th>부상</th>
       </tr></thead>
-      <tbody>${tableRows.replace(/누수\s*\(역ELI\)/g,'누수↑')}</tbody>
+      <tbody>${tableRows}</tbody>
     </table>
 
     <div style="margin-top:14px;padding-top:8px;border-top:1px dashed #999;font-size:10px;color:#666">
-      ※ 종합점수: Theia+GRF 분석 기반. 출력·전달·누수관리: ELI 6 zone 기반 0~100 정규화.
-      누수↑ 컬럼은 100 - eli_score (값 클수록 누수 심각).<br>
+      ※ v5.40 framework — <b>5 모델</b>: Driveline 평균 (팔동작/자세/회전/앞다리/체중이동, 100=Elite). <b>ETE</b>: 분절간 4 transition 종합. <b>GRF/LHEI</b>: Lead+Hip Energy Index. <b>손실↑</b>: 에너지 손실 Top 3 합 km/h (큰 음의 차이).<br>
       ※ 본 리포트는 ${session.protocol} 측정값 기반. 다음 회차(${SESSIONS.find(s=>s.id>sid)?.label||'TBD'})에서 향상도 자동 계산.
     </div>
   </div>`;

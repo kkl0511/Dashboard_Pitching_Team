@@ -1127,11 +1127,24 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'lead_knee_ext_velo':     round(clip('lead_knee_extension_velo', 0, 1500, None), 1) if clip('lead_knee_extension_velo', 0, 1500, None) is not None else None,
         },
         # v5.36: CoG (Center of Gravity) — driveline.js cog 모델용
+        # v5.40: decel_ae (Above Expected) 는 synthesize_player_summary 끝에서 추가 (ball_speed 필요)
         'cog': {
             'max_velo': round(clip('max_cog_velo_m_s', 0.5, 5.0, None), 2) if clip('max_cog_velo_m_s', 0.5, 5.0, None) is not None else None,
             'decel':    round(clip('cog_decel_m_s',    0.0, 5.0, None), 2) if clip('cog_decel_m_s',    0.0, 5.0, None) is not None else None,
         },
     }
+    # v5.40: cog.decel_ae 자동 산출 (ball_speed 있을 때만)
+    #   회귀식: CoG_Decel_predicted = 0.0073 × ball_speed_kmh + 0.269 (KR n=103, xlsx 가공값)
+    #   AE = 실제 cog_decel − 예측치
+    if record['cog']['decel'] is not None and record['velocity']['measured_kmh'] is not None:
+        ball_speed = record['velocity']['measured_kmh']
+        predicted = 0.0073 * ball_speed + 0.269
+        ae = record['cog']['decel'] - predicted
+        record['cog']['decel_ae'] = round(ae, 3)
+        record['cog']['decel_ae_predicted'] = round(predicted, 2)
+        record['cog']['decel_ae_method'] = f'KR cohort n=103 regression: pred = 0.0073 × ball_speed_kmh + 0.269'
+    else:
+        record['cog']['decel_ae'] = None
     return record
 
 # ════════════════════════════════════════════════════════════

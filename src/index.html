@@ -98,12 +98,12 @@
     <div style="overflow-x:auto">
       <table class="data" id="m1-table">
         <thead>
-          <!-- 그룹 헤더 (카테고리: 식별·구속·체력·메카닉·제구·부상·종합) -->
+          <!-- v5.40: 식별·구속·체력·메카닉(5 모델+ETE+GRF)·제구·부상·종합 -->
           <tr class="group-header" style="background:#f6f8fa;font-size:10.5px;color:var(--muted)">
             <th colspan="3" style="text-align:left;padding-left:10px">식별</th>
             <th colspan="2" class="right" style="background:#f0f6ff;color:#0969da">구속</th>
             <th colspan="1" class="right" style="background:#fff3e7;color:#bc4c00">체력</th>
-            <th colspan="5" class="right" style="background:#dafbe1;color:#1a7f37">메카닉</th>
+            <th colspan="5" class="right" style="background:#dafbe1;color:#1a7f37">메카닉 (Driveline 5 모델 + ETE + GRF)</th>
             <th colspan="1" class="right" style="background:#fff8c5;color:#9a6700">제구</th>
             <th colspan="1" class="right" style="background:#ffebe9;color:#cf222e">부상</th>
             <th colspan="1" class="right" style="background:#eaeef2">종합</th>
@@ -118,12 +118,12 @@
             <th data-key="velo_avg" class="right" style="background:#f0f6ff">FB Avg</th>
             <!-- 체력 (1) -->
             <th data-key="fitness" class="right" style="background:#fff3e7">체력 점수</th>
-            <!-- 메카닉 (5) -->
-            <th data-key="gen" class="right" style="background:#dafbe1">출력</th>
-            <th data-key="trf" class="right" style="background:#dafbe1">전달</th>
-            <th data-key="eli" class="right" style="background:#dafbe1">누수↑</th>
-            <th data-key="grf" class="right" style="background:#dafbe1">LHEI</th>
-            <th data-key="stuff" class="right" style="background:#dafbe1">Stuff</th>
+            <!-- 메카닉 v5.40: 5 모델 평균 / ETE / GRF/LHEI / Stuff / 메카닉 종합 (5) -->
+            <th data-key="mech" class="right" style="background:#dafbe1" title="Driveline 5 모델 평균 점수 (팔동작/자세/회전/앞다리/체중이동, 100=Elite, 150=Ceiling)">5 모델</th>
+            <th data-key="ete" class="right" style="background:#dafbe1" title="분절간 ETE — 4 transition (proximal-to-distal) 종합">ETE</th>
+            <th data-key="grf" class="right" style="background:#dafbe1" title="GRF/LHEI — Lead+Hip Energy Index">GRF/LHEI</th>
+            <th data-key="stuff" class="right" style="background:#dafbe1" title="구질·구속·회전 종합 (Rapsodo)">Stuff</th>
+            <th data-key="loss" class="right" style="background:#dafbe1" title="에너지 손실 Top 3 합 (km/h, ↑ 클수록 보완 여지)">손실↑</th>
             <!-- 제구 (1) -->
             <th data-key="command" class="right" style="background:#fff8c5">Cmd 통합</th>
             <!-- 부상 (1) -->
@@ -139,11 +139,11 @@
 
   <div class="grid grid-2">
     <div class="panel">
-      <h2>에너지 4분면 — 출력 × 전달</h2>
+      <h2>메카닉 4분면 — 5 모델 × 분절간 ETE <span class="badge">v5.40</span></h2>
       <div class="chart-wrap"><canvas id="chart-quadrant"></canvas></div>
       <div class="footnote">
-        X축: 에너지 <b>출력</b> · Y축: 에너지 <b>전달</b> · 점 크기: <b>누수</b> (클수록 누수 큼)<br>
-        <b>우상</b>=잘 만들고 잘 전달(elite) · <b>우하</b>=만들지만 전달 안 됨 · <b>좌상</b>=전달은 좋은데 출력 부족 · <b>좌하</b>=집중 관리
+        X축: <b>메카닉</b> (Driveline 5 모델 평균: 팔동작/자세/회전/앞다리/체중이동) · Y축: <b>분절간 ETE</b> (proximal-to-distal 4 transition 종합) · 점 크기: <b>GRF/LHEI 부족</b> (클수록 GRF 활용 부족)<br>
+        <b>우상</b>=메카닉+ETE 모두 elite · <b>우하</b>=메카닉 OK / ETE 누수 · <b>좌상</b>=ETE 좋지만 메카닉 약함 · <b>좌하</b>=집중 관리
       </div>
     </div>
     <div class="panel">
@@ -493,7 +493,7 @@
   <div class="panel" style="border-left:4px solid #1a7f37">
     <h2 style="font-size:15px">3-6. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-      4축 점수 + ELI 약점을 종합해 우선순위 훈련을 자동 매핑. 코치가 다음 세션 짜기에 직접 활용.
+      v5.40 — 5 모델 점수 + ETE bottleneck + GRF 임펄스를 종합해 우선순위 훈련을 자동 매핑. 코치가 다음 세션 짜기에 직접 활용.
     </div>
     <div id="p-mech-action-plan" style="font-size:12.5px;line-height:1.6"></div>
   </div>
@@ -907,8 +907,8 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
       </div>
 
       <div class="footnote" style="margin-top:14px">
-        <b>출력 항목</b> (1페이지/선수): 헤더 + 4 KPI · 5축 라디아 · 키네틱 시퀀스 막대 ·
-        에너지 분석(생성·전달·누수) · 결함 인과 Top 3 · GRF · 부상위험·제구 · 체력 보조
+        <b>출력 항목 (v5.40)</b> (1페이지/선수): 헤더 + 4 KPI · <b>Driveline 5 모델 라디아</b> (팔동작/자세/회전/앞다리/체중이동) ·
+        시간축 시퀀스 + 동적 마네킹 SVG · <b>분절간 ETE 4 transition</b> · GRF (수평 + 임펄스 + NewtForce 8) · <b>에너지 손실 Top 3</b> · 부상위험·제구 · 체력 보조
       </div>
     </div>
 
@@ -927,8 +927,8 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
       </div>
 
       <div class="footnote" style="margin-top:14px">
-        <b>리포트 구성</b>: 측정 진행 요약 · 팀 평균 KPI · 선수 그룹 분포 (Elite/Solid/Developing/Focus/Critical 5단계)
-        · ⚠ 부상 위험 알림 · 팀 결함 패턴 (취약 ELI zone Top 3 + 그룹 훈련 추천) · 우선순위 행동 (잠재력·향상도·즉시 관리) · 부록 표
+        <b>리포트 구성 (v5.40)</b>: 측정 진행 요약 · 팀 평균 KPI (메카닉/ETE/GRF) · 선수 그룹 분포 (Elite/Solid/Developing/Focus/Critical 5단계)
+        · ⚠ 부상 위험 알림 · <b>팀 약점 패턴</b> (5 모델 약점 + ETE bottleneck Top 3 + 그룹 훈련 추천) · 우선순위 행동 (잠재력·향상도·즉시 관리) · 부록 표
       </div>
     </div>
   </div>
@@ -964,6 +964,10 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
         <option value="score">종합점수 (0~100, 시스템 차이 보정)</option>
         <option value="velo">측정 구속 (km/h)</option>
         <option value="velo_pot">잠재 구속 (km/h)</option>
+        <option value="mech">메카닉 5 모델 평균 (Driveline)</option>
+        <option value="ete">분절간 ETE 종합 (0~100)</option>
+        <option value="grf">GRF/LHEI (0~100)</option>
+        <option value="loss">에너지 손실 Top 3 (km/h, 작을수록 좋음)</option>
         <option value="sequence">시퀀스 점수 (0~100)</option>
         <option value="consistency">제구 일관성 점수 (0~100)</option>
         <option value="fault">결함 관리 점수 (0~100)</option>
