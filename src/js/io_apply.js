@@ -43,8 +43,26 @@ function validateRecord(rec){
 function applyTheiaRecord(rec){
   const b = rec.body;
   const session = SESSIONS.find(s=>s.id===rec.sid);
+  // v5.35: PLAYERS에 없는 신규 PID 자동 추가 (외부 cohort import 지원)
+  if(!PLAYERS.find(p => p.id === rec.pid)){
+    PLAYERS.push({
+      id: rec.pid,
+      name: b.athlete_name || rec.pid,
+      arm: (b.handedness || b.dom || 'R').toUpperCase().replace(/[^RL]/g,'').slice(0,1) || 'R',
+      height: b.height_cm ?? 178,
+      weight: b.mass_kg ?? b.body_mass_kg ?? 75,
+      dob: '2008-01-01',
+      grade: b.grade ?? 1,
+      _auto_added: true
+    });
+    // DATA에도 신규 PID 추가
+    if(!DATA[rec.pid]){
+      DATA[rec.pid] = {};
+      SESSIONS.forEach(s => DATA[rec.pid][s.id] = {});
+    }
+  }
   // 기존 DATA[pid][sid]를 덮어쓰되, 누락된 섹션은 기존값 유지
-  const cur = DATA[rec.pid][rec.sid] || {};
+  const cur = (DATA[rec.pid] && DATA[rec.pid][rec.sid]) || {};
   const merged = {
     ...cur,
     protocol: b.protocol ?? session.protocol,
