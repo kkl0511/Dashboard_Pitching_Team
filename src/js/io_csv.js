@@ -42,7 +42,16 @@ function importValdCSV(text){
     const pid = r.athlete_external_id;
     if(!pid){ errors.push(`행 ${i+2}: athlete_external_id 비어있음`); return; }
     const player = PLAYERS.find(p => p.id === pid);
-    if(!player){ errors.push(`행 ${i+2}: PLAYERS에 ${pid} 없음 (스킵)`); return; }
+    if(!player){
+      // v5.35: 신규 PID 자동 추가
+      const newPlayer = {id:pid, name: row.athlete_name||pid, arm:'R', height:178, weight:75, dob:'2008-01-01', grade:1, _auto_added:true};
+      PLAYERS.push(newPlayer);
+      if(typeof DATA !== 'undefined' && !DATA[pid]){
+        DATA[pid] = {};
+        if(typeof SESSIONS !== 'undefined') SESSIONS.forEach(s => DATA[pid][s.id] = {});
+      }
+      errors.push(`행 ${i+2}: ${pid} 신규 선수 자동 추가`);
+    }
 
     // 회차 결정 — test_date가 SESSIONS 중 어느 것과 매칭되는지
     let sid = 1;
@@ -192,8 +201,22 @@ function importRapsodoCSV(text){
 
   const errors = [], applied = [];
   Object.entries(byPid).forEach(([pid, throws]) => {
-    const player = PLAYERS.find(p => p.id === pid);
-    if(!player){ errors.push(`${pid}: PLAYERS에 없음 (스킵)`); return; }
+    let player = PLAYERS.find(p => p.id === pid);
+    if(!player){
+      // v5.35: PLAYERS에 없는 PID 자동 추가 (외부 cohort 지원)
+      const sample = throws[0] || {};
+      player = {
+        id: pid, name: sample.athlete_name || pid,
+        arm: 'R', height: 178, weight: 75, dob: '2008-01-01', grade: 1,
+        _auto_added: true
+      };
+      PLAYERS.push(player);
+      if(typeof DATA !== 'undefined' && !DATA[pid]){
+        DATA[pid] = {};
+        if(typeof SESSIONS !== 'undefined') SESSIONS.forEach(s => DATA[pid][s.id] = {});
+      }
+      errors.push(`${pid}: 신규 선수 자동 추가 (${player.name})`);
+    }
     const fb = throws.filter(t => t.pitch_type === 'FB' || t.pitch_type === 'Fastball');
     if(!fb.length){ errors.push(`${pid}: FB throw 없음 — 첫 throw 사용`); fb.push(throws[0]); }
 

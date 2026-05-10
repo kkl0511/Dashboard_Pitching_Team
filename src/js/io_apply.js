@@ -35,7 +35,7 @@ function validateRecord(rec){
   const errs = [];
   if(!rec.pid) errs.push('athlete_external_id 누락');
   if(rec.sid==null) errs.push('session_id 누락');
-  if(rec.pid && !PLAYERS.find(p=>p.id===rec.pid)) errs.push(`PLAYERS에 ${rec.pid} 없음 (선수 명단 먼저 추가 필요)`);
+  // v5.35: PLAYERS에 없는 PID는 거부 X — applyTheiaRecord가 자동 추가 (외부 cohort 지원)
   if(rec.sid && !SESSIONS.find(s=>s.id===rec.sid)) errs.push(`SESSIONS에 id ${rec.sid} 없음 (1·2·3·4만 가능)`);
   return errs;
 }
