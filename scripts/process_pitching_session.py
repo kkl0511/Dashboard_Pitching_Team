@@ -635,15 +635,26 @@ def parse_theia_trial(path):
         'layback_deg':              safe_max_abs(col_by_name_window('Pitching_Shoulder_Angle_Z')),  # max ER
         'shoulder_abd_at_fp':       value_at_frame('Pitching_Shoulder_Angle_Y', fc_event),
         # v5.37: Scap Load at FP = LEAD_SHOULDER_ANGLE_X at FP (Driveline xlsx 정의)
-        'scap_load_at_fp':          value_at_frame('Pitching_Shoulder_Angle_X', fc_event),
+        # v5.40: Theia Pitching_Shoulder_Angle_X 는 Driveline 부호 convention 과 반대 (검증: 9 trial 모두 −41° vs Elite +51°)
+        #        → 부호 flip 적용. Driveline scap-retraction 양수 standard 와 정합.
+        'scap_load_at_fp':          ((lambda v: -v if v is not None else None)(value_at_frame('Pitching_Shoulder_Angle_X', fc_event))),
         'elbow_flex_at_fp':         value_at_frame('Pitching_Elbow_Angle_X', fc_event),
         # Posture (FP 시점)
         'hip_shoulder_sep_at_fp':   value_at_frame('Trunk_wrt_Pelvis_Angle_Z', fc_event),
-        'torso_counter_rot':        min((v for v in col_by_name_window('Trunk_wrt_Pelvis_Angle_Z') if v is not None), default=None),
+        # v5.40: Torso 좌표계 새 정의 (사용자 검증, 우투 기준)
+        #   • Counter Rot: 수평면 절대 회전 (NOT relative to pelvis), + 오른쪽(3루) / − 왼쪽(홈)
+        #     변환: user_z = 90 − lab_z (Theia lab frame: 90°=3루, 0°=홈)
+        #     Peak = windup 단계에서 가장 닫힌 자세 = MIN(user_z) = 90 − MAX(lab_z) before FP
+        #   • Torso Rotation at FP/BR: 동일 변환. 3루 정면=0°, 홈 정면=90°
+        #   • Forward Tilt at FP: 수직선 기준 + 앞 / − 뒤 — Theia Trunk_Angle_X 부호 그대로
+        'torso_counter_rot':        ((lambda lz: (90 - max(v for v in lz if v is not None))
+                                      if any(v is not None for v in lz) else None)(
+                                          col_by_name('Trunk_Angle_Z')[:(fc_event or 0)+1]
+                                      ) if fc_event is not None else None),
         'torso_fwd_tilt_at_fp':     value_at_frame('Trunk_Angle_X', fc_event),
-        'torso_rot_at_fp':          value_at_frame('Trunk_Angle_Z', fc_event),
+        'torso_rot_at_fp':          (lambda v: 90 - v if v is not None else None)(value_at_frame('Trunk_Angle_Z', fc_event)),
         'torso_side_bend_at_mer':   value_at_frame('Trunk_Angle_Y', mer_frame),
-        'torso_rot_at_br':          value_at_frame('Trunk_Angle_Z', br_event),
+        'torso_rot_at_br':          (lambda v: 90 - v if v is not None else None)(value_at_frame('Trunk_Angle_Z', br_event)),
         # Block (Lead Knee)
         'lead_knee_at_fp':          value_at_frame('Lead_Knee_Angle_X', fc_event),
         'lead_knee_at_br':          value_at_frame('Lead_Knee_Angle_X', br_event),

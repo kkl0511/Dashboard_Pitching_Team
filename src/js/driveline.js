@@ -75,8 +75,10 @@ const DRIVELINE_5_MODELS = {
     velo_rank: 5, ae_rank: 4, weight: 0.15,
     metrics: {
       lead_knee_ext:        {label:'Lead Knee Extension',       unit:'deg',   median_elite: 11,  per_1mph: 5,   importance:'high'},
-      stride_length:        {label:'Stride Length',             unit:'in',    median_elite: 58,  per_1mph: 5,   importance:'high'},
-      cog_decel_ae:         {label:'CoG Decel AE',              unit:'m/s',   median_elite: 0.02,per_1mph: 0.35,importance:'med'},
+      stride_length:        {label:'Stride Length',             unit:'cm',    median_elite: 147, per_1mph: 12.7,importance:'high'},  // v5.40: in → cm (58 in × 2.54)
+      // v5.40: AE = Above Expected = 실제 CoG_Decel − 회귀 예측값 (KR cohort 회귀선 기반)
+      //   잔차 statistic: KR n=103 cohort, median≈+0.012, sd=0.133 m/s, Driveline 영문 sample 0.02 m/s
+      cog_decel_ae:         {label:'CoG Decel AE (Above Expected)', unit:'m/s', median_elite: 0.02, per_1mph: 0.35, importance:'med'},
       lead_knee_ext_velo:   {label:'Peak Lead Knee Ext Velo',   unit:'deg/s', median_elite: 316, per_1mph: 103, importance:'low'}
     }
   },
@@ -143,7 +145,7 @@ function drivelineFiveModelDiagnosis(input){
     },
     block: {
       lead_knee_ext:      input.lead_knee_change ?? input.lead_knee_max,
-      stride_length:      input.stride_length_in ?? (input.stride_length ? input.stride_length * 39.37 : null),  // m → in
+      stride_length:      input.stride_length_cm ?? (input.stride_length ? input.stride_length * 100 : null),    // m → cm (v5.40)
       cog_decel_ae:       input.cog_decel_ae ?? null,
       lead_knee_ext_velo: input.lead_knee_ext_velo ?? null
     },

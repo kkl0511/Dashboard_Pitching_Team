@@ -116,18 +116,21 @@
     "fault_count": 1,
     "shoulder_er_max_deg": 175.5,
     "shoulder_abd_fp_deg": 64.4,
-    "scap_load_fp_deg": -41.3,
+    "scap_load_fp_deg": 41.3,
     "elbow_flex_fp_deg": 130.5,
-    "torso_counter_rot_deg": -4.0,
+    "torso_counter_rot_deg": -37.1,
     "trunk_tilt_at_fc_deg": -5.0,
-    "torso_rot_fp_deg": 101.8,
+    "torso_rot_fp_deg": -11.8,
     "trunk_lat_tilt_deg": 34.0,
-    "torso_rot_br_deg": -14.6,
+    "torso_rot_br_deg": 104.6,
     "stride_length_m": 1.511,
     "lead_knee_ext_velo": 471.1
   },
   "cog": {
     "max_velo": 2.8,
-    "decel": 1.77
+    "decel": 1.77,
+    "decel_ae": 0.468,
+    "decel_ae_method": "KR cohort regression: CoG_Decel = 0.0073 × ball_speed_kmh + 0.2687",
+    "decel_ae_predicted": 1.302
   }
 }

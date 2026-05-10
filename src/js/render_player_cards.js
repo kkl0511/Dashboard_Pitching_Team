@@ -287,10 +287,10 @@ function v514_renderMechanicTables(m, p){
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
       lead_knee_change:   m.faults?.lead_knee_change,
-      stride_length:      m.faults?.stride_length_m,
+      stride_length:      m.faults?.stride_length_m,                     // m (driveline.js에서 × 100 → cm)
       lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
-      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
+      cog_decel_ae: m.cog?.decel_ae,      // v5.40: Above Expected = 회귀 잔차 (KR cohort 기반)
       max_cog_velo: m.cog?.max_velo
     });
     if(dvl5){
@@ -984,10 +984,10 @@ function v514_renderSummaryAction(m, p){
       trunk_dps:  m.sequence?.trunk_dps,
       pelvis_dps: m.sequence?.pelvis_dps,
       lead_knee_change:   m.faults?.lead_knee_change,
-      stride_length:      m.faults?.stride_length_m,
+      stride_length:      m.faults?.stride_length_m,                     // m (driveline.js × 100 → cm) v5.40
       lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
       cog_decel:    m.cog?.decel,
-      cog_decel_ae: m.cog?.decel,         // v5.36: Block 모델 alias
+      cog_decel_ae: m.cog?.decel_ae,      // v5.40: Above Expected = 회귀 잔차
       max_cog_velo: m.cog?.max_velo
     });
     const ceil = A.drivelineMechanicalCeiling(dvl5, measured);
