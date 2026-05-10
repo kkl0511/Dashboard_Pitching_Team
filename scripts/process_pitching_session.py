@@ -1006,6 +1006,11 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'consistency_score': 88, 'fault_score': 85,
             'injury_risk': 'low', 'fault_count': 1,
         },
+        # v5.36: CoG (Center of Gravity) — driveline.js cog 모델용
+        'cog': {
+            'max_velo': round(clip('max_cog_velo_m_s', 0.5, 5.0, None), 2) if clip('max_cog_velo_m_s', 0.5, 5.0, None) is not None else None,
+            'decel':    round(clip('cog_decel_m_s',    0.0, 5.0, None), 2) if clip('cog_decel_m_s',    0.0, 5.0, None) is not None else None,
+        },
     }
     return record
 

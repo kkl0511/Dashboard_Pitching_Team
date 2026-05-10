@@ -295,10 +295,13 @@ function renderPlayerView(pid){
     const xs = []; for(let t = -300; t <= 50; t += 5) xs.push(t);
     const series = (t0, pk, s) => xs.map(t => gauss(t, t0, pk, s));
 
-    // 시퀀스 품질 평가 (Driveline 표준 lag 30-60ms)
+    // 시퀀스 품질 평가
+    // v5.36: markered standard (30-60 / 25-45) → markerless KR cohort 분포 기준
+    //   Pelvis→Trunk: KR markerless에서 -10~80ms (p10-p90), markerless 골반 인식 한계 반영
+    //   Trunk→Humerus: KR cohort 60-150ms (xlsx p10-p90 = 60-150)
     const inRange = (v, lo, hi) => v >= lo && v <= hi;
-    const ptOK = inRange(ptLag, 30, 60);
-    const taOK = inRange(taLag, 25, 45);
+    const ptOK = inRange(ptLag, 0, 80);     // markerless ideal acceptable
+    const taOK = inRange(taLag, 40, 130);   // markerless ideal acceptable
     const okCount = (ptOK ? 1 : 0) + (taOK ? 1 : 0);
     let quality, qColor, qLabel, qBg;
     if(okCount === 2)      { quality = 'good';   qColor = '#1a7f37'; qLabel = '✅ 좋은 시퀀스';   qBg = '#dafbe1'; }

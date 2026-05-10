@@ -73,6 +73,7 @@ function applyTheiaRecord(rec){
     grf:      b.grf      ? {...(cur.grf||{}), ...b.grf}      : cur.grf,
     faults:   b.faults   ? {...cur.faults, ...b.faults}   : cur.faults,
     fitness:  b.fitness  ? mergeFitness(cur.fitness, b.fitness) : cur.fitness,
+    cog:      b.cog      ? {...(cur.cog||{}), ...b.cog}      : cur.cog,   // v5.36
   };
   // analytics.js — 실측 데이터를 통계 모듈로 재계산
   enrichWithAnalytics(merged);

@@ -85,8 +85,11 @@ const DRIVELINE_5_MODELS = {
     sub:   '무게중심 이동 — Drive 속도/감속',
     velo_rank: 3, ae_rank: 5, weight: 0.20,
     metrics: {
-      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.61, per_1mph: 0.15, importance:'high'},
-      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.84, per_1mph: 0.35, importance:'med'}
+      // v5.36: KR markerless 보정 (xlsx 가공값 p50 기준)
+      //   markered Driveline standard: cog_decel 1.61, max_cog_velo 2.84
+      //   KR markerless cohort: cog_decel p50=1.32, max_cog_velo p50=2.50 — 시스템 차이 + selection effect
+      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.32, per_1mph: 0.10, importance:'high'},
+      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.50, per_1mph: 0.20, importance:'med'}
     }
   }
 };

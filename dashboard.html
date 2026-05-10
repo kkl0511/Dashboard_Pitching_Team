@@ -1504,8 +1504,11 @@ const DRIVELINE_5_MODELS = {
     sub:   '무게중심 이동 — Drive 속도/감속',
     velo_rank: 3, ae_rank: 5, weight: 0.20,
     metrics: {
-      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.61, per_1mph: 0.15, importance:'high'},
-      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.84, per_1mph: 0.35, importance:'med'}
+      // v5.36: KR markerless 보정 (xlsx 가공값 p50 기준)
+      //   markered Driveline standard: cog_decel 1.61, max_cog_velo 2.84
+      //   KR markerless cohort: cog_decel p50=1.32, max_cog_velo p50=2.50 — 시스템 차이 + selection effect
+      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.32, per_1mph: 0.10, importance:'high'},
+      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.50, per_1mph: 0.20, importance:'med'}
     }
   }
 };
@@ -5768,10 +5771,13 @@ function renderPlayerView(pid){
     const xs = []; for(let t = -300; t <= 50; t += 5) xs.push(t);
     const series = (t0, pk, s) => xs.map(t => gauss(t, t0, pk, s));
 
-    // 시퀀스 품질 평가 (Driveline 표준 lag 30-60ms)
+    // 시퀀스 품질 평가
+    // v5.36: markered standard (30-60 / 25-45) → markerless KR cohort 분포 기준
+    //   Pelvis→Trunk: KR markerless에서 -10~80ms (p10-p90), markerless 골반 인식 한계 반영
+    //   Trunk→Humerus: KR cohort 60-150ms (xlsx p10-p90 = 60-150)
     const inRange = (v, lo, hi) => v >= lo && v <= hi;
-    const ptOK = inRange(ptLag, 30, 60);
-    const taOK = inRange(taLag, 25, 45);
+    const ptOK = inRange(ptLag, 0, 80);     // markerless ideal acceptable
+    const taOK = inRange(taLag, 40, 130);   // markerless ideal acceptable
     const okCount = (ptOK ? 1 : 0) + (taOK ? 1 : 0);
     let quality, qColor, qLabel, qBg;
     if(okCount === 2)      { quality = 'good';   qColor = '#1a7f37'; qLabel = '✅ 좋은 시퀀스';   qBg = '#dafbe1'; }
@@ -7969,6 +7975,7 @@ function applyTheiaRecord(rec){
     grf:      b.grf      ? {...(cur.grf||{}), ...b.grf}      : cur.grf,
     faults:   b.faults   ? {...cur.faults, ...b.faults}   : cur.faults,
     fitness:  b.fitness  ? mergeFitness(cur.fitness, b.fitness) : cur.fitness,
+    cog:      b.cog      ? {...(cur.cog||{}), ...b.cog}      : cur.cog,   // v5.36
   };
   // analytics.js — 실측 데이터를 통계 모듈로 재계산
   enrichWithAnalytics(merged);
