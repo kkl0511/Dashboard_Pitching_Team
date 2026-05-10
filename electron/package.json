@@ -1,0 +1,66 @@
+{
+  "name": "bbl-pitching-dashboard",
+  "version": "5.40.0",
+  "description": "상동고 투구 리포트 — Dashboard v5.40 (Driveline 5 모델 + ETE + GRF) — Electron 데스크탑 앱",
+  "author": "BBL Lab — kklee@kookmin.ac.kr",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "prep": "node build-prep.js",
+    "start": "node build-prep.js && electron .",
+    "dist": "node build-prep.js && electron-builder",
+    "dist:win": "node build-prep.js && electron-builder --win",
+    "dist:mac": "node build-prep.js && electron-builder --mac",
+    "dist:linux": "node build-prep.js && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.biomotion.bbl-pitching-dashboard",
+    "productName": "상동고 투구 리포트",
+    "directories": { "output": "dist" },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "dashboard.html",
+      "icon.png",
+      "scripts/**/*",
+      "src/**/*",
+      "assets/**/*",
+      "docs/**/*"
+    ],
+    "extraResources": [
+      { "from": "../docs/V3D_Export_Manual_상동고_v1.0.docx", "to": "manual.docx" },
+      { "from": "../docs/V3D_Manual_상동고_v1.0.docx",        "to": "v3d_manual.docx" }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "상동고 투구 리포트"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "icon": "icon.png",
+      "identity": null
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Education",
+      "icon": "icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  }
+}

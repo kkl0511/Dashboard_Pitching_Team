@@ -200,7 +200,23 @@ def parse_theia_trial(path):
                     and br_event > fc_event and br_event > 100
                     and fc_event > 50)
     if not event_valid:
-        # FP1 (lead) main active block으로 추정
+        # v5.41 fallback 1: 분절 humerus peak 기준 (BR 근사 = humerus_peak, FC = BR - 200ms)
+        #   가장 robust — Trial 6 같이 분절 데이터와 GRF 데이터가 시간적으로 분리된 case에 필수
+        #   trial 6: 분절 [1, 1259) vs GRF [3891, 4674) — 다른 motion!
+        humerus_arr = col_by_name('Pitching_Humerus_Ang_Vel_Z')
+        if humerus_arr:
+            # boundary noise 제외 (frame 50~end-10)
+            valid = [(i, abs(v)) for i, v in enumerate(humerus_arr)
+                     if v is not None and v != 0 and 50 <= i < len(humerus_arr) - 10]
+            if valid:
+                peak_frame = max(valid, key=lambda x: x[1])[0]
+                br_event = peak_frame
+                fc_event = max(50, peak_frame - 60)   # 200ms back from BR
+                event_valid = True
+
+    if not event_valid:
+        # v5.41 fallback 2: FP1 (lead) main active block — Theia tracking 실패 시 마지막 보루
+        #   max_frames=1500 (5s @300Hz) 상한 — 진짜 standing 케이스 제외
         fp1z = col_by_name('FP1_Z')
         if fp1z and len(fp1z) > 100:
             blocks = []
@@ -213,11 +229,12 @@ def parse_theia_trial(path):
                         if i - s >= 30: blocks.append((s, i))   # 100ms+ active block
                         in_b = False
             if in_b and len(fp1z) - s >= 30: blocks.append((s, len(fp1z)))
-            if blocks:
-                main_block = max(blocks, key=lambda b: b[1]-b[0])
+            realistic_blocks = [b for b in blocks if (b[1] - b[0]) <= 1500]
+            chosen_blocks = realistic_blocks if realistic_blocks else blocks
+            if chosen_blocks:
+                main_block = max(chosen_blocks, key=lambda b: b[1]-b[0])
                 fc_event = main_block[0] + 5   # block start = FC 근사
-                # BR 추정: lead block start + 100ms (typical FC→BR duration)
-                br_event = min(len(data_rows)-1, main_block[0] + 30)
+                br_event = min(len(data_rows)-1, main_block[0] + 60)   # FC + 200ms
                 event_valid = True
 
     if event_valid:
@@ -431,8 +448,17 @@ def parse_theia_trial(path):
     GRF_THR = 50.0  # N
     DRIVE_LOOKBACK_MS = 700   # v5.34 lead_start 직전 700ms를 drive push-off 윈도우로 (xlsx 검증)
 
-    def _find_main_active_block(arr, threshold=GRF_THR, min_frames=10):
-        """v5.34: force plate Z의 가장 긴 contiguous active block 검출 (event-free)"""
+    def _find_main_active_block(arr, threshold=GRF_THR, min_frames=10, max_frames=1500,
+                                 motion_peak_frame=None, min_peak=440.0):
+        """v5.34: force plate Z의 가장 긴 contiguous active block 검출 (event-free)
+        v5.41:
+            · motion_peak_frame: kinematic peak 포함 block 우선 (진짜 motion 식별)
+            · min_peak=440N (~0.5 BW): block 내 peak Z 최소 강도 검증
+                trial 10 case: Block 0 [0,4186) 14초 active 하지만 max=244N (lead foot
+                plate 가장자리에 살짝 닿은 상태) → 진짜 lead strike 아님. min_peak 미달 시
+                다른 block 후보로 fall-through.
+            · max_frames=1500 (5s): motion_peak/min_peak 모두 안 맞을 때 standing 제외.
+        """
         if not arr: return (None, None)
         blocks = []
         in_b = False; s = 0
@@ -446,10 +472,29 @@ def parse_theia_trial(path):
         if in_b and len(arr) - s >= min_frames:
             blocks.append((s, len(arr)))
         if not blocks: return (None, None)
-        return max(blocks, key=lambda b: b[1] - b[0])
+        def block_peak(b):
+            seg = [v for v in arr[b[0]:b[1]] if v is not None]
+            return max(seg) if seg else 0
+        # v5.41 우선순위 1: motion peak 포함 + peak Z ≥ min_peak (진짜 strike)
+        if motion_peak_frame is not None:
+            containing = [b for b in blocks if b[0] <= motion_peak_frame <= b[1]
+                          and block_peak(b) >= min_peak]
+            if containing:
+                return max(containing, key=lambda b: b[1] - b[0])
+        # v5.41 우선순위 2: peak Z ≥ min_peak + standing 제외
+        valid = [b for b in blocks if block_peak(b) >= min_peak
+                 and (b[1] - b[0]) <= max_frames]
+        if valid:
+            return max(valid, key=lambda b: b[1] - b[0])
+        # v5.41 우선순위 3: peak 검증 완화 (마지막 보루)
+        realistic = [b for b in blocks if (b[1] - b[0]) <= max_frames]
+        chosen = realistic if realistic else blocks
+        return max(chosen, key=lambda b: b[1] - b[0])
 
     # v5.34: Lead block — FP1_Z의 가장 긴 활성 구간 (event 무관)
-    lead_start, lead_end = _find_main_active_block(lead_z_arr_ts)
+    # v5.41: motion peak (humerus peak) 포함 block 우선 선택 — trial 10 14s motion 정확 식별
+    motion_peak_for_lead = p_humerus if p_humerus is not None else (br_event if event_valid else None)
+    lead_start, lead_end = _find_main_active_block(lead_z_arr_ts, motion_peak_frame=motion_peak_for_lead)
 
     # v5.34: Drive phase — Lead 시작 직전 700ms 윈도우 (xlsx 검증으로 peak 정합)
     drive_start = drive_end = None

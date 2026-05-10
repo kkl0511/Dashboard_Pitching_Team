@@ -49,7 +49,8 @@ const JS_MODULES = [
   'js/io_c3d.js',
   'js/io_csv.js',
   'js/io_storage.js',
-  'js/reports_init.js'
+  'js/reports_init.js',
+  'js/electron_bridge.js'   // v5.40: Electron 데스크탑 앱 통합 (브라우저에서는 inert)
 ];
 
 function read(rel) {

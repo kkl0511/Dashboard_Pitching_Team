@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>상동고 투구 리포트 — 다운로드</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:'맑은 고딕','Apple SD Gothic Neo',-apple-system,sans-serif;
+  margin:0;padding:0;background:#f6f8fa;color:#1f2328;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 24px}
+header{text-align:center;margin-bottom:32px;padding:24px 0;border-bottom:3px solid #2563EB}
+header h1{margin:0 0 8px;font-size:32px;color:#1f3864}
+header .sub{color:#656d76;font-size:14px}
+.tag{display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;
+  font-weight:600;background:#ddf4ff;color:#0969da;margin:0 4px}
+.section{background:#fff;border:1px solid #d0d7de;border-radius:8px;
+  padding:24px;margin-bottom:20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.section h2{margin:0 0 6px;color:#0969da;font-size:20px;border-bottom:2px solid #0969da;padding-bottom:8px}
+.section .desc{color:#656d76;font-size:13px;margin-bottom:14px}
+.dl-card{display:flex;align-items:center;gap:14px;padding:14px;
+  background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;margin-bottom:10px;
+  text-decoration:none;color:inherit;transition:all .15s}
+.dl-card:hover{background:#ddf4ff;border-color:#0969da;transform:translateY(-1px)}
+.dl-card .icon{font-size:32px;flex:0 0 50px;text-align:center}
+.dl-card .info{flex:1}
+.dl-card .info .title{font-weight:700;font-size:14px;color:#1f2328}
+.dl-card .info .meta{font-size:11.5px;color:#656d76;margin-top:2px}
+.dl-card .size{flex:0 0 90px;text-align:right;font-size:12px;color:#0969da;font-weight:600}
+.btn{display:inline-block;padding:8px 16px;background:#0969da;color:#fff;
+  border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;margin:4px 0}
+.btn:hover{background:#0860c4}
+.btn.green{background:#1a7f37}
+.btn.green:hover{background:#176f30}
+.steps{list-style:none;padding:0;counter-reset:step}
+.steps li{counter-increment:step;padding:10px 14px 10px 50px;position:relative;
+  background:#f6f8fa;border-left:3px solid #0969da;border-radius:4px;margin:6px 0;font-size:13.5px}
+.steps li::before{content:counter(step);position:absolute;left:14px;top:50%;
+  transform:translateY(-50%);width:26px;height:26px;line-height:26px;
+  border-radius:50%;background:#0969da;color:#fff;text-align:center;font-weight:700;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
+th{background:#f6f8fa;padding:8px;text-align:left;font-weight:600;color:#424a53;border-bottom:1px solid #d0d7de}
+td{padding:8px;border-bottom:1px solid #eaeef2}
+.note{padding:10px 14px;background:#fff8c5;border-left:3px solid #d4a72c;
+  border-radius:4px;margin:10px 0;font-size:12.5px;color:#856404}
+.warn{background:#ffebe9;border-left-color:#cf222e;color:#86181d}
+footer{text-align:center;padding:24px;color:#656d76;font-size:12px;border-top:1px solid #d0d7de;margin-top:30px}
+footer a{color:#0969da;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>📥 상동고 투구 리포트 — 다운로드</h1>
+  <div class="sub">
+    <span class="tag">v5.40</span>
+    <span class="tag" style="background:#dafbe1;color:#1a7f37">Driveline 5 모델 + ETE + GRF</span>
+    <span class="tag" style="background:#fff8c5;color:#9a6700">2026-05</span>
+  </div>
+  <div style="margin-top:14px;color:#1f2328;font-size:14px">
+    윈도우 PC 데스크탑 앱 + 샘플 데이터 + 설치 가이드
+  </div>
+</header>
+
+<!-- 1. 윈도우 .exe 설치본 -->
+<div class="section">
+  <h2>🖥 1. 윈도우 데스크탑 앱 (.exe)</h2>
+  <div class="desc">현장 PC 에 한 번 설치하면 인터넷 없이 작동. 측정 폴더 드래그 → 자동 분석 → PDF 일괄 출력.</div>
+
+  <a href="https://github.com/kkl0511/Dashboard_Pitching_Team/releases/latest" class="dl-card" target="_blank">
+    <div class="icon">📦</div>
+    <div class="info">
+      <div class="title">Setup.exe (NSIS 설치본) — GitHub Releases</div>
+      <div class="meta">윈도우 10/11 · 64-bit · 데스크탑 + 시작 메뉴 아이콘 자동 생성</div>
+    </div>
+    <div class="size">~80 MB</div>
+  </a>
+
+  <a href="https://github.com/kkl0511/Dashboard_Pitching_Team/releases/latest" class="dl-card" target="_blank">
+    <div class="icon">⚡</div>
+    <div class="info">
+      <div class="title">Portable.exe (설치 불요)</div>
+      <div class="meta">USB·외장 드라이브에서 직접 실행 가능</div>
+    </div>
+    <div class="size">~80 MB</div>
+  </a>
+
+  <div class="note">
+    💡 <b>Setup.exe 가 GitHub Releases 페이지에 없으면?</b> GitHub Actions 자동빌드가 아직 트리거 안 된 상태.
+    아래 <b>2. 직접 빌드</b> 섹션을 따라 소스에서 .exe 생성하거나,
+    저장소 owner 가 태그 push (예: <code>git tag v5.40 && git push origin v5.40</code>) 하면 자동 빌드됨.
+  </div>
+</div>
+
+<!-- 2. Electron 소스 -->
+<div class="section">
+  <h2>🛠 2. Electron 소스 (직접 빌드용)</h2>
+  <div class="desc">.exe 가 없거나 직접 커스터마이징할 때. Node.js 설치된 PC 에서 <code>npm install + npm run dist:win</code> 으로 빌드.</div>
+
+  <a href="electron_source/Dashboard_Electron_source_v5.40.zip" class="dl-card">
+    <div class="icon">📁</div>
+    <div class="info">
+      <div class="title">Dashboard_Electron_source_v5.40.zip</div>
+      <div class="meta">electron/ + src/ + scripts/ + assets/ + docs/references/ 포함</div>
+    </div>
+    <div class="size">2.5 MB</div>
+  </a>
+
+  <details style="margin-top:14px;background:#f6f8fa;padding:10px 14px;border-radius:4px">
+    <summary style="cursor:pointer;font-weight:600;color:#0969da">📋 빌드 절차 (PowerShell, 약 15분)</summary>
+    <ol class="steps" style="margin-top:14px">
+      <li><b>Node.js 설치</b> — <a href="https://nodejs.org" target="_blank">nodejs.org</a> → LTS 버전 다운로드 → 설치</li>
+      <li><b>소스 압축 해제</b> — Dashboard_Electron_source_v5.40.zip → C:\BBL_Dashboard\</li>
+      <li><b>의존성 설치</b> — <code>cd C:\BBL_Dashboard\electron && npm install</code> (~5분, ~150 MB 다운로드)</li>
+      <li><b>로컬 테스트</b> — <code>npm start</code> → Electron 창 표시되면 정상</li>
+      <li><b>윈도우 빌드</b> — <code>npm run dist:win</code> (~10분)</li>
+      <li><b>결과 확인</b> — electron/dist/ 폴더에 Setup.exe + portable.exe 생성</li>
+    </ol>
+  </details>
+</div>
+
+<!-- 3. 샘플 데이터 -->
+<div class="section">
+  <h2>🧪 3. 검증용 샘플 데이터</h2>
+  <div class="desc">설치 후 동작 검증용. TestPlayer (192cm/91kg/140km/h) 의 9 trial 합성 데이터.</div>
+
+  <a href="c3d_samples/TestPlayer_10trial_c3d.zip" class="dl-card">
+    <div class="icon">📊</div>
+    <div class="info">
+      <div class="title">TestPlayer_10trial_c3d.zip</div>
+      <div class="meta">Theia 마커리스 c3d.txt × 10 trial (압축 해제 후 폴더 통째로 import 가능)</div>
+    </div>
+    <div class="size">6.9 MB</div>
+  </a>
+
+  <a href="rapsodo_samples/rapsodo_TEST_10trial.csv" class="dl-card">
+    <div class="icon">⚾</div>
+    <div class="info">
+      <div class="title">rapsodo_TEST_10trial.csv</div>
+      <div class="meta">Rapsodo 2.0 export 형식 — 10 throw, 구속 + 회전 + IVB/HB</div>
+    </div>
+    <div class="size">1 KB</div>
+  </a>
+
+  <a href="rapsodo_samples/rapsodo_1차_2026-05-15.csv" class="dl-card">
+    <div class="icon">⚾</div>
+    <div class="info">
+      <div class="title">rapsodo_1차_2026-05-15.csv (실제 측정)</div>
+      <div class="meta">상동고 1차 측정 (20명 × 12 throws 누적)</div>
+    </div>
+    <div class="size">16 KB</div>
+  </a>
+
+  <a href="c3d_samples/TestPlayer_processed_record.json" class="dl-card">
+    <div class="icon">🔬</div>
+    <div class="info">
+      <div class="title">TestPlayer_processed_record.json (가공 결과)</div>
+      <div class="meta">process_pitching_session.py 출력 결과 — record JSON 예시</div>
+    </div>
+    <div class="size">4 KB</div>
+  </a>
+
+  <a href="c3d_samples/theia_batch_TEST_9trial.json" class="dl-card">
+    <div class="icon">📦</div>
+    <div class="info">
+      <div class="title">theia_batch_TEST_9trial.json (batch 형식)</div>
+      <div class="meta">대시보드 Theia c3d Import 직접 업로드 가능</div>
+    </div>
+    <div class="size">4 KB</div>
+  </a>
+</div>
+
+<!-- 4. 매뉴얼 + 가이드 -->
+<div class="section">
+  <h2>📖 4. 매뉴얼 + 설치 가이드</h2>
+  <div class="desc">측정 + V3D 처리 + 대시보드 사용까지 단계별 가이드.</div>
+
+  <a href="INSTALL_GUIDE.md" class="dl-card">
+    <div class="icon">📋</div>
+    <div class="info">
+      <div class="title">INSTALL_GUIDE.md — Electron 설치 가이드</div>
+      <div class="meta">Setup.exe 설치 + 직접 빌드 + 첫 측정 워크플로우</div>
+    </div>
+    <div class="size">10 KB</div>
+  </a>
+
+  <a href="../V3D_Export_Manual_상동고_v1.0.docx" class="dl-card">
+    <div class="icon">📄</div>
+    <div class="info">
+      <div class="title">V3D Export Manual v1.0</div>
+      <div class="meta">c3d.txt 후작업 0건 업로드 사양 + Rapsodo 매칭 프로토콜 (10 페이지)</div>
+    </div>
+    <div class="size">31 KB</div>
+  </a>
+
+  <a href="../V3D_Manual_상동고_v1.0.docx" class="dl-card">
+    <div class="icon">🔧</div>
+    <div class="info">
+      <div class="title">V3D 분석 매뉴얼 v1.0</div>
+      <div class="meta">측정 환경 + 캘리브레이션 + 변인 산출 절차 (8 페이지)</div>
+    </div>
+    <div class="size">26 KB</div>
+  </a>
+
+  <a href="../TestPlayer_static_report.html" class="dl-card">
+    <div class="icon">📊</div>
+    <div class="info">
+      <div class="title">TestPlayer 정적 HTML 리포트 예시</div>
+      <div class="meta">분석 결과 미리보기 (마네킹 + 5 모델 + ETE + GRF)</div>
+    </div>
+    <div class="size">67 KB</div>
+  </a>
+</div>
+
+<!-- 5. 빠른 시작 -->
+<div class="section">
+  <h2>🚀 5. 빠른 시작 (요약)</h2>
+  <ol class="steps">
+    <li><b>다운로드</b>: 위 #1 의 Setup.exe (또는 #2 의 소스 + 직접 빌드)</li>
+    <li><b>설치</b>: Setup.exe 더블클릭 → 다음·다음·완료</li>
+    <li><b>검증</b>: 위 #3 의 TestPlayer_10trial_c3d.zip 압축 해제 → 앱에서 폴더 import (Ctrl+O)</li>
+    <li><b>확인</b>: 5 모델 라디아 + 마네킹 + ETE + GRF 표시되면 정상</li>
+    <li><b>현장 사용</b>: 매뉴얼 §10 (Rapsodo 매칭 프로토콜) 읽고 실제 측정 시작</li>
+  </ol>
+</div>
+
+<!-- 추가 정보 -->
+<div class="section">
+  <h2>🔗 관련 링크</h2>
+  <table>
+    <tr><th>리소스</th><th>위치</th></tr>
+    <tr><td>웹 대시보드 (실시간)</td><td><a href="https://kkl0511.github.io/Dashboard_Pitching_Team/" target="_blank">https://kkl0511.github.io/Dashboard_Pitching_Team/</a></td></tr>
+    <tr><td>GitHub 저장소 (소스)</td><td><a href="https://github.com/kkl0511/Dashboard_Pitching_Team" target="_blank">https://github.com/kkl0511/Dashboard_Pitching_Team</a></td></tr>
+    <tr><td>GitHub Releases (.exe)</td><td><a href="https://github.com/kkl0511/Dashboard_Pitching_Team/releases" target="_blank">/releases</a></td></tr>
+    <tr><td>Issues / 버그 신고</td><td><a href="https://github.com/kkl0511/Dashboard_Pitching_Team/issues" target="_blank">/issues</a></td></tr>
+  </table>
+</div>
+
+<footer>
+  <b>상동고 투구 리포트</b> · v5.40 · 국민대학교 스포츠과학과 · <a href="mailto:kklee@kookmin.ac.kr">kklee@kookmin.ac.kr</a><br>
+  바이오모션 베이스볼 랩 (BBL) · 2026
+</footer>
+
+</div>
+</body>
+</html>
