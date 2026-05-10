@@ -23,9 +23,34 @@ const path = require('path');
 const ROOT = path.dirname(__dirname);
 const SRC = path.join(ROOT, 'src');
 
-// 모듈 합성 순서 (의존성 순):  driveline → analytics → data → render → io → reports_init
-// v5.25: driveline.js를 analytics.js보다 먼저 로드 (ANALYTICS export에 통합되도록)
-const JS_MODULES = ['js/driveline.js', 'js/analytics.js', 'js/data.js', 'js/render.js', 'js/io.js', 'js/reports_init.js'];
+// 모듈 합성 순서 (의존성 순):  driveline → analytics_* → data → render_* → io_* → reports_init
+// v5.25: driveline.js를 analytics보다 먼저 로드 (ANALYTICS export에 통합되도록)
+// v5.26: render.js (2,458줄) → 5개 모듈로 분리
+// v5.27: analytics.js (2,233줄) → 3개, io.js (1,248줄) → 4개로 분리
+//        analytics_velocity   속도 모델·진단 (OBP/KR/Driveline + 4·5·6축 진단)
+//        analytics_fitness    VALD·Grade benchmarks + 통계 헬퍼
+//        analytics_mechanic   ELI·GRF·Stuff·Composite + ANALYTICS export
+//        io_apply             Theia JSON apply + analytics enrichment
+//        io_c3d               c3d.txt 파서 + 합성 + JSON zone
+//        io_csv               VALD/Rapsodo CSV 파서
+//        io_storage           localStorage
+const JS_MODULES = [
+  'js/driveline.js',
+  'js/analytics_velocity.js',
+  'js/analytics_fitness.js',
+  'js/analytics_mechanic.js',
+  'js/data.js',
+  'js/render_m1.js',
+  'js/render_player.js',
+  'js/render_player_cards.js',
+  'js/render_long.js',
+  'js/render_common.js',
+  'js/io_apply.js',
+  'js/io_c3d.js',
+  'js/io_csv.js',
+  'js/io_storage.js',
+  'js/reports_init.js'
+];
 
 function read(rel) {
   return fs.readFileSync(path.join(SRC, rel), 'utf8');
