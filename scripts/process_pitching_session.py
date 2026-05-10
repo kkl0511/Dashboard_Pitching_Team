@@ -333,26 +333,44 @@ def parse_theia_trial(path):
     # peak forearm v (현재 미추출 → 신규)
     peak_forearm_v_val = safe_max_abs(col_by_name_window('R_Forearm_Ang_Vel_Z'))
 
-    # ─── GRF 수평 + 임펄스 + 타이밍 (v5.32 사용자 매핑 + 좌표계 robust) ───
+    # ─── GRF 수평 + 임펄스 + 타이밍 (v5.34 event-free detection) ───
+    # v5.34 핵심 변경: Footstrike/Release event 신뢰 X — c3d.txt에 multiple motions 존재 시
+    #   잘못된 event로 windowing이 빗나감. force plate 활성 구간을 직접 검출.
     fp1_x_arr = col_by_name('FP1_X'); fp1_y_arr = col_by_name('FP1_Y'); fp1_z_arr = col_by_name('FP1_Z')
     fp2_x_arr = col_by_name('FP2_X'); fp2_y_arr = col_by_name('FP2_Y'); fp2_z_arr = col_by_name('FP2_Z')
 
-    # v5.32: FP1=lead(앞발), FP2=drive(뒷발) — 강제 매핑
+    # v5.32: FP1=lead(앞발), FP2=drive(뒷발) — 강제 매핑 (사용자 confirmed)
     lead_y_arr_ts, lead_z_arr_ts = fp1_y_arr, fp1_z_arr
     drive_y_arr_ts, drive_z_arr_ts = fp2_y_arr, fp2_z_arr
 
     GRF_THR = 50.0  # N
+    DRIVE_LOOKBACK_MS = 700   # v5.34 lead_start 직전 700ms를 drive push-off 윈도우로 (xlsx 검증)
 
-    # ─── Drive leg 동적 윈도우 (FC 이전 main push-off) ───
+    def _find_main_active_block(arr, threshold=GRF_THR, min_frames=10):
+        """v5.34: force plate Z의 가장 긴 contiguous active block 검출 (event-free)"""
+        if not arr: return (None, None)
+        blocks = []
+        in_b = False; s = 0
+        for i, v in enumerate(arr):
+            if v is not None and v > threshold:
+                if not in_b: in_b = True; s = i
+            else:
+                if in_b:
+                    if i - s >= min_frames: blocks.append((s, i))
+                    in_b = False
+        if in_b and len(arr) - s >= min_frames:
+            blocks.append((s, len(arr)))
+        if not blocks: return (None, None)
+        return max(blocks, key=lambda b: b[1] - b[0])
+
+    # v5.34: Lead block — FP1_Z의 가장 긴 활성 구간 (event 무관)
+    lead_start, lead_end = _find_main_active_block(lead_z_arr_ts)
+
+    # v5.34: Drive phase — Lead 시작 직전 700ms 윈도우 (xlsx 검증으로 peak 정합)
     drive_start = drive_end = None
-    if drive_z_arr_ts and fc_event is not None:
-        active_pre = [(v is not None and v > GRF_THR) for v in drive_z_arr_ts[:fc_event]]
-        end_idx = len(active_pre) - 1
-        while end_idx >= 0 and not active_pre[end_idx]: end_idx -= 1
-        if end_idx >= 0:
-            start_idx = end_idx
-            while start_idx > 0 and active_pre[start_idx-1]: start_idx -= 1
-            drive_start, drive_end = start_idx, end_idx + 1  # exclusive
+    if drive_z_arr_ts and lead_start is not None:
+        drive_start = max(0, lead_start - int(DRIVE_LOOKBACK_MS/1000 * fs_in_c3d))
+        drive_end = lead_start   # exclusive
 
     # v5.32: Drive propulsive — |Y| 절댓값 (좌표계 부호 robust, mound축 정의 무관)
     #   드라이브 Y의 dominant 방향(±)을 자동 검출 후 그 방향 force만 적분
@@ -378,19 +396,8 @@ def parse_theia_trial(path):
                 if len(seg_y) > 1:
                     drive_peak_time_pct = peak_idx_local / max(1, len(seg_y)-1) * 100
 
-    # ─── Lead leg 동적 윈도우 (FC ~ Lead leg toe-off) ───
-    # 기존 BR+30 frames 고정 → BR 이후 FP1_Z<threshold 첫 frame까지 동적 확장
-    lead_start = fc_event if fc_event is not None else None
-    lead_end = None
-    if lead_z_arr_ts and fc_event is not None and br_event is not None:
-        # BR 이후 FP1_Z<THR 첫 frame (lead leg가 force plate에서 떠나는 시점)
-        for i in range(br_event, min(len(lead_z_arr_ts), br_event + int(0.5*fs_in_c3d))):
-            v = lead_z_arr_ts[i]
-            if v is None or v < GRF_THR:
-                lead_end = i
-                break
-        if lead_end is None:
-            lead_end = min(len(lead_z_arr_ts), br_event + int(0.5*fs_in_c3d))   # fallback BR+500ms
+    # ─── Lead leg 동적 윈도우 — v5.34: lead_start/lead_end는 위에서 _find_main_active_block로 이미 결정됨
+    # (event-free detection — Footstrike/Release event 신뢰 X)
 
     # v5.32: Lead braking — |Y| 절댓값 + dominant 방향 자동 검출
     lead_brake_peak_n = lead_brake_impulse_ns = lead_brake_peak_ms = lead_block_dur_ms = None
@@ -425,7 +432,7 @@ def parse_theia_trial(path):
     # v5.29: NewtForce 핵심 추가 변인 — Turning Point Z, Lead Leg Negative Y, Time of Transfer
     # 출처: Florida Baseball Armory "Force Plate Metrics Chart Guide" (NewtForce 표준)
     # ═════════════════════════════════════════
-    # back_z_peak_frame — drive leg Z의 peak 시점
+    # back_z_peak_frame — drive leg Z의 peak (drive phase 내, lead 시작 직전 700ms)
     back_z_peak_frame = None
     back_z_peak_n = None
     if drive_z_arr_ts and drive_start is not None and drive_end is not None:
@@ -437,43 +444,40 @@ def parse_theia_trial(path):
                 back_z_peak_frame = drive_start + z_arr_clean.index(max_v)
                 back_z_peak_n = max_v
 
-    # lead_z_peak_frame — lead leg Z의 peak 시점 (FC ~ BR+30)
+    # v5.34 lead_z_peak_frame — lead block 내 Z peak (event-free)
     lead_z_peak_frame = None
     lead_z_peak_n = None
-    if lead_z_arr_ts and fc_event is not None and br_event is not None:
-        end_lead = min(len(lead_z_arr_ts), br_event + 30)
-        seg_z = lead_z_arr_ts[fc_event:end_lead]
+    if lead_z_arr_ts and lead_start is not None and lead_end is not None:
+        seg_z = lead_z_arr_ts[lead_start:lead_end]
         if seg_z:
             z_arr_clean = [v if v is not None else 0 for v in seg_z]
             max_v = max(z_arr_clean)
             if max_v > 0:
-                lead_z_peak_frame = fc_event + z_arr_clean.index(max_v)
+                lead_z_peak_frame = lead_start + z_arr_clean.index(max_v)
                 lead_z_peak_n = max_v
 
     # 1) Turning Point Z (NewtForce #3) — drive leg push 후 lead leg 착지 직전 minimum Z
-    #    drive_z_peak_frame ~ FC 사이의 minimum Z (drive leg 잠깐 unloading 시점)
+    #    drive_z_peak_frame ~ lead_start 사이의 minimum Z (drive leg 잠깐 unloading 시점)
     turning_point_z_n = None
     turning_point_z_frame = None
-    if drive_z_arr_ts and back_z_peak_frame is not None and fc_event is not None:
-        if fc_event > back_z_peak_frame:
-            seg = drive_z_arr_ts[back_z_peak_frame:fc_event]
+    if drive_z_arr_ts and back_z_peak_frame is not None and lead_start is not None:
+        if lead_start > back_z_peak_frame:
+            seg = drive_z_arr_ts[back_z_peak_frame:lead_start]
             seg_clean = [v for v in seg if v is not None]
             if seg_clean:
                 turning_point_z_n = min(seg_clean)
-                # frame 위치
                 seg_arr = [v if v is not None else turning_point_z_n for v in seg]
                 turning_point_z_frame = back_z_peak_frame + seg_arr.index(turning_point_z_n)
 
-    # 2) Lead Leg Negative Y (NewtForce #10) — claw back 후 lead leg Y의 max
-    #    BR 후부터 trial 끝까지 (또는 fp_active 종료까지)에서 lead Y의 max (positive 방향)
-    lead_neg_y_n = None  # NewtForce 명명상 'Negative Y'지만 실제로 max Y in claw back phase
-    lead_neg_y_ms_after_br = None
-    if lead_y_arr_ts and br_event is not None:
-        end_search = min(len(lead_y_arr_ts), br_event + int(0.5 * fs_in_c3d))  # BR 후 500ms
-        seg = lead_y_arr_ts[br_event:end_search]
+    # 2) Lead Leg Negative Y (NewtForce #10) — lead_end 이후 (lead leg toe-off 후) lead Y의 dominant max
+    #    v5.34: BR 신뢰 X — lead block 종료 후를 사용
+    lead_neg_y_n = None
+    lead_neg_y_ms_after_br = None   # 명칭 유지 (UI 호환), 실제는 'after lead_end'
+    if lead_y_arr_ts and lead_end is not None:
+        end_search = min(len(lead_y_arr_ts), lead_end + int(0.5 * fs_in_c3d))
+        seg = lead_y_arr_ts[lead_end:end_search]
         seg_clean = [v for v in seg if v is not None]
         if seg_clean:
-            # positive direction으로 max — lead leg가 claw back하면서 발생
             max_v = max(seg_clean)
             if max_v > 0:
                 lead_neg_y_n = max_v

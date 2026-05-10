@@ -64,7 +64,9 @@ const DRIVELINE_5_MODELS = {
     velo_rank: 4, ae_rank: 3, weight: 0.18,
     metrics: {
       torso_rot_velo:  {label:'Torso Rotation Velo',  unit:'deg/s', median_elite: 965, per_1mph: 40,  importance:'high'},
-      pelvis_rot_velo: {label:'Pelvis Rotation Velo', unit:'deg/s', median_elite: 597, per_1mph: 128, importance:'low'}
+      // v5.33: markerless Theia의 골반 인식 정확도 한계 — importance 'low' 유지 + 명시
+      //   KR cohort에서 Pelvis ω peak는 marker 대비 -15% 작게 측정 (system difference)
+      pelvis_rot_velo: {label:'Pelvis Rotation Velo', unit:'deg/s', median_elite: 597, per_1mph: 128, importance:'low', markerless_caveat:'Pelvis 인식 정확도 한계로 가중치 낮음'}
     }
   },
   block: {
@@ -392,6 +394,10 @@ const SEGMENT_TRANSITION_REF = {
     label_kr: '골반 → 몸통',
     label_en: 'Pelvis → Trunk',
     description: 'X-factor 분리 후 몸통 회전 점화',
+    // v5.33 weight 0.5 — markerless Theia의 골반(Pelvis) 인식 정확도 한계
+    //   Pelvis ω peak 자체가 marker 대비 -15% 작게, lag 검출도 fork (KR 코드 37ms vs xlsx 7ms)
+    //   따라서 종합 점수에서 골반 의존 변인은 가중치를 낮춰 수용
+    weight: 0.5,
     // v5.30 OBP 90+ mph cohort 검증: timing_peak_torso_to_peak_pelvis_rot_velo
     //   p10=-5.5ms, p50=8.3ms, p90=19.4ms — markerless Theia 표준 (markered Aguinaldo 2007의 30-50ms와 다름)
     lag_ideal_ms: [-5, 25],
@@ -401,7 +407,8 @@ const SEGMENT_TRANSITION_REF = {
     fault_too_fast: '음수 lag — trunk peak이 pelvis보다 일찍 (snap 형태, 일부 elite도 보임)',
     fault_too_slow: '너무 느림 — 몸통 점화 지연 (timing 손실)',
     fault_low_gain: '몸통 가속 부족 — 코어/회전근 출력 약함',
-    citation: 'Aguinaldo 2007 (markered) + OBP 90+ cohort (markerless)'
+    citation: 'Aguinaldo 2007 (markered) + OBP 90+ cohort (markerless)',
+    markerless_caveat: '⚠ markerless 골반 인식 한계 반영 (가중치 0.5)'
   },
 
   // T2: Trunk → Humerus (shoulder loading & internal rotation)
@@ -409,6 +416,7 @@ const SEGMENT_TRANSITION_REF = {
     label_kr: '몸통 → 위팔',
     label_en: 'Trunk → Humerus',
     description: '몸통 회전 → 어깨 가속 (내회전 점화)',
+    weight: 1.0,   // 신뢰도 높음 — KR cohort (xlsx 83ms vs 우리코드 73ms) 정합
     // v5.31 KR markerless cohort 검증: trunk_to_arm p10-p90 = 60-150ms, p50 = 83ms
     //   markered Werner 2008의 20-40ms는 marker-based reference, markerless는 더 김
     lag_ideal_ms: [50, 110],
@@ -426,6 +434,7 @@ const SEGMENT_TRANSITION_REF = {
     label_kr: '위팔 → 아래팔',
     label_en: 'Humerus → Forearm',
     description: '어깨 내회전 + 팔꿈치 신전 결합',
+    weight: 1.0,
     lag_ideal_ms: [10, 25],
     lag_acceptable_ms: [5, 35],
     speed_gain_ideal: [1.10, 1.40],   // forearm_ω / humerus_ω (≥1 — 추가 가속)
@@ -440,6 +449,7 @@ const SEGMENT_TRANSITION_REF = {
     label_kr: '아래팔 → 손',
     label_en: 'Forearm → Hand',
     description: '손목 snap — 최종 ball velocity 가산',
+    weight: 1.0,
     lag_ideal_ms: [5, 15],
     lag_acceptable_ms: [0, 25],
     speed_gain_ideal: [1.00, 1.30],
@@ -515,25 +525,43 @@ function segmentTransitionETE(input = {}){
       lag_status: lagStatus,
       lag_fault: lagFault,
       score: combined != null ? Math.round(combined) : null,
+      weight: ref.weight ?? 1.0,                                // v5.33
+      markerless_caveat: ref.markerless_caveat || null,
       citation: ref.citation
     };
   }
 
-  // bottleneck 식별 (가장 낮은 score = 가장 큰 누수)
-  let bottleneck = null, minScore = 999;
+  // v5.33: bottleneck 식별 — score를 weight로 정규화 (낮은 weight transition은 bottleneck 후보 가중치 작음)
+  //   markerless 골반 인식 한계로 인한 false positive 방지
+  let bottleneck = null, minWeightedScore = Infinity;
   for(const [key, t] of Object.entries(out)){
-    if(t.score != null && t.score < minScore){
-      minScore = t.score;
-      bottleneck = key;
+    if(t && typeof t === 'object' && t.score != null && t.weight != null){
+      // weighted score = score × weight (낮은 weight transition은 bottleneck 식별 우선순위 ↓)
+      // 즉 weight=0.5인 pelvis_to_trunk가 score=50이어도 weighted=25이지만,
+      // weight=1.0인 다른 transition이 score=40이면 weighted=40 → 다른 transition이 bottleneck
+      // 정확히는 (1 - score)*weight 가 큰 쪽이 bottleneck (가장 큰 누수)
+      const lossWeighted = (100 - t.score) * t.weight;
+      const sortKey = -lossWeighted;   // 큰 loss = 작은 sortKey = bottleneck 후보
+      if(sortKey < minWeightedScore){
+        minWeightedScore = sortKey;
+        bottleneck = key;
+      }
     }
   }
   out.bottleneck = bottleneck;
   out.bottleneck_label = bottleneck ? out[bottleneck].label_kr : null;
   out.bottleneck_score = bottleneck ? out[bottleneck].score : null;
+  out.bottleneck_weight = bottleneck ? out[bottleneck].weight : null;
 
-  // 종합 점수
-  const scores = Object.values(out).filter(x => x && typeof x === 'object' && x.score != null).map(x => x.score);
-  out.overall_score = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : null;
+  // v5.33: 종합 점수 — weighted average (markerless 한계 변인 가중치 낮춤)
+  let weightedSum = 0, weightSum = 0;
+  for(const t of Object.values(out)){
+    if(t && typeof t === 'object' && t.score != null && t.weight != null){
+      weightedSum += t.score * t.weight;
+      weightSum   += t.weight;
+    }
+  }
+  out.overall_score = weightSum > 0 ? Math.round(weightedSum / weightSum) : null;
 
   return out;
 }
