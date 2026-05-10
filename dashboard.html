@@ -7,16 +7,47 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
-    --bg:#fafbfc; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de;
-    --line-soft:#eaeef2;
-    --text:#1f2328; --text-soft:#424a53; --muted:#656d76;
-    --accent:#0969da; --accent-bg:#ddf4ff; --accent2:#8250df;
-    --good:#1a7f37; --good-bg:#dafbe1;
-    --warn:#9a6700; --warn-bg:#fff8c5;
-    --bad:#cf222e; --bad-bg:#ffebe9;
-    --neutral:#6e7781;
-    --theia:#0969da; --uplift:#8250df;
-    --shadow:0 1px 3px rgba(31,35,40,.06), 0 1px 2px rgba(31,35,40,.04);
+    /* v5.42 — Linear 풍 디자인 토큰 (회색 9단계 + accent B + score Y + shadow 제거) */
+    /* 회색 스케일 (Tailwind neutral 풍, 모든 무채색 단일 출처) */
+    --gray-50: #fafafa;
+    --gray-100:#f5f5f5;
+    --gray-200:#e5e5e5;
+    --gray-300:#d4d4d4;
+    --gray-400:#a3a3a3;
+    --gray-500:#737373;
+    --gray-600:#525252;
+    --gray-700:#404040;
+    --gray-800:#262626;
+    --gray-900:#171717;
+
+    /* 기본 (회색 스케일 alias) */
+    --bg:        var(--gray-50);
+    --panel:     #ffffff;
+    --panel2:    var(--gray-100);
+    --line:      var(--gray-200);
+    --line-soft: #f0f0f0;
+    --text:      var(--gray-900);
+    --text-soft: var(--gray-700);
+    --muted:     var(--gray-500);
+    --neutral:   var(--gray-500);
+
+    /* Accent — 옵션 B (학술 친화 파랑 유지) */
+    --accent:    #0969da;
+    --accent-bg: #ddf4ff;
+    /* --accent2 삭제 권장이나 호환을 위해 회색 alias 로 유지 */
+    --accent2:   var(--gray-700);
+
+    /* 상태 — 옵션 Y (채도 낮춘 traffic-light) */
+    --good:    #166534; --good-bg:#f0fdf4;
+    --warn:    #ca8a04; --warn-bg:#fefce8;
+    --bad:     #991b1b; --bad-bg:#fef2f2;
+
+    /* 프로토콜 (Theia=accent, Uplift=차분한 보라) */
+    --theia:  var(--accent);
+    --uplift: #8b5cf6;
+
+    /* Shadow 제거 — 1px border로 panel 구분 (Linear 풍) */
+    --shadow: none;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text)}
@@ -68,7 +99,7 @@
                 font-weight:600;letter-spacing:.2px;border:1px solid}
   .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#aacaf0}
   .protocol-tag.uplift{background:#fbefff;color:var(--uplift);border-color:#d8b9f0}
-  .protocol-tag.empty{background:#f6f8fa;color:#959da5;border-color:var(--line-soft)}
+  .protocol-tag.empty{background:var(--panel2);color:var(--gray-400);border-color:var(--line-soft)}
   .protocol-tag.fitness{background:#fff3e7;color:#bc4c00;border-color:#fbc996}
 
   /* 진행 현황 그리드 — 선수 수에 따라 --pc 가 JS로 설정됨 */
@@ -98,11 +129,12 @@
   table.heatmap td.empty{background:#f6f8fa;color:#bbb;font-size:11px;border:1px dashed var(--line-soft)}
 
   .cell-score{color:#fff;font-weight:600}
-  .s5{background:#1a7f37}
-  .s4{background:#56a64b}
-  .s3{background:#bf8700;color:#fff}
-  .s2{background:#d1452a;color:#fff}
-  .s1{background:#a40e26}
+  /* v5.42 — Score 5단계 (옵션 Y: 채도 낮춘 traffic-light) */
+  .s5{background:#166534}
+  .s4{background:#4d7c0f}
+  .s3{background:#ca8a04;color:#fff}
+  .s2{background:#c2410c;color:#fff}
+  .s1{background:#991b1b}
 
   table.data{width:100%;border-collapse:collapse;font-size:12.5px}
   table.data thead th{background:var(--panel2);padding:9px 10px;text-align:left;

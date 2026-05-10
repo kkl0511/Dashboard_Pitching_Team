@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KBO 프로팀 대시보드 디자인 5종 비교 (v5.41 base)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  /* ── 글로벌 ── */
+  :root {
+    --page-bg: #f3f4f6;
+    --section-pad: 32px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--page-bg);
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "SF Pro KR", sans-serif;
+    color: #18181b;
+  }
+  .doc-header {
+    padding: 28px 48px;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .doc-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .doc-header .sub {
+    color: #737373;
+    font-size: 13px;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #525252;
+  }
+  .legend > div {
+    padding: 4px 10px;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+  .legend b { color: #18181b; font-weight: 600; }
+
+  .design-section {
+    padding: var(--section-pad);
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .design-section h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .design-section .meta {
+    font-size: 12px;
+    color: #737373;
+    margin-bottom: 24px;
+  }
+  .design-section .meta b { color: #18181b; }
+
+  /* ════════════════════════════════════════════
+     A. Linear/Apple 미니멀 (현재 v5.42 적용 베이스)
+     ════════════════════════════════════════════ */
+  .style-linear {
+    background: #fafafa;
+    color: #171717;
+    padding: 32px;
+    border-radius: 12px;
+    font-family: "Pretendard", -apple-system, sans-serif;
+  }
+  .style-linear .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 24px;
+  }
+  .style-linear .kpi {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .style-linear .kpi .label { font-size: 12px; color: #737373; font-weight: 500; margin-bottom: 8px; }
+  .style-linear .kpi .value { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; font-feature-settings: "tnum"; }
+  .style-linear .kpi .delta { font-size: 12px; color: #737373; margin-top: 6px; }
+  .style-linear .kpi .delta.up { color: #166534; }
+  .style-linear .kpi .delta.down { color: #991b1b; }
+  .style-linear table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .style-linear th { text-align: left; padding: 10px 12px; background: #f5f5f5; color: #525252; font-weight: 600; font-size: 12px; }
+  .style-linear td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-feature-settings: "tnum"; }
+  .style-linear .score { display: inline-block; padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+  .style-linear .s5 { background: #166534; color: #fff; }
+  .style-linear .s4 { background: #4d7c0f; color: #fff; }
+  .style-linear .s3 { background: #ca8a04; color: #fff; }
+  .style-linear .s2 { background: #c2410c; color: #fff; }
+  .style-linear .s1 { background: #991b1b; color: #fff; }
+
+  /* ════════════════════════════════════════════
+     B. Trackman / Rapsodo 풍 (Pro Sports Analytics Light)
+     ════════════════════════════════════════════ */
+  .style-trackman {
+    background: #ffffff;
+    color: #1a1a2e;
+    padding: 24px 28px;
+    border-radius: 4px;
+    font-family: "Pretendard", "Inter", sans-serif;
+    border: 2px solid #e8eef6;
+  }
+  .style-trackman .brand-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 3px solid #e8eef6; padding-bottom: 12px; margin-bottom: 18px;
+  }
+  .style-trackman .brand-bar .team {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 15px; color: #1a1a2e; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .style-trackman .brand-bar .team::before {
+    content: ''; width: 4px; height: 18px; background: #c8102e; border-radius: 1px;
+  }
+  .style-trackman .brand-bar .live-tag {
+    background: #c8102e; color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 2px; letter-spacing: 1px;
+  }
+  .style-trackman .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    border: 1px solid #d8e1ec; border-radius: 4px; overflow: hidden; margin-bottom: 16px;
+  }
+  .style-trackman .kpi {
+    padding: 14px 16px; border-right: 1px solid #d8e1ec; background: #fafbfd;
+  }
+  .style-trackman .kpi:last-child { border-right: none; }
+  .style-trackman .kpi .label {
+    font-size: 10px; color: #4a5568; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .style-trackman .kpi .value {
+    font-size: 26px; font-weight: 800; color: #1a1a2e;
+    font-family: "Roboto Mono", "Pretendard", monospace; font-feature-settings: "tnum";
+  }
+  .style-trackman .kpi .delta { font-size: 11px; color: #4a5568; margin-top: 2px; }
+  .style-trackman .kpi .delta.up { color: #00854a; font-weight: 600; }
+  .style-trackman .kpi .delta.down { color: #c8102e; font-weight: 600; }
+  .style-trackman table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .style-trackman th {
+    text-align: left; padding: 8px 10px; background: #1a1a2e; color: #fff;
+    font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .style-trackman td {
+    padding: 9px 10px; border-bottom: 1px solid #e8eef6;
+    font-family: "Roboto Mono", "Pretendard", monospace; font-feature-settings: "tnum";
+  }
+  .style-trackman tr:nth-child(even) td { background: #fafbfd; }
+  .style-trackman .score {
+    display: inline-block; width: 32px; padding: 3px 0; text-align: center;
+    border-radius: 2px; font-weight: 700; font-size: 11px;
+  }
+  .style-trackman .s5 { background: #00854a; color: #fff; }
+  .style-trackman .s4 { background: #4caf50; color: #fff; }
+  .style-trackman .s3 { background: #ff9800; color: #fff; }
+  .style-trackman .s2 { background: #ef5350; color: #fff; }
+  .style-trackman .s1 { background: #c8102e; color: #fff; }
+
+  /* ════════════════════════════════════════════
+     C. Bloomberg / NBA Stats 풍 (Tactical Dark)
+     ════════════════════════════════════════════ */
+  .style-bloomberg {
+    background: #0a0e1a;
+    color: #e4e7ef;
+    padding: 24px 28px;
+    border-radius: 4px;
+    font-family: "Pretendard", "Roboto Mono", sans-serif;
+    border: 1px solid #1f2937;
+  }
+  .style-bloomberg .brand-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .style-bloomberg .brand-bar .team {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 14px; color: #00d4ff; text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .style-bloomberg .brand-bar .timestamp {
+    font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .style-bloomberg .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: #1f2937; padding: 1px; margin-bottom: 16px; border-radius: 4px;
+  }
+  .style-bloomberg .kpi {
+    padding: 16px 18px; background: #0f1420;
+  }
+  .style-bloomberg .kpi .label {
+    font-size: 10px; color: #6b7280; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .style-bloomberg .kpi .value {
+    font-size: 28px; font-weight: 700; color: #fff;
+    font-family: "Roboto Mono", monospace; font-feature-settings: "tnum";
+  }
+  .style-bloomberg .kpi .delta { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .style-bloomberg .kpi .delta.up { color: #10d97e; }
+  .style-bloomberg .kpi .delta.down { color: #ff3b5c; }
+  .style-bloomberg .kpi .accent { color: #00d4ff; }
+  .style-bloomberg table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .style-bloomberg th {
+    text-align: left; padding: 8px 10px; background: #0f1420; color: #6b7280;
+    font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid #1f2937;
+  }
+  .style-bloomberg td {
+    padding: 10px; border-bottom: 1px solid #1f2937;
+    font-family: "Roboto Mono", monospace; font-feature-settings: "tnum";
+  }
+  .style-bloomberg tr:hover td { background: #131826; }
+  .style-bloomberg .score {
+    display: inline-block; padding: 3px 8px; border-radius: 2px; font-weight: 700;
+    font-size: 11px; font-family: "Pretendard"; letter-spacing: 0.5px;
+  }
+  .style-bloomberg .s5 { background: rgba(16, 217, 126, 0.15); color: #10d97e; border: 1px solid #10d97e; }
+  .style-bloomberg .s4 { background: rgba(0, 212, 255, 0.15); color: #00d4ff; border: 1px solid #00d4ff; }
+  .style-bloomberg .s3 { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid #fbbf24; }
+  .style-bloomberg .s2 { background: rgba(255, 59, 92, 0.15); color: #ff3b5c; border: 1px solid #ff3b5c; }
+  .style-bloomberg .s1 { background: rgba(255, 59, 92, 0.3); color: #fff; border: 1px solid #ff3b5c; }
+
+  /* ════════════════════════════════════════════
+     D. Kakao / Toss 풍 (Modern Korean Mobile-friendly)
+     ════════════════════════════════════════════ */
+  .style-kakao {
+    background: #f5f6f7;
+    color: #191f28;
+    padding: 28px;
+    border-radius: 16px;
+    font-family: "Pretendard", -apple-system, sans-serif;
+  }
+  .style-kakao .brand-bar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  }
+  .style-kakao .brand-bar .team-logo {
+    width: 36px; height: 36px; background: #3182f6; border-radius: 10px;
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px;
+  }
+  .style-kakao .brand-bar .team-name { font-size: 17px; font-weight: 700; }
+  .style-kakao .brand-bar .team-sub { font-size: 12px; color: #6b7684; }
+  .style-kakao .kpi-row {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;
+  }
+  .style-kakao .kpi {
+    background: #fff; border-radius: 16px; padding: 20px 22px;
+  }
+  .style-kakao .kpi .label {
+    font-size: 13px; color: #6b7684; font-weight: 500; margin-bottom: 8px;
+  }
+  .style-kakao .kpi .value {
+    font-size: 28px; font-weight: 700; color: #191f28; letter-spacing: -0.02em;
+    font-feature-settings: "tnum";
+  }
+  .style-kakao .kpi .delta { font-size: 13px; color: #4e5968; margin-top: 4px; font-weight: 500; }
+  .style-kakao .kpi .delta.up { color: #1f6feb; }
+  .style-kakao .kpi .delta.down { color: #ff5555; }
+  .style-kakao .player-card {
+    background: #fff; border-radius: 16px; padding: 18px 22px;
+    display: flex; align-items: center; gap: 14px; margin-bottom: 8px;
+  }
+  .style-kakao .player-card .avatar {
+    width: 44px; height: 44px; background: #e8f3ff; border-radius: 50%;
+    display: grid; place-items: center; color: #3182f6; font-weight: 700; font-size: 14px;
+  }
+  .style-kakao .player-card .info { flex: 1; }
+  .style-kakao .player-card .info .name { font-weight: 600; font-size: 15px; }
+  .style-kakao .player-card .info .meta { font-size: 12px; color: #6b7684; margin-top: 2px; }
+  .style-kakao .player-card .score-pill {
+    padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 13px;
+  }
+  .style-kakao .s5 { background: #e6f7ee; color: #1bbb6f; }
+  .style-kakao .s4 { background: #e8f3ff; color: #3182f6; }
+  .style-kakao .s3 { background: #fff7e0; color: #ff9500; }
+  .style-kakao .s2 { background: #ffe9e9; color: #ff5555; }
+  .style-kakao .s1 { background: #ffd5d5; color: #c53030; }
+
+  /* ════════════════════════════════════════════
+     E. Driveline Plus / MLB Statcast 풍 (Premium Baseball)
+     ════════════════════════════════════════════ */
+  .style-driveline {
+    background: #ffffff;
+    color: #14213d;
+    padding: 32px;
+    border-radius: 8px;
+    font-family: "Pretendard", -apple-system, sans-serif;
+    border-top: 4px solid #e63946;
+  }
+  .style-driveline .brand-bar {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e0e0e0;
+  }
+  .style-driveline .brand-bar h3 {
+    margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em;
+  }
+  .style-driveline .brand-bar .athlete-meta {
+    text-align: right; font-size: 12px; color: #6c757d;
+  }
+  .style-driveline .brand-bar .athlete-meta b { color: #14213d; font-weight: 600; }
+  .style-driveline .composite {
+    display: grid; grid-template-columns: 200px 1fr; gap: 32px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    border: 1px solid #e0e0e0; border-radius: 8px; padding: 22px 28px; margin-bottom: 18px;
+  }
+  .style-driveline .composite-circle {
+    display: grid; place-items: center; position: relative;
+  }
+  .style-driveline .composite-circle .ring {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: conic-gradient(#e63946 0deg 264deg, #f0f0f0 264deg 360deg);
+    display: grid; place-items: center;
+  }
+  .style-driveline .composite-circle .inner {
+    width: 110px; height: 110px; border-radius: 50%; background: #fff;
+    display: grid; place-items: center; text-align: center;
+  }
+  .style-driveline .composite-circle .score-num {
+    font-size: 36px; font-weight: 800; color: #14213d;
+    font-feature-settings: "tnum"; line-height: 1;
+  }
+  .style-driveline .composite-circle .score-label {
+    font-size: 10px; color: #6c757d; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 4px; font-weight: 600;
+  }
+  .style-driveline .composite-bars { display: grid; gap: 10px; }
+  .style-driveline .bar-row {
+    display: grid; grid-template-columns: 100px 1fr 50px; gap: 12px;
+    align-items: center; font-size: 12px;
+  }
+  .style-driveline .bar-row .label { font-weight: 600; color: #14213d; }
+  .style-driveline .bar-row .bar-track {
+    height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden;
+  }
+  .style-driveline .bar-row .bar-fill {
+    height: 100%; background: linear-gradient(90deg, #e63946 0%, #ff6b6b 100%);
+    border-radius: 4px;
+  }
+  .style-driveline .bar-row .value {
+    text-align: right; font-weight: 700; color: #14213d;
+    font-feature-settings: "tnum";
+  }
+  .style-driveline .grade { font-weight: 700; }
+  .style-driveline .grade.elite { color: #00854a; }
+  .style-driveline .grade.above { color: #14213d; }
+  .style-driveline .grade.avg { color: #6c757d; }
+  .style-driveline .grade.below { color: #ca8a04; }
+  .style-driveline .grade.poor { color: #e63946; }
+  .style-driveline table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+  .style-driveline th {
+    text-align: left; padding: 10px 12px; background: #14213d; color: #fff;
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .style-driveline td {
+    padding: 11px 12px; border-bottom: 1px solid #e0e0e0;
+    font-feature-settings: "tnum";
+  }
+  .style-driveline tr:hover td { background: #f8f9fa; }
+
+  /* 비교 토글 */
+  .toggle-bar {
+    position: sticky; top: 0; z-index: 10;
+    background: #fff; padding: 12px 48px; border-bottom: 1px solid #e5e5e5;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .toggle-bar button {
+    padding: 7px 14px; font-size: 13px; font-family: inherit; font-weight: 500;
+    background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 8px;
+    cursor: pointer; color: #404040;
+    transition: all 100ms ease;
+  }
+  .toggle-bar button:hover { background: #e5e5e5; }
+  .toggle-bar button.active {
+    background: #18181b; color: #fff; border-color: #18181b;
+  }
+  .toggle-bar .scope { color: #737373; font-size: 12px; padding: 7px 0; }
+
+  .design-section { display: none; }
+  .design-section.active { display: block; }
+
+  .summary-table {
+    width: 100%; border-collapse: collapse;
+    margin: 24px 48px; max-width: calc(100% - 96px); font-size: 13px;
+  }
+  .summary-table th, .summary-table td {
+    text-align: left; padding: 12px; border-bottom: 1px solid #e5e5e5;
+  }
+  .summary-table th { background: #f5f5f5; font-weight: 600; }
+  .summary-table .pros { color: #166534; }
+  .summary-table .cons { color: #991b1b; }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>KBO 프로팀 대시보드 디자인 5종 비교</h1>
+  <div class="sub">같은 데이터 (TestPlayer 192cm/91kg/141 km/h, 5 모델 점수) 5가지 스타일로 렌더링</div>
+  <div class="legend">
+    <div><b>샘플 데이터</b>: 측정 구속 141.1 km/h · 종합 73점 · 5 모델 평균 78</div>
+    <div><b>대상</b>: 프로 코치, 분석가, GM 사무실</div>
+  </div>
+</div>
+
+<div class="toggle-bar">
+  <span class="scope">디자인 보기 →</span>
+  <button data-target="all" class="active">전체 (스크롤)</button>
+  <button data-target="linear">A. Linear/Apple</button>
+  <button data-target="trackman">B. Trackman</button>
+  <button data-target="bloomberg">C. Bloomberg</button>
+  <button data-target="kakao">D. Kakao/Toss</button>
+  <button data-target="driveline">E. Driveline+</button>
+  <button data-target="summary">표 요약</button>
+</div>
+
+<!-- ━━━━━━━━━━ A. Linear/Apple ━━━━━━━━━━ -->
+<section class="design-section active" data-id="linear">
+  <h2>A. Linear / Apple 미니멀 (현재 상동고 v5.42 적용)</h2>
+  <div class="meta"><b>적합:</b> 학교·교육 환경, 인쇄 친화 / <b>키워드:</b> 절제, 단일 accent, 충분한 여백</div>
+  <div class="style-linear">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
+      <div>
+        <div style="font-size:22px;font-weight:600;letter-spacing:-0.02em">홍길동 · 우완 선발</div>
+        <div style="font-size:13px;color:#737373;margin-top:4px">2026 시즌 1차 측정 · 5/15 · 192cm/91kg</div>
+      </div>
+      <div style="font-size:12px;color:#737373;text-align:right">
+        <div>측정 #1 of 4 · 1차</div>
+        <div>v5.42 · Driveline 5+6축</div>
+      </div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">측정 구속</div><div class="value">141.1<span style="font-size:16px;color:#737373"> km/h</span></div><div class="delta up">▲ 2.3 vs. 평균</div></div>
+      <div class="kpi"><div class="label">종합 점수</div><div class="value">73</div><div class="delta">5 모델 + ETE 평균</div></div>
+      <div class="kpi"><div class="label">잠재 구속</div><div class="value">156</div><div class="delta">메카닉 향상 시 +15</div></div>
+      <div class="kpi"><div class="label">부상 위험</div><div class="value">중</div><div class="delta">Scap Load AE +51°</div></div>
+    </div>
+    <table>
+      <thead><tr><th>5 모델</th><th>점수</th><th>평가</th><th>주요 변인</th></tr></thead>
+      <tbody>
+        <tr><td>팔동작</td><td><span class="score s4">94</span></td><td>Above Average</td><td>Stride Length 147cm ✓</td></tr>
+        <tr><td>자세</td><td><span class="score s5">99</span></td><td>Elite</td><td>Forward Tilt -5° ✓</td></tr>
+        <tr><td>회전 속도</td><td><span class="score s5">107</span></td><td>Elite+</td><td>Trunk Rot 1029°/s</td></tr>
+        <tr><td>앞다리 제동</td><td><span class="score s4">103</span></td><td>Above Average</td><td>Lead Brake 125% BW</td></tr>
+        <tr><td>체중이동</td><td><span class="score s5">117</span></td><td>Elite+</td><td>CoG Decel AE +0.47</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━ B. Trackman / Rapsodo Pro ━━━━━━━━━━ -->
+<section class="design-section active" data-id="trackman">
+  <h2>B. Trackman / Rapsodo 풍 (Pro Sports Analytics Light)</h2>
+  <div class="meta"><b>적합:</b> 프로 분석실, 데이터 밀도 우선 / <b>키워드:</b> Roboto Mono, team color bar, dense table</div>
+  <div class="style-trackman">
+    <div class="brand-bar">
+      <div class="team">KIA TIGERS · 투수 분석</div>
+      <div class="live-tag">LIVE</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">VELO MAX</div><div class="value">141.1</div><div class="delta up">▲ +2.3 / σ 1.8</div></div>
+      <div class="kpi"><div class="label">COMPOSITE</div><div class="value">73</div><div class="delta">5-MODEL AVG</div></div>
+      <div class="kpi"><div class="label">POTENTIAL</div><div class="value">156</div><div class="delta up">▲ +15 KMH GAIN</div></div>
+      <div class="kpi"><div class="label">RISK INDEX</div><div class="value" style="color:#ff9800">3.2</div><div class="delta">/10 SCALE</div></div>
+    </div>
+    <table>
+      <thead><tr><th>METRIC</th><th>VALUE</th><th>%ILE</th><th>SCORE</th><th>NORM</th></tr></thead>
+      <tbody>
+        <tr><td>Pelvis Velo</td><td>772 °/s</td><td>P67</td><td><span class="score s4">94</span></td><td>Above</td></tr>
+        <tr><td>Trunk Velo</td><td>1029 °/s</td><td>P92</td><td><span class="score s5">99</span></td><td>Elite</td></tr>
+        <tr><td>Arm Velo</td><td>4755 °/s</td><td>P88</td><td><span class="score s5">107</span></td><td>Elite</td></tr>
+        <tr><td>Lead Brake</td><td>1135 N</td><td>P76</td><td><span class="score s4">103</span></td><td>Above</td></tr>
+        <tr><td>CoG Decel AE</td><td>+0.47 m/s</td><td>P95</td><td><span class="score s5">117</span></td><td>Elite+</td></tr>
+        <tr><td>Scap Load FP</td><td>+42.6°</td><td>P38</td><td><span class="score s2">66</span></td><td>Below</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━ C. Bloomberg / NBA Stats Dark ━━━━━━━━━━ -->
+<section class="design-section active" data-id="bloomberg">
+  <h2>C. Bloomberg / NBA Stats 풍 (Tactical Dark)</h2>
+  <div class="meta"><b>적합:</b> 영상 분석실, 야간 운영, 멀티 모니터 / <b>키워드:</b> 다크 모드, 네온 cyan, 정보 밀도 최대</div>
+  <div class="style-bloomberg">
+    <div class="brand-bar">
+      <div class="team">▍ TIGERS — PITCHER ANALYTICS</div>
+      <div class="timestamp">UPDATED 14:32 KST · LIVE</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">VELO MAX</div><div class="value">141.1<span style="font-size:14px;color:#6b7280;font-weight:400"> km/h</span></div><div class="delta up">▲ 2.3</div></div>
+      <div class="kpi"><div class="label">COMPOSITE</div><div class="value accent">73</div><div class="delta">5-MOD AVG</div></div>
+      <div class="kpi"><div class="label">POTENTIAL</div><div class="value">156</div><div class="delta up">▲ 15.0</div></div>
+      <div class="kpi"><div class="label">RISK</div><div class="value" style="color:#fbbf24">3.2</div><div class="delta">/10</div></div>
+    </div>
+    <table>
+      <thead><tr><th>METRIC</th><th>VALUE</th><th>%ILE</th><th>SCORE</th></tr></thead>
+      <tbody>
+        <tr><td>PELVIS_V</td><td>772.0</td><td>67</td><td><span class="score s4">94</span></td></tr>
+        <tr><td>TRUNK_V</td><td>1029.2</td><td>92</td><td><span class="score s5">99</span></td></tr>
+        <tr><td>ARM_V</td><td>4755.4</td><td>88</td><td><span class="score s5">107</span></td></tr>
+        <tr><td>LEAD_BRAKE_N</td><td>1134.8</td><td>76</td><td><span class="score s4">103</span></td></tr>
+        <tr><td>COG_DECEL_AE</td><td>+0.47</td><td>95</td><td><span class="score s5">117</span></td></tr>
+        <tr><td>SCAP_LOAD_FP</td><td>+42.6</td><td>38</td><td><span class="score s2">66</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━ D. Kakao / Toss Modern Korean ━━━━━━━━━━ -->
+<section class="design-section active" data-id="kakao">
+  <h2>D. Kakao / Toss 풍 (Modern Korean Mobile-friendly)</h2>
+  <div class="meta"><b>적합:</b> 선수용 모바일 앱, B2C 부가 서비스 / <b>키워드:</b> 부드러운 색감, rounded 16px+, generous spacing</div>
+  <div class="style-kakao">
+    <div class="brand-bar">
+      <div class="team-logo">KT</div>
+      <div>
+        <div class="team-name">홍길동 · #29</div>
+        <div class="team-sub">KT Wiz · 우완 선발 · 192/91</div>
+      </div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">측정 구속</div><div class="value">141.1<span style="font-size:18px;color:#6b7684"> km/h</span></div><div class="delta up">▲ 2.3 km/h 향상</div></div>
+      <div class="kpi"><div class="label">잠재 구속</div><div class="value">156<span style="font-size:18px;color:#6b7684"> km/h</span></div><div class="delta">+15 km/h 가능</div></div>
+    </div>
+    <div class="player-card">
+      <div class="avatar">팔</div>
+      <div class="info"><div class="name">팔동작</div><div class="meta">Stride Length 147cm — 엘리트 기준 도달</div></div>
+      <div class="score-pill s4">94점</div>
+    </div>
+    <div class="player-card">
+      <div class="avatar">자</div>
+      <div class="info"><div class="name">자세</div><div class="meta">Forward Tilt -5° — 전형적 좋은 자세</div></div>
+      <div class="score-pill s5">99점</div>
+    </div>
+    <div class="player-card">
+      <div class="avatar">회</div>
+      <div class="info"><div class="name">회전 속도</div><div class="meta">Trunk Rot 1029°/s — 상위 8%</div></div>
+      <div class="score-pill s5">107점</div>
+    </div>
+    <div class="player-card">
+      <div class="avatar">제</div>
+      <div class="info"><div class="name">앞다리 제동</div><div class="meta">Lead Brake 125% BW</div></div>
+      <div class="score-pill s4">103점</div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━ E. Driveline+ / MLB Statcast Premium ━━━━━━━━━━ -->
+<section class="design-section active" data-id="driveline">
+  <h2>E. Driveline+ / MLB Statcast 풍 (Premium Baseball Brand)</h2>
+  <div class="meta"><b>적합:</b> 프리미엄 컨설팅 서비스, 외부 발표 / <b>키워드:</b> 도넛 차트, 등급 라벨, 브랜드 accent bar</div>
+  <div class="style-driveline">
+    <div class="brand-bar">
+      <h3>Pitching Composite Report</h3>
+      <div class="athlete-meta">
+        <div><b>홍길동</b> · 우완 선발 · 192cm/91kg</div>
+        <div>2026 시즌 1차 측정 · 5/15</div>
+      </div>
+    </div>
+    <div class="composite">
+      <div class="composite-circle">
+        <div class="ring">
+          <div class="inner">
+            <div>
+              <div class="score-num">73</div>
+              <div class="score-label">Composite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="composite-bars">
+        <div class="bar-row">
+          <div class="label">팔동작</div>
+          <div class="bar-track"><div class="bar-fill" style="width:62%"></div></div>
+          <div class="value">94 <span class="grade above">Above</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="label">자세</div>
+          <div class="bar-track"><div class="bar-fill" style="width:66%"></div></div>
+          <div class="value">99 <span class="grade elite">Elite</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="label">회전 속도</div>
+          <div class="bar-track"><div class="bar-fill" style="width:71%"></div></div>
+          <div class="value">107 <span class="grade elite">Elite</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="label">앞다리 제동</div>
+          <div class="bar-track"><div class="bar-fill" style="width:69%"></div></div>
+          <div class="value">103 <span class="grade above">Above</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="label">체중이동</div>
+          <div class="bar-track"><div class="bar-fill" style="width:78%"></div></div>
+          <div class="value">117 <span class="grade elite">Elite+</span></div>
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>변인</th><th>값</th><th>Driveline 백분위</th><th>등급</th></tr></thead>
+      <tbody>
+        <tr><td>Pelvis Velo (°/s)</td><td>772.0</td><td>P67</td><td><span class="grade above">Above Avg</span></td></tr>
+        <tr><td>Trunk Velo (°/s)</td><td>1029.2</td><td>P92</td><td><span class="grade elite">Elite</span></td></tr>
+        <tr><td>Lead Brake (% BW)</td><td>125.5</td><td>P76</td><td><span class="grade above">Above Avg</span></td></tr>
+        <tr><td>Scap Load FP (°)</td><td>+42.6</td><td>P38</td><td><span class="grade below">Below Avg</span></td></tr>
+        <tr><td>CoG Decel AE (m/s)</td><td>+0.47</td><td>P95</td><td><span class="grade elite">Elite+</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ━━━━━━━━━━ 표 요약 ━━━━━━━━━━ -->
+<section class="design-section" data-id="summary">
+  <h2>5종 디자인 비교 표</h2>
+  <table class="summary-table" style="margin: 0;">
+    <thead>
+      <tr>
+        <th>디자인</th><th>분위기</th><th>대상 환경</th>
+        <th class="pros">장점</th><th class="cons">단점</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>A. Linear / Apple</b></td>
+        <td>차분, 학술적</td>
+        <td>고교, 대학, 인쇄 리포트</td>
+        <td class="pros">절제 → 신뢰감, 인쇄 친화, 한글 폰트 깨끗</td>
+        <td class="cons">프로 코치 보기엔 정보 밀도 부족 가능</td>
+      </tr>
+      <tr>
+        <td><b>B. Trackman / Rapsodo</b></td>
+        <td>전문적, 분석가</td>
+        <td>구단 분석실, 코칭 미팅</td>
+        <td class="pros">데이터 밀도 ↑, monospace 숫자, team color 대응</td>
+        <td class="cons">읽기 부담, 일반 선수에겐 무거움</td>
+      </tr>
+      <tr>
+        <td><b>C. Bloomberg / Dark</b></td>
+        <td>전술적, 야간 운영</td>
+        <td>영상 분석실, 게임 중 모니터링</td>
+        <td class="pros">야간 눈 피로 ↓, 정보 밀도 최대, 다중 모니터</td>
+        <td class="cons">인쇄 어려움, 색약 사용자 주의 필요</td>
+      </tr>
+      <tr>
+        <td><b>D. Kakao / Toss</b></td>
+        <td>친근, 모바일</td>
+        <td>선수 개인 앱, 부모/팬</td>
+        <td class="pros">모바일 친화, 부드러운 색감, 한국 사용자 익숙</td>
+        <td class="cons">정보 밀도 부족, 프로 분석 도구로는 가벼움</td>
+      </tr>
+      <tr>
+        <td><b>E. Driveline+ / Statcast</b></td>
+        <td>프리미엄 브랜드</td>
+        <td>외부 발표, 컨설팅 보고서</td>
+        <td class="pros">시각 임팩트, 도넛/바 차트, 자체 브랜드 accent</td>
+        <td class="cons">개발 시간 ↑, 일관성 유지 더 어려움</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin: 24px 48px; padding: 20px 24px; background: #fff; border-radius: 8px; border: 1px solid #e5e5e5;">
+    <h3 style="margin: 0 0 8px; font-size: 15px;">📌 권장 매핑</h3>
+    <div style="font-size: 13px; line-height: 1.7; color: #404040;">
+      <b>상동고 (현재)</b> → A. Linear/Apple ✓ (이미 적용)<br>
+      <b>KBO 1군 (메인)</b> → B. Trackman 또는 C. Bloomberg (분석실)<br>
+      <b>KBO 2군/육성</b> → A 또는 D (선수 친화적)<br>
+      <b>구단 외부 보고용</b> → E. Driveline+ (프리미엄 인상)<br>
+      <b>선수 모바일 앱</b> → D. Kakao/Toss
+    </div>
+  </div>
+</section>
+
+<script>
+const buttons = document.querySelectorAll('.toggle-bar button');
+const sections = document.querySelectorAll('.design-section');
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.target;
+    if (target === 'all') {
+      sections.forEach(s => {
+        if (s.dataset.id !== 'summary') s.classList.add('active');
+        else s.classList.remove('active');
+      });
+    } else if (target === 'summary') {
+      sections.forEach(s => {
+        s.classList.toggle('active', s.dataset.id === 'summary');
+      });
+    } else {
+      sections.forEach(s => {
+        s.classList.toggle('active', s.dataset.id === target);
+      });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>

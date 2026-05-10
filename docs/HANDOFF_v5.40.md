@@ -197,6 +197,99 @@ git push origin v5.40
 - 추정: trial 3 은 lead foot strike 위치가 force plate 가장자리/외부, 분절 motion ↔ 강한 GRF block 매칭 실패한 또 다른 패턴
 - 다음 라운드에서 진단 가능 (#66)
 
+---
+
+## v5.42 디자인 토큰 (2026-05-11)
+
+`src/style.css` :root 변수 Linear 풍 정비 완료:
+- 회색 9단계 추가 (`--gray-50` ~ `--gray-900`, Tailwind neutral 풍)
+- accent B 유지 (`#0969da`), `--accent2` → `var(--gray-700)` alias
+- 상태 옵션 Y (채도 낮춘 traffic-light): `--good #166534`, `--bad #991b1b`
+- score s1~s5 옵션 Y 적용
+- shadow 제거 (`--shadow:none`) — panel 1px border 만으로 구분
+- protocol-tag.empty hardcode #f6f8fa → var(--panel2)
+
+빌드: `dashboard.html` 563KB ✓
+
+**문서**:
+- `docs/DESIGN_PLAYBOOK.md` — Apple/Linear 미니멀 디자인 단계별 가이드 (8 단계)
+- `docs/design_samples/KBO_design_comparison.html` — KBO 프로팀용 5종 디자인 비교 인터랙티브
+
+---
+
+## v6.0 KBO Pro Edition (PENDING — 다른 컴퓨터에서 이어 작업)
+
+**선택 결정**:
+- **디자인**: E. Driveline+ / MLB Statcast 풍 (네이비 #14213d + 빨강 #e63946 accent + 도넛 + bar)
+- **구조**: 같은 repo 안 다른 빌드 타겟 (코드 재사용 극대화)
+- **범위**: 일반 프로팁 템플릿 (특정 구단 X, team color 변수만 분리)
+- **v1 스코프**: Tab 2 (선수별 리포트) 만 먼저
+
+**파일 구조 (계획)**:
+```
+src/
+├── index.html            (기존 — 상동고)
+├── style.css             (기존 — Linear v5.42)
+├── index_pro.html        ★ 신규 — KBO Pro 헤더+레이아웃
+├── style_pro.css         ★ 신규 — Driveline+ 풍
+└── js/
+    └── render_player_pro.js  ★ 신규 — Tab 2 전용
+
+scripts/
+├── build_dashboard.js        (기존)
+└── build_dashboard_pro.js    ★ 신규 (build_dashboard.js 변형)
+
+dashboard_pro.html             ★ 신규 빌드 산출
+```
+
+**재사용**: `driveline.js`, `analytics_*.js`, `data.js`, `io_*.js` 그대로 import.
+
+**v1.0 단계별 작업 (총 ~100분)**:
+| 단계 | 내용 | 시간 |
+|---|---|---|
+| 1 | `build_dashboard_pro.js` + `style_pro.css` 토큰 + `index_pro.html` skeleton | 15분 |
+| 2 | 도넛 차트 (composite) — Conic-gradient SVG | 10분 |
+| 3 | 5 모델 progress bar (gradient 빨강) | 10분 |
+| 4 | 변인별 표 (백분위 + 등급 라벨 Elite/Above Avg/Avg/Below/Poor) | 15분 |
+| 5 | ETE + GRF 미니 패널 (기존 데이터 결합) | 20분 |
+| 6 | 약점 Top 3 + 처방 (`render_player_cards.js` 변환) | 20분 |
+| 7 | TestPlayer 데이터 연결 + 빌드 검증 | 10분 |
+
+**시작점 reference**: `docs/design_samples/KBO_design_comparison.html` 의 §E "Driveline+" 섹션 코드 그대로 베이스로 사용 가능.
+
+**핵심 디자인 토큰 (style_pro.css 신규 :root)**:
+```css
+:root{
+  /* Premium Baseball Brand (네이비 + 빨강 accent) */
+  --bg:#ffffff;
+  --panel:#ffffff;
+  --panel2:#f8f9fa;
+  --text:#14213d;          /* 진한 네이비 */
+  --muted:#6c757d;
+  --line:#e0e0e0;
+  --accent:#e63946;        /* 강조 빨강 (team color 자리) */
+  --accent-soft:#ff6b6b;
+  --header-bg:#14213d;     /* 헤더는 다크 네이비 */
+  --header-text:#fff;
+  /* 등급 색깔 */
+  --grade-elite:#00854a;
+  --grade-above:#14213d;
+  --grade-avg:#6c757d;
+  --grade-below:#ca8a04;
+  --grade-poor:#e63946;
+}
+```
+
+**다른 컴퓨터에서 이어가기**:
+1. `docs/CONTINUE_ON_OTHER_COMPUTER.md` 따라 setup
+2. 새 Claude 대화 첫 메시지:
+   ```
+   v6.0 KBO Pro Edition 작업 이어서 진행합니다.
+   docs/HANDOFF_v5.40.md 의 "v6.0 KBO Pro Edition" 섹션 + 
+   docs/design_samples/KBO_design_comparison.html §E 참고해서
+   단계 1 (build_dashboard_pro.js + style_pro.css + index_pro.html skeleton) 부터 시작.
+   ```
+
 ### 알려진 제약
 
 - VM 에서 .exe 빌드 불가 (Windows toolchain 필요) → GitHub Actions 자동 빌드로 해결
