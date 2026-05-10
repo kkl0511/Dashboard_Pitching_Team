@@ -357,10 +357,99 @@
   <span id="p-en-eli-score" style="display:none"></span>
   <span id="p-eli-zones" style="display:none"></span>
 
-  <!-- v5.14: 3-3. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 -->
+  <!-- v5.25 NEW: 3-3. 에너지·파워 분석 — Mechanical Energy + Power Scalar (자체 계산) -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-3. 에너지·파워 — 분절 KE + 관절 Power <span class="badge" style="background:#dafbe1;color:#1a7f37">우리식 자체 계산 (De Leva 1996)</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      얼마의 회전 에너지를 만들고, 분절 간 얼마나 효율적으로 전달하는가. 자체 계산 (Visual3D Power Scalar + De Leva 분절 관성).
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <!-- 좌: Mechanical Energy 분절별 + ETE -->
+      <div>
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px">⚡ 분절 회전 에너지 (KE_rot)</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">본인 KE</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">학술 평균</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">전달율</th>
+            </tr>
+          </thead>
+          <tbody id="p-energy-segment-body"></tbody>
+        </table>
+        <div id="p-ete-summary" style="margin-top:10px;padding:8px 10px;background:#f6f8fa;border-radius:4px;font-size:11.5px"></div>
+      </div>
+      <!-- 우: 관절 Power Scalar -->
+      <div>
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px">🦵 관절 파워 (Visual3D Power Scalar)</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">관절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">L (W)</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">R (W)</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">합계</th>
+            </tr>
+          </thead>
+          <tbody id="p-power-joint-body"></tbody>
+        </table>
+        <div id="p-power-summary" style="margin-top:10px;padding:8px 10px;background:#f6f8fa;border-radius:4px;font-size:11.5px"></div>
+      </div>
+    </div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
+      <b>KE_rot</b> = ½ · I (De Leva 1996 분절 관성) · ω². <b>전달율</b> = 다음 분절 KE / 현재 분절 KE × 100% (기준 70%+ 정상).<br>
+      <b>관절 파워</b> = Visual3D scalar (positive = 가속에 기여, negative = 흡수). 좌우 대비 + 합계로 drive leg/lead leg 활용도 평가.
+    </div>
+  </div>
+
+  <!-- v5.25 NEW: 3-4. 지면반력 분석 — Force Plate FP1/FP2 -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-4. 지면반력 (GRF) — 뒷발/앞발 활용도 <span class="badge" style="background:#fff8c5;color:#9a6700">Force Plate 측정</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      뒷발(FP1·드라이브 다리)과 앞발(FP2·블로킹 다리)의 지면반력 활용 정도. 학술 기준 — FP1 80%BW · FP2 110%BW에서 좋음.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <!-- FP1 — 뒷발 -->
+      <div style="background:#fff8c5;border-left:4px solid #9a6700;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">🦵 뒷발 (Drive Leg)</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">FP1 Peak Vertical</div>
+        <div style="font-size:22px;font-weight:600" id="p-grf-rear-pct">—</div>
+        <div style="font-size:11px;color:var(--muted)">% Body Weight (목표 ≥80%)</div>
+        <div id="p-grf-rear-bar" style="margin-top:8px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+          <div id="p-grf-rear-fill" style="height:100%;background:#9a6700;width:0%;transition:width .5s"></div>
+        </div>
+      </div>
+      <!-- FP2 — 앞발 -->
+      <div style="background:#ddf4ff;border-left:4px solid #0969da;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">🦵 앞발 (Lead Leg / Block)</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">FP2 Peak Vertical</div>
+        <div style="font-size:22px;font-weight:600" id="p-grf-lead-pct">—</div>
+        <div style="font-size:11px;color:var(--muted)">% Body Weight (목표 ≥110%)</div>
+        <div id="p-grf-lead-bar" style="margin-top:8px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+          <div id="p-grf-lead-fill" style="height:100%;background:#0969da;width:0%;transition:width .5s"></div>
+        </div>
+      </div>
+      <!-- LHEI 종합 -->
+      <div style="background:#dafbe1;border-left:4px solid #1a7f37;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">📊 GRF 종합</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">LHEI (지면반력 활용 점수)</div>
+        <div style="font-size:22px;font-weight:600;color:#1a7f37" id="p-grf-lhei-score">—</div>
+        <div style="font-size:11px;color:var(--muted)">100 = 양발 지면반력 최적 활용</div>
+        <div id="p-grf-type-label" style="margin-top:8px;font-size:11.5px"></div>
+      </div>
+    </div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
+      <b>FP1 (뒷발 / Drive Leg)</b> — 와인드업~릴리스 push-off에 사용. <b>FP2 (앞발 / Lead Leg)</b> — 착지 후 블로킹·트렁크 회전 핵심 (Werner 2008).
+      <b>LHEI</b> = Lead Leg + Hip Energy Index (zone3·zone6 기반).<br>
+      유형: <b>균형형</b> (FP1·FP2 비슷) · <b>리어 우세</b> (FP1 ≫ FP2, push 위주) · <b>리드 우세</b> (FP2 ≫ FP1, block 위주).
+    </div>
+  </div>
+
+  <!-- v5.14: 3-5. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 (v5.25: 번호 §3-3 → §3-5) -->
   <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">3-3. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
+      <h2 style="font-size:15px">3-5. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
       <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
       <table style="width:100%;font-size:11.5px;border-collapse:collapse">
         <thead>
@@ -386,9 +475,9 @@
     </div>
   </div>
 
-  <!-- v5.14: 3-4. 메카닉 발달 권장 카드 (NEW) -->
+  <!-- v5.25: 3-6. 메카닉 발달 권장 카드 (이전 §3-4 → §3-6) -->
   <div class="panel" style="border-left:4px solid #1a7f37">
-    <h2 style="font-size:15px">3-4. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
+    <h2 style="font-size:15px">3-6. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
       4축 점수 + ELI 약점을 종합해 우선순위 훈련을 자동 매핑. 코치가 다음 세션 짜기에 직접 활용.
     </div>
@@ -458,17 +547,56 @@
 
 <!-- v5.16: 체력 카드 — 6각 라디아 + raw details 폴더 (section-fitness-cards 자리로 render.js가 이동) -->
 <section style="display:none" id="hidden-fitness-source">
-  <!-- 체력 종합 — 6각 라디아 (한눈에) -->
+  <!-- 체력 종합 — Driveline HP Assessment 6축 (v5.25) -->
   <div class="panel" id="card-hp-assessment">
-    <h2>💪 체력 종합 — 6축 다이어그램 <span class="badge" style="background:#fff3e7;color:#bc4c00">v5.16 · 우수고교 + 프로 비교</span></h2>
+    <h2>💪 체력 종합 — HP Composite 6축 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline HP Assessment 표준</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      구속·제구와 관련된 6가지 체력 요소를 한눈에. 본인 위치 + 우수 고교 + 프로 reference 동시 비교.
+      Driveline HP Assessment 6축 (Strength · Relative Strength · Power · Relative Power · Reactive Strength · Upper Body Power).
+      <b>100 = HS group 평균</b>, 본인 위치 + 90+ mph cohort 목표 동시 비교.
     </div>
     <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:center">
       <div class="chart-wrap" style="height:330px"><canvas id="p-fitness-radar"></canvas></div>
       <div id="p-fitness-summary" style="font-size:12.5px;line-height:1.7"></div>
     </div>
+    <!-- v5.25: 좌우 균형 (Asymmetry) 별도 카드 — Driveline 패턴 -->
+    <div id="p-asymmetry-card" style="margin-top:14px;background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:600;font-size:13px;color:#7d4e00">⚖ 좌우 힘 균형 (Asymmetry) <span style="color:var(--muted);font-weight:400;font-size:11px">— Driveline 표준 ±15% 임계</span></div>
+        <div id="p-asym-badge" style="font-size:11.5px;font-weight:600"></div>
+      </div>
+      <div id="p-asym-bars" style="font-size:11px;line-height:1.7"></div>
+      <div class="footnote" style="font-size:10.5px;margin-top:6px;color:var(--muted)">
+        15% 이상 차이 시 단측(unilateral) 훈련 권장. 좌우 균형은 제구 안정성과 부상 위험 모두에 영향.
+      </div>
+    </div>
+    <!-- v5.25: Velo Group cohort 비교 (분석가용 details) -->
     <details style="margin-top:14px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 Velo Group cohort 비교표 (Driveline HP, 분석가용)</summary>
+      <div style="margin-top:10px">
+        <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:6px;color:var(--muted);width:140px">변인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">본인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted);background:#f0f3f6">HS 평균</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">&lt;80 mph</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">80-85</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">85-90</th>
+              <th style="text-align:right;padding:6px;color:var(--muted);background:#ddf4ff">90+ mph</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">HP 점수</th>
+            </tr>
+          </thead>
+          <tbody id="p-hp-cohort-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;margin-top:8px;line-height:1.55">
+          출처: Driveline HP Assessment Retest sample (n=394 &lt;80 / n=150 80-85 / n=13 85-90 / n=58 90+).
+          <b>HP 점수 = (본인 / HS 평균) × 100</b>. 100점 = HS 그룹 평균과 동일.<br>
+          Upper Body Power (Plyo Push Up Peak Force)는 미측정 — Plyo Push Up 측정 추가 시 자동 채워짐.
+        </div>
+      </div>
+    </details>
+    <!-- v5.16 17 변인 전체 표 (분석가용 깊이 있는 details) -->
+    <details style="margin-top:8px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
       <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 17 변인 전체 표 + 학술 reference (분석가용)</summary>
       <div style="margin-top:10px">
         <table style="width:100%;font-size:11.5px;border-collapse:collapse">

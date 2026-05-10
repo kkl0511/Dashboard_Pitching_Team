@@ -23,8 +23,9 @@ const path = require('path');
 const ROOT = path.dirname(__dirname);
 const SRC = path.join(ROOT, 'src');
 
-// 모듈 합성 순서 (의존성 순):  analytics → data → render → io → reports_init
-const JS_MODULES = ['js/analytics.js', 'js/data.js', 'js/render.js', 'js/io.js', 'js/reports_init.js'];
+// 모듈 합성 순서 (의존성 순):  driveline → analytics → data → render → io → reports_init
+// v5.25: driveline.js를 analytics.js보다 먼저 로드 (ANALYTICS export에 통합되도록)
+const JS_MODULES = ['js/driveline.js', 'js/analytics.js', 'js/data.js', 'js/render.js', 'js/io.js', 'js/reports_init.js'];
 
 function read(rel) {
   return fs.readFileSync(path.join(SRC, rel), 'utf8');

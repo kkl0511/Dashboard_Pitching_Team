@@ -736,10 +736,99 @@
   <span id="p-en-eli-score" style="display:none"></span>
   <span id="p-eli-zones" style="display:none"></span>
 
-  <!-- v5.14: 3-3. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 -->
+  <!-- v5.25 NEW: 3-3. 에너지·파워 분석 — Mechanical Energy + Power Scalar (자체 계산) -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-3. 에너지·파워 — 분절 KE + 관절 Power <span class="badge" style="background:#dafbe1;color:#1a7f37">우리식 자체 계산 (De Leva 1996)</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      얼마의 회전 에너지를 만들고, 분절 간 얼마나 효율적으로 전달하는가. 자체 계산 (Visual3D Power Scalar + De Leva 분절 관성).
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <!-- 좌: Mechanical Energy 분절별 + ETE -->
+      <div>
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px">⚡ 분절 회전 에너지 (KE_rot)</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">분절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">본인 KE</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">학술 평균</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">전달율</th>
+            </tr>
+          </thead>
+          <tbody id="p-energy-segment-body"></tbody>
+        </table>
+        <div id="p-ete-summary" style="margin-top:10px;padding:8px 10px;background:#f6f8fa;border-radius:4px;font-size:11.5px"></div>
+      </div>
+      <!-- 우: 관절 Power Scalar -->
+      <div>
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px">🦵 관절 파워 (Visual3D Power Scalar)</div>
+        <table style="width:100%;font-size:11px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:5px 6px;color:var(--muted)">관절</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">L (W)</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">R (W)</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--muted)">합계</th>
+            </tr>
+          </thead>
+          <tbody id="p-power-joint-body"></tbody>
+        </table>
+        <div id="p-power-summary" style="margin-top:10px;padding:8px 10px;background:#f6f8fa;border-radius:4px;font-size:11.5px"></div>
+      </div>
+    </div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
+      <b>KE_rot</b> = ½ · I (De Leva 1996 분절 관성) · ω². <b>전달율</b> = 다음 분절 KE / 현재 분절 KE × 100% (기준 70%+ 정상).<br>
+      <b>관절 파워</b> = Visual3D scalar (positive = 가속에 기여, negative = 흡수). 좌우 대비 + 합계로 drive leg/lead leg 활용도 평가.
+    </div>
+  </div>
+
+  <!-- v5.25 NEW: 3-4. 지면반력 분석 — Force Plate FP1/FP2 -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-4. 지면반력 (GRF) — 뒷발/앞발 활용도 <span class="badge" style="background:#fff8c5;color:#9a6700">Force Plate 측정</span></h2>
+    <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
+      뒷발(FP1·드라이브 다리)과 앞발(FP2·블로킹 다리)의 지면반력 활용 정도. 학술 기준 — FP1 80%BW · FP2 110%BW에서 좋음.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <!-- FP1 — 뒷발 -->
+      <div style="background:#fff8c5;border-left:4px solid #9a6700;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">🦵 뒷발 (Drive Leg)</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">FP1 Peak Vertical</div>
+        <div style="font-size:22px;font-weight:600" id="p-grf-rear-pct">—</div>
+        <div style="font-size:11px;color:var(--muted)">% Body Weight (목표 ≥80%)</div>
+        <div id="p-grf-rear-bar" style="margin-top:8px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+          <div id="p-grf-rear-fill" style="height:100%;background:#9a6700;width:0%;transition:width .5s"></div>
+        </div>
+      </div>
+      <!-- FP2 — 앞발 -->
+      <div style="background:#ddf4ff;border-left:4px solid #0969da;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">🦵 앞발 (Lead Leg / Block)</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">FP2 Peak Vertical</div>
+        <div style="font-size:22px;font-weight:600" id="p-grf-lead-pct">—</div>
+        <div style="font-size:11px;color:var(--muted)">% Body Weight (목표 ≥110%)</div>
+        <div id="p-grf-lead-bar" style="margin-top:8px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+          <div id="p-grf-lead-fill" style="height:100%;background:#0969da;width:0%;transition:width .5s"></div>
+        </div>
+      </div>
+      <!-- LHEI 종합 -->
+      <div style="background:#dafbe1;border-left:4px solid #1a7f37;padding:10px;border-radius:4px">
+        <div style="font-size:11.5px;color:var(--muted)">📊 GRF 종합</div>
+        <div style="font-size:14px;font-weight:600;margin:4px 0">LHEI (지면반력 활용 점수)</div>
+        <div style="font-size:22px;font-weight:600;color:#1a7f37" id="p-grf-lhei-score">—</div>
+        <div style="font-size:11px;color:var(--muted)">100 = 양발 지면반력 최적 활용</div>
+        <div id="p-grf-type-label" style="margin-top:8px;font-size:11.5px"></div>
+      </div>
+    </div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
+      <b>FP1 (뒷발 / Drive Leg)</b> — 와인드업~릴리스 push-off에 사용. <b>FP2 (앞발 / Lead Leg)</b> — 착지 후 블로킹·트렁크 회전 핵심 (Werner 2008).
+      <b>LHEI</b> = Lead Leg + Hip Energy Index (zone3·zone6 기반).<br>
+      유형: <b>균형형</b> (FP1·FP2 비슷) · <b>리어 우세</b> (FP1 ≫ FP2, push 위주) · <b>리드 우세</b> (FP2 ≫ FP1, block 위주).
+    </div>
+  </div>
+
+  <!-- v5.14: 3-5. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 (v5.25: 번호 §3-3 → §3-5) -->
   <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">3-3. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
+      <h2 style="font-size:15px">3-5. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
       <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
       <table style="width:100%;font-size:11.5px;border-collapse:collapse">
         <thead>
@@ -765,9 +854,9 @@
     </div>
   </div>
 
-  <!-- v5.14: 3-4. 메카닉 발달 권장 카드 (NEW) -->
+  <!-- v5.25: 3-6. 메카닉 발달 권장 카드 (이전 §3-4 → §3-6) -->
   <div class="panel" style="border-left:4px solid #1a7f37">
-    <h2 style="font-size:15px">3-4. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
+    <h2 style="font-size:15px">3-6. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:#dafbe1;color:#1a7f37">자동 산출</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
       4축 점수 + ELI 약점을 종합해 우선순위 훈련을 자동 매핑. 코치가 다음 세션 짜기에 직접 활용.
     </div>
@@ -837,17 +926,56 @@
 
 <!-- v5.16: 체력 카드 — 6각 라디아 + raw details 폴더 (section-fitness-cards 자리로 render.js가 이동) -->
 <section style="display:none" id="hidden-fitness-source">
-  <!-- 체력 종합 — 6각 라디아 (한눈에) -->
+  <!-- 체력 종합 — Driveline HP Assessment 6축 (v5.25) -->
   <div class="panel" id="card-hp-assessment">
-    <h2>💪 체력 종합 — 6축 다이어그램 <span class="badge" style="background:#fff3e7;color:#bc4c00">v5.16 · 우수고교 + 프로 비교</span></h2>
+    <h2>💪 체력 종합 — HP Composite 6축 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline HP Assessment 표준</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
-      구속·제구와 관련된 6가지 체력 요소를 한눈에. 본인 위치 + 우수 고교 + 프로 reference 동시 비교.
+      Driveline HP Assessment 6축 (Strength · Relative Strength · Power · Relative Power · Reactive Strength · Upper Body Power).
+      <b>100 = HS group 평균</b>, 본인 위치 + 90+ mph cohort 목표 동시 비교.
     </div>
     <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:center">
       <div class="chart-wrap" style="height:330px"><canvas id="p-fitness-radar"></canvas></div>
       <div id="p-fitness-summary" style="font-size:12.5px;line-height:1.7"></div>
     </div>
+    <!-- v5.25: 좌우 균형 (Asymmetry) 별도 카드 — Driveline 패턴 -->
+    <div id="p-asymmetry-card" style="margin-top:14px;background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:600;font-size:13px;color:#7d4e00">⚖ 좌우 힘 균형 (Asymmetry) <span style="color:var(--muted);font-weight:400;font-size:11px">— Driveline 표준 ±15% 임계</span></div>
+        <div id="p-asym-badge" style="font-size:11.5px;font-weight:600"></div>
+      </div>
+      <div id="p-asym-bars" style="font-size:11px;line-height:1.7"></div>
+      <div class="footnote" style="font-size:10.5px;margin-top:6px;color:var(--muted)">
+        15% 이상 차이 시 단측(unilateral) 훈련 권장. 좌우 균형은 제구 안정성과 부상 위험 모두에 영향.
+      </div>
+    </div>
+    <!-- v5.25: Velo Group cohort 비교 (분석가용 details) -->
     <details style="margin-top:14px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 Velo Group cohort 비교표 (Driveline HP, 분석가용)</summary>
+      <div style="margin-top:10px">
+        <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+              <th style="text-align:left;padding:6px;color:var(--muted);width:140px">변인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">본인</th>
+              <th style="text-align:right;padding:6px;color:var(--muted);background:#f0f3f6">HS 평균</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">&lt;80 mph</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">80-85</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">85-90</th>
+              <th style="text-align:right;padding:6px;color:var(--muted);background:#ddf4ff">90+ mph</th>
+              <th style="text-align:right;padding:6px;color:var(--muted)">HP 점수</th>
+            </tr>
+          </thead>
+          <tbody id="p-hp-cohort-body"></tbody>
+        </table>
+        <div class="footnote" style="font-size:10.5px;margin-top:8px;line-height:1.55">
+          출처: Driveline HP Assessment Retest sample (n=394 &lt;80 / n=150 80-85 / n=13 85-90 / n=58 90+).
+          <b>HP 점수 = (본인 / HS 평균) × 100</b>. 100점 = HS 그룹 평균과 동일.<br>
+          Upper Body Power (Plyo Push Up Peak Force)는 미측정 — Plyo Push Up 측정 추가 시 자동 채워짐.
+        </div>
+      </div>
+    </details>
+    <!-- v5.16 17 변인 전체 표 (분석가용 깊이 있는 details) -->
+    <details style="margin-top:8px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
       <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 17 변인 전체 표 + 학술 reference (분석가용)</summary>
       <div style="margin-top:10px">
         <table style="width:100%;font-size:11.5px;border-collapse:collapse">
@@ -1274,6 +1402,378 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 
+/* ===== js/driveline.js ===== */
+/**
+ * driveline.js — Driveline framework (메카닉 5축 + HP 체력 6축)
+ *
+ * 분리: v5.25 (analytics.js에서 추출, 2576 → 2227 lines)
+ * 의존: 없음 (analytics.js보다 먼저 로드되어도 OK, 단독 모듈)
+ * 사용: ANALYTICS export로 통합 (analytics.js 끝에서 통합)
+ *
+ * 메모리 reference:
+ *   ~/memory/reference_driveline_pitching_report.md  (메카닉 5 모델)
+ *   ~/memory/reference_driveline_hp_assessment.md    (체력 HP 6축)
+ *
+ * PDF reference:
+ *   docs/references/Driveline_PitchingAssessment_{EN,KR}_sample.pdf
+ *   docs/references/Driveline_HP_Assessment_{Initial,Retest}_sample.pdf
+ *
+ * 주요 export (window.ANALYTICS에 통합):
+ *   DRIVELINE_5_MODELS / drivelineMetricScore / drivelineFiveModelDiagnosis / drivelineMechanicalCeiling
+ *   DRIVELINE_HP_6_MODELS / drivelineHPScore / drivelineHPVeloGroup / drivelineHPDiagnosis
+ */
+
+/* v5.23: Driveline 5 모델 framework — Mechanical Composite Scores+
+ *   학술 출처: Driveline Pitching Assessment 표준 (PDF reference 메모리 참고)
+ *
+ *   각 모델 100점 = median elite (90+ mph cohort), 150점 = ceiling
+ *   Total score = 모델별 가중평균 (영향력 = 구속 상관계수)
+ *
+ *   영향력 순위 (구속 / Velocity Above Expected):
+ *   1. Posture     — 구속 1위 / AE 2위 (X-factor + trunk control 통합)
+ *   2. Arm Action  — 구속 2위 / AE 1위 (메카닉 효율 핵심)
+ *   3. CoG         — 구속 3위 / AE 5위 (무게중심 이동 속도)
+ *   4. Rotation    — 구속 4위 / AE 3위 (Trunk + Pelvis ω)
+ *   5. Block       — 구속 5위 / AE 4위 (Lead leg block)
+ */
+const DRIVELINE_5_MODELS = {
+  arm_action: {
+    label: '🚀 Arm Action',
+    sub:   '팔 동작 — 어깨/팔꿈치 효율',
+    velo_rank: 2, ae_rank: 1, weight: 0.22,
+    metrics: {
+      layback:           {label:'Layback (어깨 최대 외회전)',  unit:'deg',    median_elite: 190,  per_1mph: 5,    importance:'high'},
+      elbow_ext_velo:    {label:'Elbow Extension Velo',       unit:'deg/s',  median_elite: 2318, per_1mph: 203,  importance:'med'},
+      shoulder_abd_fp:   {label:'Shoulder Abduction at FP',   unit:'deg',    median_elite: 84,   per_1mph: 10,   importance:'med'},
+      scap_load_fp:      {label:'Scap Load at FP',            unit:'deg',    median_elite: 51,   per_1mph: 16,   importance:'med'},
+      shoulder_rot_velo: {label:'Shoulder Rotation Velo',     unit:'deg/s',  median_elite: 4673, per_1mph: 588,  importance:'med'},
+      elbow_flex_fp:     {label:'Elbow Flexion at FP',        unit:'deg',    median_elite: 102,  per_1mph: 35,   importance:'low'}
+    }
+  },
+  posture: {
+    label: '🛡 Posture',
+    sub:   '자세 — FP~릴리즈 자세 유지',
+    velo_rank: 1, ae_rank: 2, weight: 0.25,
+    metrics: {
+      hip_shoulder_sep_fp: {label:'Peak Hip-Shoulder Sep at FP (X-factor)', unit:'deg', median_elite: 30,  per_1mph: 3,  importance:'high'},
+      torso_counter_rot:   {label:'Peak Torso Counter Rot',                  unit:'deg', median_elite: -38, per_1mph: 13, importance:'high'},
+      torso_fwd_tilt_fp:   {label:'Torso Forward Tilt at FP',                unit:'deg', median_elite: 4,   per_1mph: 6,  importance:'high'},
+      torso_rot_fp:        {label:'Torso Rotation at FP',                    unit:'deg', median_elite: 2,   per_1mph: 10, importance:'high'},
+      torso_side_bend_mer: {label:'Torso Side Bend at MER',                  unit:'deg', median_elite: 25,  per_1mph: 3,  importance:'med'},
+      torso_rot_br:        {label:'Torso Rotation at BR',                    unit:'deg', median_elite: 111, per_1mph: 6,  importance:'med'}
+    }
+  },
+  rotation: {
+    label: '🔄 Rotation',
+    sub:   '회전 — Trunk + Pelvis 회전 속도',
+    velo_rank: 4, ae_rank: 3, weight: 0.18,
+    metrics: {
+      torso_rot_velo:  {label:'Torso Rotation Velo',  unit:'deg/s', median_elite: 965, per_1mph: 40,  importance:'high'},
+      pelvis_rot_velo: {label:'Pelvis Rotation Velo', unit:'deg/s', median_elite: 597, per_1mph: 128, importance:'low'}
+    }
+  },
+  block: {
+    label: '🦵 Block',
+    sub:   '앞발 블록 — Lead leg 활용',
+    velo_rank: 5, ae_rank: 4, weight: 0.15,
+    metrics: {
+      lead_knee_ext:        {label:'Lead Knee Extension',       unit:'deg',   median_elite: 11,  per_1mph: 5,   importance:'high'},
+      stride_length:        {label:'Stride Length',             unit:'in',    median_elite: 58,  per_1mph: 5,   importance:'high'},
+      cog_decel_ae:         {label:'CoG Decel AE',              unit:'m/s',   median_elite: 0.02,per_1mph: 0.35,importance:'med'},
+      lead_knee_ext_velo:   {label:'Peak Lead Knee Ext Velo',   unit:'deg/s', median_elite: 316, per_1mph: 103, importance:'low'}
+    }
+  },
+  cog: {
+    label: '🎯 CoG',
+    sub:   '무게중심 이동 — Drive 속도/감속',
+    velo_rank: 3, ae_rank: 5, weight: 0.20,
+    metrics: {
+      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.61, per_1mph: 0.15, importance:'high'},
+      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.84, per_1mph: 0.35, importance:'med'}
+    }
+  }
+};
+
+/**
+ * v5.23: 변인 값 → 점수 (100 = median elite, 150 = ceiling)
+ *   linear: 50점 = median elite의 50%, 100점 = median elite, 150점 = median elite의 150%
+ *   더 정확한 보간을 위해 per_1mph 적용 (median ± per_1mph 5번 = ±25점)
+ */
+function drivelineMetricScore(value, metric){
+  if(value == null || isNaN(value)) return null;
+  const me = metric.median_elite;
+  const per = metric.per_1mph;
+  if(me == null || per == null || per === 0) return null;
+  // value - median_elite를 per_1mph 단위로 환산 → 1mph당 5점으로 score
+  // 즉 +5 mph 기여 = +25점, +10 mph = +50점
+  const mphEquivalent = (value - me) / per;
+  const score = 100 + mphEquivalent * 5;
+  return Math.max(20, Math.min(150, Math.round(score)));
+}
+
+/**
+ * v5.23: Driveline 5 모델 진단
+ * @param {object} input  메카닉 측정값 (우리 데이터 → Driveline 매핑)
+ * @returns {object} 5 모델 점수 + Total + 강약
+ */
+function drivelineFiveModelDiagnosis(input){
+  if(!input) return null;
+  const out = {};
+  // ── 우리 데이터 → Driveline 변인 매핑 ──
+  const matched = {
+    arm_action: {
+      layback:           input.shoulder_er_max_deg ?? input.peak_shoulder_v ? input.shoulder_er_max_deg : null,
+      elbow_ext_velo:    input.peak_elbow_v,
+      shoulder_abd_fp:   input.shoulder_abd_fp_deg ?? null,
+      scap_load_fp:      input.scap_load_fp_deg ?? null,
+      shoulder_rot_velo: input.peak_shoulder_v ?? input.arm_dps,
+      elbow_flex_fp:     input.elbow_flex_fp_deg ?? null
+    },
+    posture: {
+      hip_shoulder_sep_fp: input.x_factor ?? input.x_factor_deg,
+      torso_counter_rot:   input.torso_counter_rot_deg ?? null,
+      torso_fwd_tilt_fp:   input.trunk_forward_tilt ?? input.trunk_tilt_at_fc_deg,
+      torso_rot_fp:        input.torso_rot_fp_deg ?? null,
+      torso_side_bend_mer: input.trunk_lateral_tilt ?? input.trunk_lat_tilt_deg,
+      torso_rot_br:        input.torso_rot_br_deg ?? null
+    },
+    rotation: {
+      torso_rot_velo:  input.trunk_dps,
+      pelvis_rot_velo: input.pelvis_dps
+    },
+    block: {
+      lead_knee_ext:      input.lead_knee_change ?? input.lead_knee_max,
+      stride_length:      input.stride_length_in ?? (input.stride_length ? input.stride_length * 39.37 : null),  // m → in
+      cog_decel_ae:       input.cog_decel_ae ?? null,
+      lead_knee_ext_velo: input.lead_knee_ext_velo ?? null
+    },
+    cog: {
+      cog_decel:    input.cog_decel ?? null,
+      max_cog_velo: input.max_cog_velo ?? null
+    }
+  };
+
+  // 각 모델 점수 = 가용 metric 평균 (importance 가중)
+  for(const [modelKey, model] of Object.entries(DRIVELINE_5_MODELS)){
+    const matched_vars = matched[modelKey];
+    const scores = [];
+    const metric_results = {};
+    for(const [mkey, mdef] of Object.entries(model.metrics)){
+      const v = matched_vars[mkey];
+      const s = drivelineMetricScore(v, mdef);
+      const wt = mdef.importance === 'high' ? 3 : mdef.importance === 'med' ? 2 : 1;
+      metric_results[mkey] = {
+        label:   mdef.label,
+        value:   v,
+        unit:    mdef.unit,
+        median_elite: mdef.median_elite,
+        per_1mph: mdef.per_1mph,
+        importance: mdef.importance,
+        score:   s
+      };
+      if(s != null){
+        for(let i = 0; i < wt; i++) scores.push(s);
+      }
+    }
+    out[modelKey] = {
+      label: model.label,
+      sub:   model.sub,
+      velo_rank: model.velo_rank,
+      ae_rank:   model.ae_rank,
+      weight:    model.weight,
+      score:     scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null,
+      metrics:   metric_results,
+      n_metrics_available: scores.length / scores.reduce((a,b,i,arr) => i === 0 ? 1 : a, 1)  // approx
+    };
+  }
+
+  // Total score = 모델별 가중평균
+  const validModels = Object.values(out).filter(m => m.score != null);
+  if(validModels.length){
+    const totalWeight = validModels.reduce((s,m) => s + m.weight, 0);
+    const total = validModels.reduce((s,m) => s + m.score * m.weight, 0) / totalWeight;
+    out.total = Math.round(total);
+    // 강점/약점
+    validModels.sort((a,b) => b.score - a.score);
+    out.strength = validModels[0].label;
+    out.weakness = validModels[validModels.length-1].label;
+  }
+  return out;
+}
+
+/**
+ * v5.23: Mechanical Ceiling 산출 — 메카닉이 150점 도달 시 기대 구속
+ *   현재 측정 구속 + 메카닉 향상 잠재 (각 모델 (150 - 현재 점수)/5 × per_1mph 합산)
+ */
+function drivelineMechanicalCeiling(diagnosis, measuredKmh){
+  if(!diagnosis || measuredKmh == null) return null;
+  let ceilingMph = measuredKmh / 1.60934;  // km/h → mph
+  let totalAddedMph = 0;
+  for(const [k, m] of Object.entries(diagnosis)){
+    if(!m || typeof m !== 'object' || m.score == null) continue;
+    if(m.score < 150){
+      const addedMph = (150 - m.score) / 5;   // 5점 = 1 mph 기여
+      totalAddedMph += addedMph * m.weight;
+    }
+  }
+  ceilingMph += totalAddedMph;
+  return {
+    ceiling_mph: Math.round(ceilingMph * 10) / 10,
+    ceiling_kmh: Math.round(ceilingMph * 1.60934 * 10) / 10,
+    added_mph_potential: Math.round(totalAddedMph * 10) / 10,
+    added_kmh_potential: Math.round(totalAddedMph * 1.60934 * 10) / 10
+  };
+}
+
+/* v5.25: Driveline HP Assessment 6축 framework — 체력 평가
+ *   학술 출처: Driveline High Performance Assessment (PDF reference 메모리 참고)
+ *
+ *   6 축 (각 100점 = HS group 평균):
+ *     1. Strength       — IMTP Net Peak Force (절대 힘)
+ *     2. Relative Strength — IMTP NPF / BW (체중 대비 힘)
+ *     3. Power          — Squat Jump Peak Power (절대 파워)
+ *     4. Relative Power — CMJ Peak Power / BW (체중 대비 파워, 구속 강한 상관)
+ *     5. Reactive Strength — Hop Test RSI (반응성 강도)
+ *     6. Upper Body Power — Plyo Push Up Peak Force (상체 파워; 우리 미측정)
+ *
+ *   Velo Group cohort: <80 / 80-85 / 85-90 / 90+ mph (Driveline cohort 평균)
+ *   reference 값: HP Assessment Retest sample (n 큰 cohort, 2024-10) 기반 추정 + Driveline 일반 norm
+ */
+const DRIVELINE_HP_6_MODELS = {
+  strength: {
+    label:    'Strength',
+    label_kr: '최대 힘',
+    sub:      'IMTP Net Peak Force',
+    weight:   0.18,
+    metric_key: 'imtp_npf',                                  // CSV → m.fitness.imtp.peak_force_n
+    unit: 'N',
+    velo_group: { '<80': 1900, '80-85': 2400, '85-90': 2750, '90+': 2940 }, // Driveline cohort 평균
+    hs_avg:   2316,                                          // HS group 평균 (composite score 100 기준)
+    higher_better: true
+  },
+  rel_strength: {
+    label:    'Relative Strength',
+    label_kr: '체중 대비 힘',
+    sub:      'IMTP NPF / BW',
+    weight:   0.18,
+    metric_key: 'imtp_pf_bm',
+    unit: 'N/kg',
+    velo_group: { '<80': 24.4, '80-85': 28.1, '85-90': 32.0, '90+': 33.7 }, // 환산 (3.09 → 30.3 N/kg)
+    hs_avg:   28,                                            // 우리 cohort 평균 정도
+    higher_better: true
+  },
+  power: {
+    label:    'Power',
+    label_kr: '점프 파워',
+    sub:      'Squat Jump Peak Power / BW',
+    weight:   0.18,
+    metric_key: 'sj_pp_bm',                                  // SJ peak power per BW (W/kg, 우리 파싱 키)
+    unit: 'W/kg',
+    velo_group: { '<80': 40, '80-85': 50, '85-90': 58, '90+': 65 }, // 추정 BW로 환산
+    hs_avg:   50,                                            // HS group 평균
+    higher_better: true
+  },
+  rel_power: {
+    label:    'Relative Power',
+    label_kr: '체중 대비 파워',
+    sub:      'CMJ Peak Power / BW',
+    weight:   0.20,                                          // 구속 최강 상관 → 가중 강조
+    metric_key: 'cmj_pp_bm',
+    unit: 'W/kg',
+    velo_group: { '<80': 38, '80-85': 45, '85-90': 52, '90+': 60 },
+    hs_avg:   45,
+    higher_better: true
+  },
+  reactive: {
+    label:    'Reactive Strength',
+    label_kr: '반응성 강도',
+    sub:      'Hop Test RSI',
+    weight:   0.16,
+    metric_key: 'pogo_rsi',
+    unit: 'm/s',
+    velo_group: { '<80': 2.4, '80-85': 2.6, '85-90': 2.8, '90+': 3.07 },
+    hs_avg:   2.6,
+    higher_better: true
+  },
+  upper_power: {
+    label:    'Upper Body Power',
+    label_kr: '상체 파워',
+    sub:      'Plyo Push Up Peak Force (미측정)',
+    weight:   0.10,                                          // 우리 미측정이라 가중 낮춤
+    metric_key: 'plyo_push_up_pf',                           // 측정 시 자동 채워짐
+    unit: 'N',
+    velo_group: { '<80': 800, '80-85': 983, '85-90': 1100, '90+': 1200 },
+    hs_avg:   983,
+    higher_better: true,
+    not_measured: true                                       // 미측정 표시
+  }
+};
+
+/* Driveline HP 단일 변인 → Composite Score (100=HS group 평균)
+ *   직선 스케일: HS 평균 = 100, 그 위/아래로 비례
+ *   상한 200 (2배), 하한 0
+ */
+function drivelineHPScore(value, hsAvg, higherBetter){
+  if(value == null || hsAvg == null || hsAvg === 0) return null;
+  let ratio = value / hsAvg;
+  if(!higherBetter) ratio = 1 / ratio;
+  const score = Math.round(ratio * 100);
+  return Math.max(0, Math.min(200, score));
+}
+
+/* Driveline HP — Velo Group 분류 (본인 위치)
+ *   value를 4 cohort 평균과 비교 → 가장 가까운 cohort 반환
+ */
+function drivelineHPVeloGroup(value, veloGroupRefs){
+  if(value == null || !veloGroupRefs) return null;
+  const groups = ['<80', '80-85', '85-90', '90+'];
+  let best = groups[0], bestDist = Infinity;
+  for(const g of groups){
+    const ref = veloGroupRefs[g];
+    if(ref == null) continue;
+    const d = Math.abs(value - ref);
+    if(d < bestDist) { bestDist = d; best = g; }
+  }
+  return best;
+}
+
+/* Driveline HP 6축 진단 (체력 평가 메인 함수)
+ *   input:
+ *     {imtp_npf, imtp_pf_bm, sj_pp, cmj_pp_bm, pogo_rsi, plyo_push_up_pf}
+ *   output:
+ *     {strength: {value, score, velo_group, ...}, ..., overall_score}
+ */
+function drivelineHPDiagnosis(input){
+  if(!input) return null;
+  const out = {};
+  let weightedSum = 0, weightSum = 0;
+  for(const [key, def] of Object.entries(DRIVELINE_HP_6_MODELS)){
+    const v = input[def.metric_key];
+    const score = drivelineHPScore(v, def.hs_avg, def.higher_better);
+    const vg    = drivelineHPVeloGroup(v, def.velo_group);
+    out[key] = {
+      label:    def.label,
+      label_kr: def.label_kr,
+      sub:      def.sub,
+      unit:     def.unit,
+      value:    v,
+      score:    score,
+      velo_group: vg,
+      hs_avg:   def.hs_avg,
+      velo_group_refs: def.velo_group,
+      weight:   def.weight,
+      not_measured: def.not_measured || false
+    };
+    if(score != null && !def.not_measured){
+      weightedSum += score * def.weight;
+      weightSum   += def.weight;
+    }
+  }
+  out.overall_score = weightSum > 0 ? Math.round(weightedSum / weightSum) : null;
+  return out;
+}
+
+
 /* ===== js/analytics.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
    ║  ANALYTICS — 통계 정식화 모듈 (v2.1)                          ║
@@ -1643,207 +2143,12 @@ function expectedVelocityCombined(mechInput, fitInput, measuredKmh){
   };
 }
 
-/* v5.23: Driveline 5 모델 framework — Mechanical Composite Scores+
- *   학술 출처: Driveline Pitching Assessment 표준 (PDF reference 메모리 참고)
- *
- *   각 모델 100점 = median elite (90+ mph cohort), 150점 = ceiling
- *   Total score = 모델별 가중평균 (영향력 = 구속 상관계수)
- *
- *   영향력 순위 (구속 / Velocity Above Expected):
- *   1. Posture     — 구속 1위 / AE 2위 (X-factor + trunk control 통합)
- *   2. Arm Action  — 구속 2위 / AE 1위 (메카닉 효율 핵심)
- *   3. CoG         — 구속 3위 / AE 5위 (무게중심 이동 속도)
- *   4. Rotation    — 구속 4위 / AE 3위 (Trunk + Pelvis ω)
- *   5. Block       — 구속 5위 / AE 4위 (Lead leg block)
+/* v5.25: Driveline framework는 src/js/driveline.js로 분리됨
+ *   DRIVELINE_5_MODELS, DRIVELINE_HP_6_MODELS, drivelineFiveModelDiagnosis,
+ *   drivelineMechanicalCeiling, drivelineHPDiagnosis 등 — driveline.js 참고.
+ *   ANALYTICS export는 그대로 유지 (build_dashboard.js가 driveline.js 먼저 로드).
  */
-const DRIVELINE_5_MODELS = {
-  arm_action: {
-    label: '🚀 Arm Action',
-    sub:   '팔 동작 — 어깨/팔꿈치 효율',
-    velo_rank: 2, ae_rank: 1, weight: 0.22,
-    metrics: {
-      layback:           {label:'Layback (어깨 최대 외회전)',  unit:'deg',    median_elite: 190,  per_1mph: 5,    importance:'high'},
-      elbow_ext_velo:    {label:'Elbow Extension Velo',       unit:'deg/s',  median_elite: 2318, per_1mph: 203,  importance:'med'},
-      shoulder_abd_fp:   {label:'Shoulder Abduction at FP',   unit:'deg',    median_elite: 84,   per_1mph: 10,   importance:'med'},
-      scap_load_fp:      {label:'Scap Load at FP',            unit:'deg',    median_elite: 51,   per_1mph: 16,   importance:'med'},
-      shoulder_rot_velo: {label:'Shoulder Rotation Velo',     unit:'deg/s',  median_elite: 4673, per_1mph: 588,  importance:'med'},
-      elbow_flex_fp:     {label:'Elbow Flexion at FP',        unit:'deg',    median_elite: 102,  per_1mph: 35,   importance:'low'}
-    }
-  },
-  posture: {
-    label: '🛡 Posture',
-    sub:   '자세 — FP~릴리즈 자세 유지',
-    velo_rank: 1, ae_rank: 2, weight: 0.25,
-    metrics: {
-      hip_shoulder_sep_fp: {label:'Peak Hip-Shoulder Sep at FP (X-factor)', unit:'deg', median_elite: 30,  per_1mph: 3,  importance:'high'},
-      torso_counter_rot:   {label:'Peak Torso Counter Rot',                  unit:'deg', median_elite: -38, per_1mph: 13, importance:'high'},
-      torso_fwd_tilt_fp:   {label:'Torso Forward Tilt at FP',                unit:'deg', median_elite: 4,   per_1mph: 6,  importance:'high'},
-      torso_rot_fp:        {label:'Torso Rotation at FP',                    unit:'deg', median_elite: 2,   per_1mph: 10, importance:'high'},
-      torso_side_bend_mer: {label:'Torso Side Bend at MER',                  unit:'deg', median_elite: 25,  per_1mph: 3,  importance:'med'},
-      torso_rot_br:        {label:'Torso Rotation at BR',                    unit:'deg', median_elite: 111, per_1mph: 6,  importance:'med'}
-    }
-  },
-  rotation: {
-    label: '🔄 Rotation',
-    sub:   '회전 — Trunk + Pelvis 회전 속도',
-    velo_rank: 4, ae_rank: 3, weight: 0.18,
-    metrics: {
-      torso_rot_velo:  {label:'Torso Rotation Velo',  unit:'deg/s', median_elite: 965, per_1mph: 40,  importance:'high'},
-      pelvis_rot_velo: {label:'Pelvis Rotation Velo', unit:'deg/s', median_elite: 597, per_1mph: 128, importance:'low'}
-    }
-  },
-  block: {
-    label: '🦵 Block',
-    sub:   '앞발 블록 — Lead leg 활용',
-    velo_rank: 5, ae_rank: 4, weight: 0.15,
-    metrics: {
-      lead_knee_ext:        {label:'Lead Knee Extension',       unit:'deg',   median_elite: 11,  per_1mph: 5,   importance:'high'},
-      stride_length:        {label:'Stride Length',             unit:'in',    median_elite: 58,  per_1mph: 5,   importance:'high'},
-      cog_decel_ae:         {label:'CoG Decel AE',              unit:'m/s',   median_elite: 0.02,per_1mph: 0.35,importance:'med'},
-      lead_knee_ext_velo:   {label:'Peak Lead Knee Ext Velo',   unit:'deg/s', median_elite: 316, per_1mph: 103, importance:'low'}
-    }
-  },
-  cog: {
-    label: '🎯 CoG',
-    sub:   '무게중심 이동 — Drive 속도/감속',
-    velo_rank: 3, ae_rank: 5, weight: 0.20,
-    metrics: {
-      cog_decel:    {label:'CoG Decel',    unit:'m/s', median_elite: 1.61, per_1mph: 0.15, importance:'high'},
-      max_cog_velo: {label:'Max CoG Velo', unit:'m/s', median_elite: 2.84, per_1mph: 0.35, importance:'med'}
-    }
-  }
-};
 
-/**
- * v5.23: 변인 값 → 점수 (100 = median elite, 150 = ceiling)
- *   linear: 50점 = median elite의 50%, 100점 = median elite, 150점 = median elite의 150%
- *   더 정확한 보간을 위해 per_1mph 적용 (median ± per_1mph 5번 = ±25점)
- */
-function drivelineMetricScore(value, metric){
-  if(value == null || isNaN(value)) return null;
-  const me = metric.median_elite;
-  const per = metric.per_1mph;
-  if(me == null || per == null || per === 0) return null;
-  // value - median_elite를 per_1mph 단위로 환산 → 1mph당 5점으로 score
-  // 즉 +5 mph 기여 = +25점, +10 mph = +50점
-  const mphEquivalent = (value - me) / per;
-  const score = 100 + mphEquivalent * 5;
-  return Math.max(20, Math.min(150, Math.round(score)));
-}
-
-/**
- * v5.23: Driveline 5 모델 진단
- * @param {object} input  메카닉 측정값 (우리 데이터 → Driveline 매핑)
- * @returns {object} 5 모델 점수 + Total + 강약
- */
-function drivelineFiveModelDiagnosis(input){
-  if(!input) return null;
-  const out = {};
-  // ── 우리 데이터 → Driveline 변인 매핑 ──
-  const matched = {
-    arm_action: {
-      layback:           input.shoulder_er_max_deg ?? input.peak_shoulder_v ? input.shoulder_er_max_deg : null,
-      elbow_ext_velo:    input.peak_elbow_v,
-      shoulder_abd_fp:   input.shoulder_abd_fp_deg ?? null,
-      scap_load_fp:      input.scap_load_fp_deg ?? null,
-      shoulder_rot_velo: input.peak_shoulder_v ?? input.arm_dps,
-      elbow_flex_fp:     input.elbow_flex_fp_deg ?? null
-    },
-    posture: {
-      hip_shoulder_sep_fp: input.x_factor ?? input.x_factor_deg,
-      torso_counter_rot:   input.torso_counter_rot_deg ?? null,
-      torso_fwd_tilt_fp:   input.trunk_forward_tilt ?? input.trunk_tilt_at_fc_deg,
-      torso_rot_fp:        input.torso_rot_fp_deg ?? null,
-      torso_side_bend_mer: input.trunk_lateral_tilt ?? input.trunk_lat_tilt_deg,
-      torso_rot_br:        input.torso_rot_br_deg ?? null
-    },
-    rotation: {
-      torso_rot_velo:  input.trunk_dps,
-      pelvis_rot_velo: input.pelvis_dps
-    },
-    block: {
-      lead_knee_ext:      input.lead_knee_change ?? input.lead_knee_max,
-      stride_length:      input.stride_length_in ?? (input.stride_length ? input.stride_length * 39.37 : null),  // m → in
-      cog_decel_ae:       input.cog_decel_ae ?? null,
-      lead_knee_ext_velo: input.lead_knee_ext_velo ?? null
-    },
-    cog: {
-      cog_decel:    input.cog_decel ?? null,
-      max_cog_velo: input.max_cog_velo ?? null
-    }
-  };
-
-  // 각 모델 점수 = 가용 metric 평균 (importance 가중)
-  for(const [modelKey, model] of Object.entries(DRIVELINE_5_MODELS)){
-    const matched_vars = matched[modelKey];
-    const scores = [];
-    const metric_results = {};
-    for(const [mkey, mdef] of Object.entries(model.metrics)){
-      const v = matched_vars[mkey];
-      const s = drivelineMetricScore(v, mdef);
-      const wt = mdef.importance === 'high' ? 3 : mdef.importance === 'med' ? 2 : 1;
-      metric_results[mkey] = {
-        label:   mdef.label,
-        value:   v,
-        unit:    mdef.unit,
-        median_elite: mdef.median_elite,
-        per_1mph: mdef.per_1mph,
-        importance: mdef.importance,
-        score:   s
-      };
-      if(s != null){
-        for(let i = 0; i < wt; i++) scores.push(s);
-      }
-    }
-    out[modelKey] = {
-      label: model.label,
-      sub:   model.sub,
-      velo_rank: model.velo_rank,
-      ae_rank:   model.ae_rank,
-      weight:    model.weight,
-      score:     scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null,
-      metrics:   metric_results,
-      n_metrics_available: scores.length / scores.reduce((a,b,i,arr) => i === 0 ? 1 : a, 1)  // approx
-    };
-  }
-
-  // Total score = 모델별 가중평균
-  const validModels = Object.values(out).filter(m => m.score != null);
-  if(validModels.length){
-    const totalWeight = validModels.reduce((s,m) => s + m.weight, 0);
-    const total = validModels.reduce((s,m) => s + m.score * m.weight, 0) / totalWeight;
-    out.total = Math.round(total);
-    // 강점/약점
-    validModels.sort((a,b) => b.score - a.score);
-    out.strength = validModels[0].label;
-    out.weakness = validModels[validModels.length-1].label;
-  }
-  return out;
-}
-
-/**
- * v5.23: Mechanical Ceiling 산출 — 메카닉이 150점 도달 시 기대 구속
- *   현재 측정 구속 + 메카닉 향상 잠재 (각 모델 (150 - 현재 점수)/5 × per_1mph 합산)
- */
-function drivelineMechanicalCeiling(diagnosis, measuredKmh){
-  if(!diagnosis || measuredKmh == null) return null;
-  let ceilingMph = measuredKmh / 1.60934;  // km/h → mph
-  let totalAddedMph = 0;
-  for(const [k, m] of Object.entries(diagnosis)){
-    if(!m || typeof m !== 'object' || m.score == null) continue;
-    if(m.score < 150){
-      const addedMph = (150 - m.score) / 5;   // 5점 = 1 mph 기여
-      totalAddedMph += addedMph * m.weight;
-    }
-  }
-  ceilingMph += totalAddedMph;
-  return {
-    ceiling_mph: Math.round(ceilingMph * 10) / 10,
-    ceiling_kmh: Math.round(ceilingMph * 1.60934 * 10) / 10,
-    added_mph_potential: Math.round(totalAddedMph * 10) / 10,
-    added_kmh_potential: Math.round(totalAddedMph * 1.60934 * 10) / 10
-  };
-}
 
 /* v5.18: 메카닉 변인 → 구속·제구 효과 매핑 (학술 출처)
  *   학술 출처: Stodden 2001, Werner 2008, Aguinaldo & Escamilla 2019, Naito 2014
@@ -3685,6 +3990,11 @@ const ANALYTICS = {
   drivelineMetricScore,
   drivelineFiveModelDiagnosis,
   drivelineMechanicalCeiling,
+  // v5.25: Driveline HP Assessment 6축 framework (체력)
+  DRIVELINE_HP_6_MODELS,
+  drivelineHPScore,
+  drivelineHPVeloGroup,
+  drivelineHPDiagnosis,
   // v5.13: 체력/통합 향상 시나리오
   expectedVelocityFromFitness,
   expectedVelocityCombined,
@@ -4995,56 +5305,48 @@ function v514_moveFitnessCards(){
 /* v5.17: 체력 6축 라디아 (구속 핵심 4 + 제구 1 + 부상 1) + hover 효과 + 17 변인 details */
 let chartFitnessRadar = null;
 function v516_renderFitnessHexRadar(m, p){
-  if(typeof ANALYTICS === 'undefined' || !ANALYTICS.fitnessAxisDiagnosis) return;
+  // v5.25: Driveline HP Assessment 6축 framework로 전환
+  // 6축: Strength / Relative Strength / Power / Relative Power / Reactive Strength / Upper Body Power
+  // 각 축 100 = HS group 평균, 본인 score는 변인별 raw value / hs_avg × 100
+  if(typeof ANALYTICS === 'undefined' || !ANALYTICS.drivelineHPDiagnosis) return;
   const fit = m.fitness;
   if(!fit){
     const wrap = document.getElementById('p-fitness-summary');
     if(wrap) wrap.innerHTML = '<span style="color:var(--muted)">체력 데이터 미입력</span>';
     return;
   }
-  // v5.17: 17 변인 모두 추출 (CMJ 5 + SJ 4 + Pogo 3 + IMTP 5)
-  const vars = {
-    cmj_jh:       fit.cmj?.jump_height_cm,
-    cmj_pp_bm:    fit.cmj?.peak_power_bm_w_kg,
-    cmj_rsi_mod:  fit.cmj?.rsi_modified_ms,
-    cmj_conc_pf:  fit.cmj?.conc_peak_force_bm_n_kg,
-    cmj_ec_ratio: fit.cmj?.ecc_conc_force_ratio,
-    sj_jh:        fit.sj?.jump_height_cm,
-    sj_pp_bm:     fit.sj?.peak_power_bm_w_kg,
-    sj_conc_pf:   fit.sj?.conc_peak_force_bm_n_kg,
-    eur:          fit.eur,
-    pogo_rsi:     fit.pogo?.rsi_ms,
-    pogo_ct:      fit.pogo?.mean_contact_time_ms,
-    pogo_jh:      fit.pogo?.mean_jump_height_cm,
-    imtp_pf:      fit.imtp?.peak_force_n,
-    imtp_pf_bm:   fit.imtp?.peak_force_bm_n_kg,
-    imtp_rfd:     fit.imtp?.rfd_0_100ms_n_s,
-    imtp_f100:    fit.imtp?.force_at_100ms_bm_n_kg,
-    imtp_asym:    fit.imtp?.asymmetry_pct
+  // Driveline HP 6 변인 추출 (DRIVELINE_HP_6_MODELS의 metric_key와 매칭)
+  const hpInput = {
+    imtp_npf:        fit.imtp?.peak_force_n,
+    imtp_pf_bm:      fit.imtp?.peak_force_bm_n_kg,
+    sj_pp_bm:        fit.sj?.peak_power_bm_w_kg,
+    cmj_pp_bm:       fit.cmj?.peak_power_bm_w_kg,
+    pogo_rsi:        fit.pogo?.rsi_ms,
+    plyo_push_up_pf: fit.pp?.peak_takeoff_force_n   // 미측정 — undefined 허용
   };
-  const dx = ANALYTICS.fitnessAxisDiagnosis(vars);
+  const dx = ANALYTICS.drivelineHPDiagnosis(hpInput);
   if(!dx) return;
 
-  // v5.17: 6 핵심 축 라벨 (구속 핵심 4 + 제구 1 + 부상 1)
-  const axes = [
-    {key:'rfd',       d:dx.rfd},
-    {key:'strength',  d:dx.strength},
-    {key:'explosive', d:dx.explosive},
-    {key:'reactive',  d:dx.reactive},
-    {key:'contact',   d:dx.contact},
-    {key:'asymmetry', d:dx.asymmetry}
-  ];
-  const labels = axes.map(a => a.d.label);
-  const myData = axes.map(a => a.d.score ?? 0);
-  // hover에 표시할 raw 데이터 (선수 친화 sub-label + 학술 변인명 + 효과)
-  const hoverInfo = axes.map(a => ({
-    score: a.d.score, value: a.d.value, unit: a.d.unit,
-    goodKR: a.d.goodKR, mlb: a.d.mlb, purpose: a.d.purpose, lower: a.d.lowerBetter,
-    sub: a.d.sub, scientific: a.d.short
+  // 6 축 순서 (Driveline HP 표준)
+  const axisOrder = ['strength','rel_strength','power','rel_power','reactive','upper_power'];
+  const labels = axisOrder.map(k => `${dx[k].label_kr}\n(${dx[k].label})`);
+  // 미측정 축은 0 대신 null로 표시 (radar에 빈 칸)
+  const myData = axisOrder.map(k => dx[k].not_measured ? 0 : (dx[k].score ?? 0));
+  // hover에 표시할 raw 데이터
+  const hoverInfo = axisOrder.map(k => ({
+    score: dx[k].score, value: dx[k].value, unit: dx[k].unit,
+    sub: dx[k].sub, hs_avg: dx[k].hs_avg,
+    velo_group: dx[k].velo_group, refs: dx[k].velo_group_refs,
+    not_measured: dx[k].not_measured
   }));
-  // 우수 reference (75점 line) + Elite (90점 line)
-  const goodRef = [75, 75, 75, 75, 75, 75];
-  const eliteRef = [90, 90, 90, 90, 90, 90];
+  // Reference rings: HS 평균(100) + 90+ mph cohort 목표
+  const hsAvgRef = axisOrder.map(_ => 100);
+  const elitemphRef = axisOrder.map(k => {
+    const refs = dx[k].velo_group_refs;
+    const hsAvg = dx[k].hs_avg;
+    if(!refs || !hsAvg) return 130;
+    return Math.round((refs['90+'] / hsAvg) * 100);
+  });
 
   const canvas = document.getElementById('p-fitness-radar');
   if(!canvas) return;
@@ -5054,16 +5356,16 @@ function v516_renderFitnessHexRadar(m, p){
     data: {
       labels: labels,
       datasets: [
-        { label: `${p.name} (체력 점수 평균 ${dx.summary.avg_score ?? '—'})`,
+        { label: `${p.name} (HP Composite ${dx.overall_score ?? '—'})`,
           data: myData,
-          backgroundColor: 'rgba(188,76,0,.20)', borderColor: '#bc4c00', borderWidth: 2.2,
+          backgroundColor: 'rgba(188,76,0,.20)', borderColor: '#bc4c00', borderWidth: 2.4,
           pointBackgroundColor: '#bc4c00', pointRadius: 4, order: 1 },
-        { label: '🟧 우수 고교 (75점)', data: goodRef,
-          backgroundColor: 'rgba(212,138,15,.04)', borderColor: '#bc8a0f', borderWidth: 1.5,
-          borderDash: [5,4], pointRadius: 0, order: 2 },
-        { label: '⬜ 프로 Elite (90점)', data: eliteRef,
-          backgroundColor: 'rgba(101,109,118,.0)', borderColor: '#656d76', borderWidth: 1.3,
-          borderDash: [2,3], pointRadius: 0, order: 3 }
+        { label: '⬜ HS 평균 (100)', data: hsAvgRef,
+          backgroundColor: 'rgba(101,109,118,.04)', borderColor: '#656d76', borderWidth: 1.4,
+          borderDash: [4,3], pointRadius: 0, order: 2 },
+        { label: '🟦 90+ mph cohort 목표', data: elitemphRef,
+          backgroundColor: 'rgba(9,105,218,.04)', borderColor: '#0969da', borderWidth: 1.5,
+          borderDash: [6,4], pointRadius: 0, order: 3 }
       ]
     },
     options: {
@@ -5073,53 +5375,144 @@ function v516_renderFitnessHexRadar(m, p){
         legend: { position: 'top', labels: { font: { size: 11 }, usePointStyle: true, padding: 10 } },
         tooltip: {
           callbacks: {
-            title: items => {
-              const info = hoverInfo[items[0].dataIndex];
-              return labels[items[0].dataIndex] + (info?.sub ? ' — ' + info.sub : '');
-            },
+            title: items => labels[items[0].dataIndex].replace('\n', ' '),
             label: ctx => {
-              if(ctx.datasetIndex !== 0) return ctx.dataset.label + ': ' + Math.round(ctx.parsed.r) + '점';
+              if(ctx.datasetIndex !== 0) return ctx.dataset.label + ': ' + Math.round(ctx.parsed.r);
               const info = hoverInfo[ctx.dataIndex];
-              const fmtV = (v) => v == null ? '—' : (typeof v === 'number' ? (v >= 1000 ? Math.round(v) : v.toFixed(2)) : v);
+              if(info.not_measured) return ['미측정 (Plyo Push-up 측정 추가 시 자동 채워짐)'];
+              const fmtV = v => v == null ? '—' : (typeof v === 'number' ? (v >= 1000 ? Math.round(v) : v.toFixed(2)) : v);
               return [
-                '학술명: ' + (info.scientific || '—'),
-                '본인: ' + fmtV(info.value) + ' ' + info.unit + '  (점수 ' + (info.score ?? '—') + ')',
-                '한국 우수: ' + fmtV(info.goodKR) + ' ' + info.unit + '  (75점 기준)',
-                'MLB: ' + fmtV(info.mlb) + ' ' + info.unit + '  (90점 기준)',
-                '효과: ' + (info.purpose || '—')
+                '본인: ' + fmtV(info.value) + ' ' + info.unit + '  (HP 점수 ' + (info.score ?? '—') + ')',
+                'HS 평균: ' + fmtV(info.hs_avg) + ' ' + info.unit + ' = 100점',
+                '본인 위치: ' + (info.velo_group ?? '—') + ' mph cohort',
+                'cohort 평균: <80=' + fmtV(info.refs['<80']) + ', 80-85=' + fmtV(info.refs['80-85']) + ', 85-90=' + fmtV(info.refs['85-90']) + ', 90+=' + fmtV(info.refs['90+'])
               ];
             }
           }
         }
       },
-      scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, color: '#656d76', font: { size: 10 }, backdropColor: 'transparent' },
+      scales: { r: { min: 0, max: 200, ticks: { stepSize: 50, color: '#656d76', font: { size: 10 }, backdropColor: 'transparent',
+                       callback: v => v === 100 ? '100 (평균)' : v === 200 ? '200' : v },
                      grid: { color: '#eaeef2' }, angleLines: { color: '#eaeef2' },
-                     pointLabels: { color: '#1f2328', font: { size: 11 } } } }
+                     pointLabels: { color: '#1f2328', font: { size: 10 } } } }
     }
   });
 
-  // 강약 요약 + 권장 훈련
+  // HP Composite 요약 + Velo Group + 강약점
   const summaryEl = document.getElementById('p-fitness-summary');
   if(summaryEl){
+    // 강점/약점 (미측정 제외)
+    const measuredAxes = axisOrder.filter(k => !dx[k].not_measured && dx[k].score != null);
+    const sortedAxes = measuredAxes.slice().sort((a,b) => dx[b].score - dx[a].score);
+    const top = sortedAxes[0], bottom = sortedAxes[sortedAxes.length-1];
+    // 본인이 가장 자주 속한 velo group (mode)
+    const vgs = measuredAxes.map(k => dx[k].velo_group).filter(Boolean);
+    const vgCount = {}; vgs.forEach(v => vgCount[v] = (vgCount[v]||0) + 1);
+    const dominantVG = Object.entries(vgCount).sort((a,b) => b[1] - a[1])[0]?.[0];
+
     let html = `<div style="background:#f6f8fa;padding:10px 12px;border-radius:6px;margin-bottom:10px">`;
-    html += `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">평균 체력 점수</div>`;
-    html += `<div style="font-size:24px;font-weight:600;color:#bc4c00">${dx.summary.avg_score ?? '—'}<span style="font-size:13px;color:var(--muted)"> / 100</span></div>`;
+    html += `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">HP Composite Score</div>`;
+    html += `<div style="font-size:24px;font-weight:600;color:#bc4c00">${dx.overall_score ?? '—'}<span style="font-size:13px;color:var(--muted)"> / 100 (HS 평균)</span></div>`;
+    if(dominantVG) html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">체력 수준 ≈ <b style="color:#0969da">${dominantVG} mph cohort</b></div>`;
     html += `</div>`;
-    html += `<div style="background:#f0fff4;border-left:3px solid #1a7f37;padding:8px 10px;border-radius:4px;margin-bottom:6px">`;
-    html += `<div style="font-size:11px;color:var(--muted)">▲ 강점</div>`;
-    html += `<div style="font-size:13px;font-weight:600;color:#1a7f37">${dx.summary.strength}</div>`;
-    html += `</div>`;
-    html += `<div style="background:#fff5f5;border-left:3px solid #cf222e;padding:8px 10px;border-radius:4px">`;
-    html += `<div style="font-size:11px;color:var(--muted)">▼ 약점</div>`;
-    html += `<div style="font-size:13px;font-weight:600;color:#cf222e">${dx.summary.weakness}</div>`;
-    html += `</div>`;
+    if(top) html += `<div style="background:#f0fff4;border-left:3px solid #1a7f37;padding:8px 10px;border-radius:4px;margin-bottom:6px">
+      <div style="font-size:11px;color:var(--muted)">▲ 강점</div>
+      <div style="font-size:13px;font-weight:600;color:#1a7f37">${dx[top].label_kr} (${dx[top].score}점)</div></div>`;
+    if(bottom && bottom !== top) html += `<div style="background:#fff5f5;border-left:3px solid #cf222e;padding:8px 10px;border-radius:4px">
+      <div style="font-size:11px;color:var(--muted)">▼ 약점</div>
+      <div style="font-size:13px;font-weight:600;color:#cf222e">${dx[bottom].label_kr} (${dx[bottom].score}점)</div></div>`;
     summaryEl.innerHTML = html;
   }
 
-  // v5.17: 17 변인 전체 표 (분석가용 details)
+  // v5.25: Velo Group cohort 비교표 (Driveline HP, 분석가용)
+  const cohortBody = document.getElementById('p-hp-cohort-body');
+  if(cohortBody){
+    const fmtV = (v, unit) => {
+      if(v == null) return '<span style="color:var(--muted)">—</span>';
+      if(typeof v !== 'number') return v;
+      if(unit === 'm/s' || unit === 'W/kg' || unit === 'N/kg') return v.toFixed(2);
+      return Math.round(v).toString();
+    };
+    const colorScore = s => s == null ? '#656d76' : s >= 130 ? '#1a7f37' : s >= 100 ? '#0969da' : s >= 75 ? '#bc4c00' : '#cf222e';
+    cohortBody.innerHTML = axisOrder.map(k => {
+      const a = dx[k];
+      const myCellColor = a.not_measured ? 'var(--muted)' : '#1f2328';
+      return `<tr style="border-bottom:1px solid #f0f3f6">
+        <td style="padding:6px;font-weight:500">${a.label_kr}<br><span style="font-size:10px;color:var(--muted)">${a.label}</span></td>
+        <td style="text-align:right;padding:6px;font-weight:600;color:${myCellColor}">${a.not_measured ? '미측정' : fmtV(a.value, a.unit)} <span style="color:var(--muted);font-size:10px">${a.unit}</span></td>
+        <td style="text-align:right;padding:6px;background:#f0f3f6">${fmtV(a.hs_avg, a.unit)}</td>
+        <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['<80'], a.unit)}</td>
+        <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['80-85'], a.unit)}</td>
+        <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['85-90'], a.unit)}</td>
+        <td style="text-align:right;padding:6px;background:#ddf4ff;font-weight:500">${fmtV(a.velo_group_refs['90+'], a.unit)}</td>
+        <td style="text-align:right;padding:6px;color:${colorScore(a.score)};font-weight:600">${a.not_measured ? '—' : (a.score ?? '—')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // v5.25: Asymmetry 별도 카드 (Driveline 패턴 — 좌우 균형 ±15% 임계)
+  const asymBars = document.getElementById('p-asym-bars');
+  const asymBadge = document.getElementById('p-asym-badge');
+  if(asymBars){
+    const asyms = [
+      { label: 'IMTP (다리 좌우 힘 차이)', val: fit.imtp?.asymmetry_pct },
+      { label: 'CMJ Concentric Impulse', val: fit.cmj?.asymmetry_pct },
+      { label: 'Plyo Push Up (상체 좌우)', val: fit.pp?.asymmetry_pct }
+    ];
+    const measured = asyms.filter(a => a.val != null);
+    const maxAbs = measured.length > 0 ? Math.max(...measured.map(a => Math.abs(a.val))) : null;
+    if(asymBadge){
+      if(maxAbs == null) asymBadge.innerHTML = '<span style="color:var(--muted)">측정 데이터 없음</span>';
+      else if(maxAbs >= 15) asymBadge.innerHTML = `<span style="color:#cf222e">⚠ 임계 초과 (max ${maxAbs.toFixed(1)}%)</span>`;
+      else if(maxAbs >= 10) asymBadge.innerHTML = `<span style="color:#bc4c00">주의 (max ${maxAbs.toFixed(1)}%)</span>`;
+      else asymBadge.innerHTML = `<span style="color:#1a7f37">✅ 균형 양호 (max ${maxAbs.toFixed(1)}%)</span>`;
+    }
+    asymBars.innerHTML = asyms.map(a => {
+      if(a.val == null) return `<div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:10.5px"><span style="width:140px">${a.label}</span><span>측정 없음</span></div>`;
+      const v = a.val;
+      const absV = Math.abs(v);
+      const c = absV >= 15 ? '#cf222e' : absV >= 10 ? '#bc4c00' : '#1a7f37';
+      // 가로 막대: -20 to +20 % 범위, 중앙 0 (균형). 점선 ±15% 임계
+      const pct = Math.max(-20, Math.min(20, v));
+      const offset = 50 + (pct / 20 * 50); // 중앙 50%, 좌우 0~100%
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:11px">
+        <span style="width:140px">${a.label}</span>
+        <div style="flex:1;position:relative;height:18px;background:#f6f8fa;border-radius:3px;overflow:visible">
+          <div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:#ccc"></div>
+          <div style="position:absolute;top:0;bottom:0;left:12.5%;width:1px;border-left:1px dashed #cf222e;opacity:.5"></div>
+          <div style="position:absolute;top:0;bottom:0;left:87.5%;width:1px;border-left:1px dashed #cf222e;opacity:.5"></div>
+          <div style="position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:${c};transform:translate(-50%,-50%);left:${offset}%"></div>
+        </div>
+        <span style="width:60px;text-align:right;color:${c};font-weight:600">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</span>
+        <span style="width:30px;color:var(--muted);font-size:10px">${v < 0 ? 'L↑' : v > 0 ? 'R↑' : ''}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // v5.17: 17 변인 전체 표 (분석가용 details) — Driveline HP 6축 외 추가 변인
   const detailBody = document.getElementById('p-fitness-detail-body');
   if(detailBody && ANALYTICS.FITNESS_VARIABLE_MAP){
     const vmap = ANALYTICS.FITNESS_VARIABLE_MAP;
+    // 17 변인 표용 vars (drivelineHPDiagnosis용 hpInput과 별개)
+    const vars = {
+      cmj_jh:       fit.cmj?.jump_height_cm,
+      cmj_pp_bm:    fit.cmj?.peak_power_bm_w_kg,
+      cmj_rsi_mod:  fit.cmj?.rsi_modified_ms,
+      cmj_conc_pf:  fit.cmj?.conc_peak_force_bm_n_kg,
+      cmj_ec_ratio: fit.cmj?.ecc_conc_force_ratio,
+      sj_jh:        fit.sj?.jump_height_cm,
+      sj_pp_bm:     fit.sj?.peak_power_bm_w_kg,
+      sj_conc_pf:   fit.sj?.conc_peak_force_bm_n_kg,
+      eur:          fit.eur,
+      pogo_rsi:     fit.pogo?.rsi_ms,
+      pogo_ct:      fit.pogo?.mean_contact_time_ms,
+      pogo_jh:      fit.pogo?.mean_jump_height_cm,
+      imtp_pf:      fit.imtp?.peak_force_n,
+      imtp_pf_bm:   fit.imtp?.peak_force_bm_n_kg,
+      imtp_rfd:     fit.imtp?.rfd_0_100ms_n_s,
+      imtp_f100:    fit.imtp?.force_at_100ms_bm_n_kg,
+      imtp_asym:    fit.imtp?.asymmetry_pct
+    };
     const order = ['cmj_jh','cmj_pp_bm','cmj_rsi_mod','cmj_conc_pf','cmj_ec_ratio',
                    'sj_jh','sj_pp_bm','sj_conc_pf','eur',
                    'pogo_rsi','pogo_ct','pogo_jh',
@@ -5293,6 +5686,134 @@ function v514_renderMechanicTables(m, p){
       <td style="padding:5px 6px;color:var(--muted)">${desc}</td>
       <td style="text-align:right;padding:5px 6px;font-weight:600;color:${colorScore(score)}">${score ?? '—'}</td>
     </tr>`).join('');
+  }
+
+  // [3-3 NEW v5.25] 에너지·파워 — Mechanical Energy 분절별 + 관절 Power Scalar
+  const enBody = document.getElementById('p-energy-segment-body');
+  const gen = m.energy?.generation;
+  const trf = m.energy?.transfer;
+  if(enBody && gen){
+    // 학술 평균 (한국 우수+OBP cohort): pelvis 400J, trunk 600J, humerus 590J
+    const refKE = { pelvis: 400, trunk: 600, humerus: 590 };
+    const segments = [
+      { lbl: '골반 (Pelvis)',  v: gen.mech_energy_pelvis_J,  ref: refKE.pelvis },
+      { lbl: '몸통 (Trunk)',   v: gen.mech_energy_trunk_J,   ref: refKE.trunk },
+      { lbl: '팔  (Humerus)',  v: gen.mech_energy_humerus_J, ref: refKE.humerus }
+    ];
+    const colorByRatio = r => r == null ? '#656d76' : r >= 1.1 ? '#1a7f37' : r >= 0.85 ? '#0969da' : r >= 0.65 ? '#bc4c00' : '#cf222e';
+    enBody.innerHTML = segments.map((s, i) => {
+      const ratio = s.v != null ? s.v / s.ref : null;
+      const c = colorByRatio(ratio);
+      // 전달율 = 다음 분절 KE / 현재 분절 KE
+      let trans = null;
+      if(i < segments.length - 1 && s.v != null && segments[i+1].v != null){
+        trans = (segments[i+1].v / s.v * 100).toFixed(0);
+      }
+      const tColor = trans == null ? '#656d76' : (+trans) >= 100 ? '#1a7f37' : (+trans) >= 70 ? '#0969da' : '#cf222e';
+      return `<tr style="border-bottom:1px solid #f0f3f6">
+        <td style="padding:5px 6px;font-weight:500">${s.lbl}</td>
+        <td style="text-align:right;padding:5px 6px;color:${c};font-weight:600">${s.v != null ? Math.round(s.v) : '—'} J</td>
+        <td style="text-align:right;padding:5px 6px;color:var(--muted)">${s.ref} J</td>
+        <td style="text-align:right;padding:5px 6px;color:${tColor};font-weight:600">${trans != null ? trans + '%' : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  // ETE 요약
+  const eteEl = document.getElementById('p-ete-summary');
+  if(eteEl && trf){
+    const ete = trf.ete_pct;
+    const speedGainPT = trf.speed_gain_pt;
+    const speedGainTA = trf.speed_gain_ta;
+    const ratio = trf.ratio_humerus_to_pelvis_pct;
+    const c = ete == null ? '#656d76' : ete >= 80 ? '#1a7f37' : ete >= 70 ? '#0969da' : ete >= 60 ? '#bc4c00' : '#cf222e';
+    eteEl.innerHTML = `
+      <div style="font-weight:600;margin-bottom:4px">⚡ 에너지 전달 효율 (ETE)</div>
+      <div>전체 전달율: <b style="color:${c};font-size:14px">${ete != null ? ete + '%' : '—'}</b>
+        <span style="color:var(--muted);font-size:10.5px"> (기준 80%+ Elite, 70%+ 정상)</span></div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">
+        Speed Gain: 골반→몸통 <b>${speedGainPT?.toFixed(2) ?? '—'}×</b> · 몸통→팔 <b>${speedGainTA?.toFixed(2) ?? '—'}×</b><br>
+        H/P KE_rot 비율: <b>${ratio ?? '—'}%</b> (작을수록 분절 균형 — Elite ~1190%)
+      </div>`;
+  }
+
+  // 관절 파워 표 (Hip/Knee/Shoulder/Elbow)
+  const pwBody = document.getElementById('p-power-joint-body');
+  if(pwBody && gen){
+    const joints = [
+      { lbl: 'Hip 파워',     l: gen.hip_L_W,    r: gen.hip_R_W },
+      { lbl: 'Knee 파워',    l: gen.knee_L_W,   r: gen.knee_R_W },
+      { lbl: 'Shoulder 파워',l: null,           r: gen.shoulder_W },
+      { lbl: 'Elbow 파워',   l: null,           r: gen.elbow_W }
+    ];
+    pwBody.innerHTML = joints.map(j => {
+      const sum = (j.l ?? 0) + (j.r ?? 0);
+      return `<tr style="border-bottom:1px solid #f0f3f6">
+        <td style="padding:5px 6px;font-weight:500">${j.lbl}</td>
+        <td style="text-align:right;padding:5px 6px;color:var(--muted)">${j.l != null ? Math.round(j.l) : '—'}</td>
+        <td style="text-align:right;padding:5px 6px;font-weight:600">${j.r != null ? Math.round(j.r) : '—'}</td>
+        <td style="text-align:right;padding:5px 6px;color:#bc4c00;font-weight:600">${sum > 0 ? Math.round(sum) : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  // 파워 요약
+  const pwEl = document.getElementById('p-power-summary');
+  if(pwEl && gen){
+    const totalW = gen.total_W;
+    const driveLeg = (gen.hip_R_W ?? 0) + (gen.knee_R_W ?? 0); // 우완 기준 Drive Leg = R hip+knee
+    const leadLeg  = (gen.hip_L_W ?? 0) + (gen.knee_L_W ?? 0);
+    const lead_drive_ratio = driveLeg > 0 ? (leadLeg / driveLeg * 100).toFixed(0) : null;
+    pwEl.innerHTML = `
+      <div style="font-weight:600;margin-bottom:4px">🔋 총 파워 출력</div>
+      <div>총합: <b style="color:#bc4c00;font-size:14px">${totalW != null ? Math.round(totalW) + ' W' : '—'}</b></div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">
+        Drive Leg (R hip+knee): <b>${Math.round(driveLeg)} W</b><br>
+        Lead Leg (L hip+knee): <b>${Math.round(leadLeg)} W</b>
+        ${lead_drive_ratio != null ? '<span style="color:var(--muted)"> · Lead/Drive 비율: ' + lead_drive_ratio + '%</span>' : ''}
+      </div>`;
+  }
+
+  // [3-4 NEW v5.25] 지면반력 — FP1/FP2 + LHEI
+  const grf = m.grf;
+  if(grf){
+    // FP1 (뒷발) %BW
+    const rearPct = grf.rear_force_pct;
+    const rearEl = document.getElementById('p-grf-rear-pct');
+    const rearFill = document.getElementById('p-grf-rear-fill');
+    if(rearEl && rearPct != null){
+      const c = rearPct >= 80 ? '#1a7f37' : rearPct >= 60 ? '#bc4c00' : '#cf222e';
+      rearEl.innerHTML = `<span style="color:${c}">${rearPct.toFixed(1)}%</span>`;
+      if(rearFill) rearFill.style.width = Math.min(100, rearPct / 150 * 100) + '%';
+    } else if(rearEl){ rearEl.textContent = '—'; }
+
+    // FP2 (앞발) %BW
+    const leadPct = grf.lead_force_pct;
+    const leadEl = document.getElementById('p-grf-lead-pct');
+    const leadFill = document.getElementById('p-grf-lead-fill');
+    if(leadEl && leadPct != null){
+      const c = leadPct >= 110 ? '#1a7f37' : leadPct >= 90 ? '#0969da' : leadPct >= 70 ? '#bc4c00' : '#cf222e';
+      leadEl.innerHTML = `<span style="color:${c}">${leadPct.toFixed(1)}%</span>`;
+      if(leadFill) leadFill.style.width = Math.min(100, leadPct / 150 * 100) + '%';
+    } else if(leadEl){ leadEl.textContent = '—'; }
+
+    // LHEI 종합 점수
+    const lheiEl = document.getElementById('p-grf-lhei-score');
+    if(lheiEl && grf.lhei != null){
+      const c = grf.lhei >= 80 ? '#1a7f37' : grf.lhei >= 60 ? '#0969da' : grf.lhei >= 40 ? '#bc4c00' : '#cf222e';
+      lheiEl.innerHTML = `<span style="color:${c}">${grf.lhei}</span> <span style="font-size:13px;color:var(--muted)">/100</span>`;
+    }
+
+    // 유형 판정
+    const typeEl = document.getElementById('p-grf-type-label');
+    if(typeEl){
+      let typeLabel = grf.type || '—';
+      if(rearPct != null && leadPct != null){
+        const ratio = leadPct / rearPct;
+        if(ratio > 1.4)      typeLabel = '🦵 Lead 우세 (블로킹 강함)';
+        else if(ratio < 0.7) typeLabel = '🦵 Drive 우세 (push 강함)';
+        else                 typeLabel = '⚖ 균형형';
+      }
+      typeEl.innerHTML = `<b>유형: ${typeLabel}</b>`;
+    }
   }
 }
 
