@@ -528,6 +528,248 @@ function v514_renderMechanicTables(m, p){
       typeEl.innerHTML = `<b>유형: ${typeLabel}</b>`;
     }
   }
+
+  // ──────────────────────────────────────────────────────
+  // [v5.28 §3-3] 분절간 ETE — proximal-to-distal 4 transition + bottleneck
+  // ──────────────────────────────────────────────────────
+  const trnsEl = document.getElementById('p-energy-transitions');
+  const tr = m.energy?.transitions;
+  if(trnsEl){
+    if(!tr){
+      trnsEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:10px;background:#f6f8fa;border-radius:4px">분절간 ETE 데이터 없음 (Theia 측정 필요)</div>';
+    } else {
+      const TKEYS = ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'];
+      const SEG_LABEL = ['🦴 골반','💪 몸통','🤲 위팔','✊ 아래팔','👋 손'];
+      const statusColor = s => s === 'ideal' ? '#1a7f37' : s === 'acceptable' ? '#0969da' : s === 'fault' ? '#cf222e' : '#656d76';
+      const statusBadge = s => s === 'ideal' ? '✅ 이상적' : s === 'acceptable' ? '🟦 허용' : s === 'fault' ? '❌ 결함' : '—';
+
+      // 분절 chain 시각화
+      let chainHtml = '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
+      SEG_LABEL.forEach((lbl, i) => {
+        chainHtml += `<div style="background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600">${lbl}</div>`;
+        if(i < TKEYS.length){
+          const t = tr[TKEYS[i]];
+          if(!t){ chainHtml += '<span style="color:var(--muted)">→</span>'; return; }
+          const c = statusColor(t.gain_status === 'fault' || t.lag_status === 'fault' ? 'fault' :
+                                t.gain_status === 'ideal' && t.lag_status === 'ideal' ? 'ideal' : 'acceptable');
+          chainHtml += `<div style="display:flex;flex-direction:column;align-items:center;min-width:90px">
+            <div style="color:${c};font-size:18px;line-height:1">→</div>
+            <div style="font-size:10px;color:var(--muted)">${t.lag_ms != null ? t.lag_ms.toFixed(1) + 'ms' : '—'}</div>
+            <div style="font-size:10px;color:${c};font-weight:600">${t.speed_gain != null ? t.speed_gain.toFixed(2) + '×' : '—'}</div>
+          </div>`;
+        }
+      });
+      chainHtml += '</div>';
+
+      // bottleneck 강조 박스
+      let bottleHtml = '';
+      if(tr.bottleneck && tr.bottleneck_score != null){
+        const b = tr[tr.bottleneck];
+        bottleHtml = `<div style="background:#fff5f5;border-left:4px solid #cf222e;padding:10px 12px;border-radius:4px;margin-bottom:10px">
+          <div style="font-weight:600;font-size:13px;color:#cf222e">⚠ 가장 큰 누수: ${b.label_kr} <span style="font-size:11px;color:var(--muted);font-weight:400">(점수 ${tr.bottleneck_score})</span></div>
+          <div style="font-size:11.5px;color:#1f2328;margin-top:4px">${b.description}</div>
+          ${b.lag_fault ? `<div style="font-size:11px;color:#cf222e;margin-top:4px">▸ 타이밍: ${b.lag_fault}</div>` : ''}
+          ${b.gain_fault ? `<div style="font-size:11px;color:#cf222e;margin-top:2px">▸ 속도전달: ${b.gain_fault}</div>` : ''}
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px">출처: ${b.citation}</div>
+        </div>`;
+      }
+
+      // 4 transition 표
+      const r2 = (x, p=1) => x == null ? '—' : x.toFixed(p);
+      let tableHtml = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">
+        <thead style="background:#f6f8fa">
+          <tr><th style="text-align:left;padding:6px 8px">Transition</th>
+              <th style="text-align:right;padding:6px 8px">lag (ms)</th>
+              <th style="text-align:center;padding:6px 8px">이상 범위</th>
+              <th style="text-align:right;padding:6px 8px">speed gain</th>
+              <th style="text-align:center;padding:6px 8px">이상 범위</th>
+              <th style="text-align:center;padding:6px 8px">진단</th>
+              <th style="text-align:right;padding:6px 8px">점수</th></tr>
+        </thead><tbody>`;
+      TKEYS.forEach(k => {
+        const t = tr[k]; if(!t) return;
+        const lagC = statusColor(t.lag_status);
+        const gainC = statusColor(t.gain_status);
+        const overall = t.gain_status === 'fault' || t.lag_status === 'fault' ? 'fault'
+                      : t.gain_status === 'ideal' && t.lag_status === 'ideal' ? 'ideal'
+                      : 'acceptable';
+        tableHtml += `<tr style="border-bottom:1px solid #f0f3f6">
+          <td style="padding:6px 8px;font-weight:500">${t.label_kr}<br><span style="font-size:10px;color:var(--muted)">${t.label_en}</span></td>
+          <td style="text-align:right;padding:6px 8px;color:${lagC};font-weight:600">${r2(t.lag_ms)}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10.5px">${t.lag_ideal_ms[0]}–${t.lag_ideal_ms[1]}</td>
+          <td style="text-align:right;padding:6px 8px;color:${gainC};font-weight:600">${t.speed_gain != null ? t.speed_gain.toFixed(2) + '×' : '—'}</td>
+          <td style="text-align:center;padding:6px 8px;color:var(--muted);font-size:10.5px">${t.speed_gain_ideal[0].toFixed(1)}–${t.speed_gain_ideal[1].toFixed(1)}×</td>
+          <td style="text-align:center;padding:6px 8px;color:${statusColor(overall)};font-weight:600;font-size:10.5px">${statusBadge(overall)}</td>
+          <td style="text-align:right;padding:6px 8px;font-weight:600;color:${statusColor(overall)}">${t.score ?? '—'}</td>
+        </tr>`;
+      });
+      tableHtml += `</tbody></table></div>`;
+
+      const overallColor = statusColor(tr.overall_score >= 80 ? 'ideal' : tr.overall_score >= 60 ? 'acceptable' : 'fault');
+      const headerHtml = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <div style="font-weight:600;font-size:13.5px">🔗 분절간 에너지 흐름 (proximal-to-distal)</div>
+        <div style="font-size:11.5px;color:var(--muted)">종합 점수: <b style="color:${overallColor};font-size:14px">${tr.overall_score ?? '—'}</b> / 100</div>
+      </div>`;
+
+      trnsEl.innerHTML = headerHtml + chainHtml + bottleHtml + tableHtml;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────
+  // [v5.28 §3-4] GRF 수평 + 임펄스 + 타이밍 (Drive 추진 / Lead 블록)
+  // ──────────────────────────────────────────────────────
+  const grfHEl = document.getElementById('p-grf-horizontal');
+  const grfH = m.grf?.horizontal;
+  if(grfHEl){
+    if(!grfH){
+      grfHEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:10px;background:#f6f8fa;border-radius:4px">GRF 수평 성분 데이터 없음 (Force Plate Y/X 시계열 필요)</div>';
+    } else {
+      const fmtV = (v, u, p=1) => v == null ? '—' : v.toFixed(p) + (u ? ' ' + u : '');
+      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#0969da' : s >= 40 ? '#bc4c00' : '#cf222e';
+
+      function metricRow(m){
+        const c = scoreColor(m.score);
+        const range = m.elite_range ? `${m.elite_range[0]}–${m.elite_range[1]}` : '—';
+        return `<tr style="border-bottom:1px solid #f0f3f6">
+          <td style="padding:5px 8px;font-weight:500">${m.label_kr}</td>
+          <td style="text-align:right;padding:5px 8px;color:${c};font-weight:600">${fmtV(m.value, m.unit, 1)}</td>
+          <td style="text-align:center;padding:5px 8px;color:var(--muted);font-size:10.5px">${range}</td>
+          <td style="text-align:right;padding:5px 8px;color:${c};font-weight:600">${m.score ?? '—'}</td>
+          <td style="padding:5px 8px;color:var(--muted);font-size:10px">${m.citation || ''}</td>
+        </tr>`;
+      }
+
+      const driveColor = scoreColor(grfH.drive_score);
+      const leadColor  = scoreColor(grfH.lead_score);
+      const overallColor = scoreColor(grfH.overall_score);
+
+      const headerHtml = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <div style="font-weight:600;font-size:13.5px">⚡ 수평 성분 + 임펄스 + 타이밍 — 운동량 변화의 본질</div>
+        <div style="font-size:11.5px;color:var(--muted)">종합: <b style="color:${overallColor};font-size:14px">${grfH.overall_score ?? '—'}</b> / 100
+          <span style="margin-left:10px">Drive: <b style="color:${driveColor}">${grfH.drive_score ?? '—'}</b></span>
+          <span style="margin-left:6px">Lead: <b style="color:${leadColor}">${grfH.lead_score ?? '—'}</b></span>
+        </div>
+      </div>`;
+
+      // Drive leg (3 metrics)
+      let driveHtml = `<div style="background:#fff8c5;padding:8px 10px;border-radius:4px;margin-bottom:8px">
+        <div style="font-weight:600;font-size:12.5px;color:#9a6700;margin-bottom:6px">🦵 Drive Leg (뒷발) — Mound 방향 추진</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+          <thead><tr style="color:var(--muted);font-size:10.5px">
+            <th style="text-align:left;padding:3px 8px">변인</th>
+            <th style="text-align:right;padding:3px 8px">실측</th>
+            <th style="text-align:center;padding:3px 8px">Elite 범위</th>
+            <th style="text-align:right;padding:3px 8px">점수</th>
+            <th style="text-align:left;padding:3px 8px">출처</th>
+          </tr></thead><tbody>`;
+      for(const k of ['drive_propulsive_peak_pct_bw','drive_propulsive_impulse_pct_bw_s','drive_propulsive_peak_time_pct']){
+        if(grfH.drive[k]) driveHtml += metricRow(grfH.drive[k]);
+      }
+      driveHtml += `</tbody></table></div>`;
+
+      // Lead leg (4 metrics)
+      let leadHtml = `<div style="background:#ddf4ff;padding:8px 10px;border-radius:4px;margin-bottom:8px">
+        <div style="font-weight:600;font-size:12.5px;color:#0969da;margin-bottom:6px">🦵 Lead Leg (앞발) — 블록 (∫F·dt = 운동량 흡수)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+          <thead><tr style="color:var(--muted);font-size:10.5px">
+            <th style="text-align:left;padding:3px 8px">변인</th>
+            <th style="text-align:right;padding:3px 8px">실측</th>
+            <th style="text-align:center;padding:3px 8px">Elite 범위</th>
+            <th style="text-align:right;padding:3px 8px">점수</th>
+            <th style="text-align:left;padding:3px 8px">출처</th>
+          </tr></thead><tbody>`;
+      for(const k of ['lead_braking_peak_pct_bw','lead_braking_impulse_pct_bw_s','lead_braking_peak_ms_after_fc','lead_block_duration_ms']){
+        if(grfH.lead[k]) leadHtml += metricRow(grfH.lead[k]);
+      }
+      leadHtml += `</tbody></table></div>`;
+
+      // 수평/수직 비율
+      let ratioHtml = '';
+      const r = grfH.ratio?.horizontal_to_vertical_ratio;
+      if(r){
+        const c = scoreColor(r.score);
+        ratioHtml = `<div style="background:#f6f8fa;padding:8px 12px;border-radius:4px;font-size:11.5px">
+          <b>수평/수직 비율</b>: <b style="color:${c}">${r.value != null ? r.value.toFixed(2) : '—'}</b>
+          <span style="color:var(--muted)"> (Elite ${r.elite_range[0]}–${r.elite_range[1]} · Kageyama 2014). 점수 <b style="color:${c}">${r.score ?? '—'}</b></span>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:3px">수평 추진이 수직 push 대비 충분한지 평가 — mound로의 운동량 전달 효율</div>
+        </div>`;
+      }
+
+      grfHEl.innerHTML = headerHtml + driveHtml + leadHtml + ratioHtml;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────
+  // [v5.29 §3-4] NewtForce 핵심 8 변인 (Florida Baseball Armory 표준)
+  // ──────────────────────────────────────────────────────
+  const nfEl = document.getElementById('p-grf-newtforce');
+  const nf = m.grf?.newtforce;
+  if(nfEl){
+    if(!nf){
+      nfEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:10px;background:#f6f8fa;border-radius:4px">NewtForce 데이터 없음 (Force Plate 시계열 필요)</div>';
+    } else {
+      const fmtV = (v, u, p=1) => v == null ? '—' : v.toFixed(p) + (u ? ' ' + u : '');
+      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#0969da' : s >= 40 ? '#bc4c00' : '#cf222e';
+
+      const overallC = scoreColor(nf.overall_score);
+      const ampC = scoreColor(nf.amplitude_score);
+      const timC = scoreColor(nf.timing_score);
+
+      const headerHtml = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <div style="font-weight:600;font-size:13.5px">⚙️ NewtForce 핵심 8 변인 <span style="font-size:10.5px;color:var(--muted);font-weight:400">(Florida Baseball Armory chart, Vanderbilt·TCU·Twins 사용 표준)</span></div>
+        <div style="font-size:11.5px;color:var(--muted)">종합: <b style="color:${overallC};font-size:14px">${nf.overall_score ?? '—'}</b> / 100
+          <span style="margin-left:10px">Amplitude: <b style="color:${ampC}">${nf.amplitude_score ?? '—'}</b></span>
+          <span style="margin-left:6px">Timing: <b style="color:${timC}">${nf.timing_score ?? '—'}</b></span>
+        </div>
+      </div>`;
+
+      function nfRow(key, m){
+        const c = scoreColor(m.score);
+        const range = m.elite_range ? `${m.elite_range[0]}–${m.elite_range[1]}` : '—';
+        const newBadge = m.new_in_v529 ? '<span style="background:#dafbe1;color:#1a7f37;padding:1px 5px;border-radius:3px;font-size:9.5px;margin-left:4px">NEW</span>' : '';
+        return `<tr style="border-bottom:1px solid #f0f3f6">
+          <td style="padding:5px 8px;color:var(--muted);font-size:10px">#${m.nf_id}</td>
+          <td style="padding:5px 8px;font-weight:500">${m.label_kr}${newBadge}<br><span style="font-size:10px;color:var(--muted)">${m.label_en}</span></td>
+          <td style="text-align:right;padding:5px 8px;color:${c};font-weight:600">${fmtV(m.value, m.unit, 1)}</td>
+          <td style="text-align:center;padding:5px 8px;color:var(--muted);font-size:10.5px">${range}</td>
+          <td style="text-align:right;padding:5px 8px;color:${c};font-weight:600">${m.score ?? '—'}</td>
+        </tr>`;
+      }
+
+      // Amplitude (7) — impulse, back_z, turn_z, lead_z, back_y, lead_y, lead_neg_y
+      let amplHtml = `<div style="background:#f6f8fa;padding:8px 10px;border-radius:4px;margin-bottom:8px">
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px">📊 Amplitude (7 변인)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+          <thead><tr style="color:var(--muted);font-size:10.5px">
+            <th style="text-align:left;padding:3px 8px;width:30px">#</th>
+            <th style="text-align:left;padding:3px 8px">변인</th>
+            <th style="text-align:right;padding:3px 8px">실측</th>
+            <th style="text-align:center;padding:3px 8px">Elite</th>
+            <th style="text-align:right;padding:3px 8px">점수</th>
+          </tr></thead><tbody>`;
+      for(const k of ['impulse','back_leg_peak_z','turning_point_z','lead_leg_peak_z','back_leg_peak_y','lead_leg_peak_y','lead_leg_negative_y']){
+        if(nf.metrics[k]) amplHtml += nfRow(k, nf.metrics[k]);
+      }
+      amplHtml += `</tbody></table></div>`;
+
+      // Timing (1)
+      let timHtml = '';
+      if(nf.metrics.time_of_transfer){
+        const m13 = nf.metrics.time_of_transfer;
+        const c = scoreColor(m13.score);
+        timHtml = `<div style="background:#fff8c5;padding:8px 12px;border-radius:4px;font-size:11.5px">
+          <div style="font-weight:600;font-size:12.5px;color:#9a6700;margin-bottom:4px">⏱ Timing — Time of Transfer (가장 중요한 timing metric)</div>
+          <div style="font-size:11.5px">Back Leg Peak Z → Lead Leg Peak Z: <b style="color:${c};font-size:13px">${fmtV(m13.value, m13.unit, 1)}</b>
+            <span style="color:var(--muted)">  (Elite ${m13.elite_range[0]}–${m13.elite_range[1]} ms)</span>
+            <span style="margin-left:8px">점수 <b style="color:${c}">${m13.score ?? '—'}</b></span>
+          </div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:3px">${m13.description}. ${m13.citation}</div>
+        </div>`;
+      }
+
+      nfEl.innerHTML = headerHtml + amplHtml + timHtml;
+    }
+  }
 }
 
 function v514_renderActionPlan(m, p){

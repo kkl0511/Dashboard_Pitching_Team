@@ -193,6 +193,67 @@ function enrichWithAnalytics(m){
       m.energy.leakage = { ...(m.energy.leakage || {}), ...eli };
     }
   }
+
+  // ─── v5.28: 분절간 ETE + lag (proximal-to-distal sequence) ───
+  // process_pitching_session.py가 추출한 lag/peak를 m.energy.transitions로 매핑
+  if(m.energy?.transfer && typeof segmentTransitionETE === 'function'){
+    const t = m.energy.transfer;
+    const g = m.energy.generation || {};
+    // peak ω 출처: m.sequence (pelvis_dps/trunk_dps/arm_dps) + m.energy.transfer.peak_forearm_v + m.energy.transfer.peak_hand_v
+    const segInput = {
+      peak_pelvis_v:                m.sequence?.pelvis_dps,
+      peak_trunk_v:                 m.sequence?.trunk_dps,
+      peak_humerus_v:               m.sequence?.arm_dps,
+      peak_forearm_v:               t.peak_forearm_v,
+      peak_hand_v:                  t.peak_hand_v ?? m.sequence?.hand_dps,
+      pelvis_to_trunk_lag_ms:       t.pelvis_to_trunk_lag_ms,
+      trunk_to_humerus_lag_ms:      t.trunk_to_humerus_lag_ms ?? t.trunk_to_arm_lag_ms,
+      humerus_to_forearm_lag_ms:    t.humerus_to_forearm_lag_ms,
+      forearm_to_hand_lag_ms:       t.forearm_to_hand_lag_ms
+    };
+    const hasSegInput = Object.values(segInput).some(x => x != null);
+    if(hasSegInput){
+      const tr = segmentTransitionETE(segInput);
+      if(tr){
+        m.energy.transitions = tr;   // 카드에서 직접 사용
+      }
+    }
+  }
+
+  // ─── v5.28: GRF 수평 + 임펄스 + 타이밍 분석 ───
+  if(m.protocol === 'Theia+GRF' && m.grf && typeof grfHorizontalAnalysis === 'function'){
+    const g = m.grf;
+    const grfHInput = {
+      drive_propulsive_peak_pct_bw:      g.drive_propulsive_peak_pct_bw,
+      drive_propulsive_impulse_pct_bw_s: g.drive_propulsive_impulse_pct_bw_s,
+      drive_propulsive_peak_time_pct:    g.drive_propulsive_peak_time_pct,
+      lead_braking_peak_pct_bw:          g.lead_braking_peak_pct_bw,
+      lead_braking_impulse_pct_bw_s:     g.lead_braking_impulse_pct_bw_s,
+      lead_braking_peak_ms_after_fc:     g.lead_braking_peak_ms_after_fc,
+      lead_block_duration_ms:            g.lead_block_duration_ms,
+      horizontal_to_vertical_ratio:      g.horizontal_to_vertical_ratio
+    };
+    const hasGrfH = Object.values(grfHInput).some(x => x != null);
+    if(hasGrfH){
+      const grfH = grfHorizontalAnalysis(grfHInput);
+      if(grfH) m.grf.horizontal = grfH;   // 카드에서 직접 사용
+    }
+  }
+
+  // ─── v5.29: NewtForce 핵심 8 변인 분석 (Florida Baseball Armory 표준) ───
+  if(m.protocol === 'Theia+GRF' && m.grf && typeof newtforceCoreAnalysis === 'function'){
+    const nfInput = m.grf;   // m.grf 전체를 넘김 (alias_v528으로 자동 매핑)
+    // 핵심 입력 1개 이상 있을 때만
+    const hasNF = ['drive_propulsive_impulse_pct_bw_s','rear_force_pct','lead_force_pct',
+                   'drive_propulsive_peak_pct_bw','lead_braking_peak_pct_bw',
+                   'newtforce_turning_point_z_pct_bw','newtforce_lead_negative_y_pct_bw',
+                   'newtforce_time_of_transfer_ms']
+                  .some(k => nfInput[k] != null);
+    if(hasNF){
+      const nf = newtforceCoreAnalysis(nfInput);
+      if(nf) m.grf.newtforce = nf;   // 카드에서 직접 사용
+    }
+  }
 }
 function mergeFitness(cur, n){
   if(!cur) return n;

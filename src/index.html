@@ -397,9 +397,12 @@
         <div id="p-power-summary" style="margin-top:10px;padding:8px 10px;background:#f6f8fa;border-radius:4px;font-size:11.5px"></div>
       </div>
     </div>
+    <!-- v5.28 NEW: 분절간 ETE — proximal-to-distal 4 transition (Pelvis→Trunk→Humerus→Forearm→Hand) -->
+    <div id="p-energy-transitions" style="margin-top:14px"></div>
     <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
       <b>KE_rot</b> = ½ · I (De Leva 1996 분절 관성) · ω². <b>전달율</b> = 다음 분절 KE / 현재 분절 KE × 100% (기준 70%+ 정상).<br>
-      <b>관절 파워</b> = Visual3D scalar (positive = 가속에 기여, negative = 흡수). 좌우 대비 + 합계로 drive leg/lead leg 활용도 평가.
+      <b>관절 파워</b> = Visual3D scalar (positive = 가속에 기여, negative = 흡수). 좌우 대비 + 합계로 drive leg/lead leg 활용도 평가.<br>
+      <b>분절간 흐름 (NEW v5.28)</b> = lag (시간차) + speed gain (속도 증폭) 결합. Aguinaldo 2007, Naito 2008, Werner 2008 기준.
     </div>
   </div>
 
@@ -439,9 +442,20 @@
         <div id="p-grf-type-label" style="margin-top:8px;font-size:11.5px"></div>
       </div>
     </div>
+
+    <!-- v5.28 NEW: GRF 수평 성분 + 임펄스 + 타이밍 (Force Plate의 본질) -->
+    <div id="p-grf-horizontal" style="margin-top:16px"></div>
+
+    <!-- v5.29 NEW: NewtForce 핵심 8 변인 (Florida Baseball Armory 표준) -->
+    <div id="p-grf-newtforce" style="margin-top:16px"></div>
+
     <div class="footnote" style="font-size:10.5px;margin-top:10px;line-height:1.5">
       <b>FP1 (뒷발 / Drive Leg)</b> — 와인드업~릴리스 push-off에 사용. <b>FP2 (앞발 / Lead Leg)</b> — 착지 후 블로킹·트렁크 회전 핵심 (Werner 2008).
       <b>LHEI</b> = Lead Leg + Hip Energy Index (zone3·zone6 기반).<br>
+      <b>수평 성분 (NEW v5.28)</b> — 추진(Drive Y-)·블록(Lead Y+) 임펄스가 운동량 변화의 본질. peak는 정점, impulse(∫F·dt)는 면적.
+      Kageyama 2014, MacWilliams 1998, Howenstein 2020 기준.<br>
+      <b>NewtForce 핵심 8 (NEW v5.29)</b> — Florida Baseball Armory 표준. Impulse(velocity #1) + Time of Transfer(가장 중요 timing) + Z/Y peak + Lead Negative Y(claw back).
+      Vanderbilt·TCU·Twins 사용. 기존 v5.28 변인 alias 통합.<br>
       유형: <b>균형형</b> (FP1·FP2 비슷) · <b>리어 우세</b> (FP1 ≫ FP2, push 위주) · <b>리드 우세</b> (FP2 ≫ FP1, block 위주).
     </div>
   </div>

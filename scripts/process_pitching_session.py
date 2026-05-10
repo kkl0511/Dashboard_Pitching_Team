@@ -257,7 +257,8 @@ def parse_theia_trial(path):
 
     max_cog_velo, cog_decel = cog_metrics()
 
-    # v3.7 GRF 자동 분류 — peak Z 큰 쪽 = lead (착지발), 작은 쪽 = rear (축발)
+    # v5.32 사용자 confirmed: FP1=앞발(lead/착지발), FP2=뒷발(rear/drive/축발)
+    #   → 자동 분류 제거, 강제 매핑. 매뉴얼 v1.1의 "FP1=축발" 표기는 잘못됐던 것.
     # v5.7 분석 구간 제한 (FC~BR) — boundary noise 제거
     fp1z = safe_max_abs(col_by_name_window('FP1_Z'))
     fp2z = safe_max_abs(col_by_name_window('FP2_Z'))
@@ -265,21 +266,231 @@ def parse_theia_trial(path):
     fp1y = safe_max_abs(col_by_name_window('FP1_Y'))
     fp2x = safe_max_abs(col_by_name_window('FP2_X'))
     fp2y = safe_max_abs(col_by_name_window('FP2_Y'))
-    # 자동 분류
+    # FP1 = lead (앞발), FP2 = rear/drive (뒷발) — 강제 매핑
     if fp1z is not None and fp2z is not None:
-        if fp1z >= fp2z:
-            lead_z, rear_z = fp1z, fp2z
-            lead_x, lead_y = fp1x, fp1y
-            rear_x, rear_y = fp2x, fp2y
-            fp_mapping = 'FP1=lead, FP2=rear'
-        else:
-            lead_z, rear_z = fp2z, fp1z
-            lead_x, lead_y = fp2x, fp2y
-            rear_x, rear_y = fp1x, fp1y
-            fp_mapping = 'FP1=rear, FP2=lead (자동 swap)'
+        lead_z, rear_z = fp1z, fp2z
+        lead_x, lead_y = fp1x, fp1y
+        rear_x, rear_y = fp2x, fp2y
+        fp_mapping = 'FP1=lead(앞발), FP2=rear(뒷발) — 강제 매핑'
     else:
         lead_z = rear_z = lead_x = lead_y = rear_x = rear_y = None
         fp_mapping = 'GRF 데이터 없음'
+
+    # ════════════════════════════════════════════════════════
+    # v5.28: 분절 peak frame + lag (proximal-to-distal sequence)
+    #        + GRF 수평 임펄스 + 타이밍
+    # ════════════════════════════════════════════════════════
+    # Sampling rate (c3d.txt 내부 — Theia 300Hz raw로 force(1200Hz raw)도 동기화 export)
+    time_arr_for_fs = col_by_name('TIME_X') or col_by_name('TIME') or col_by_name('TIME_0')
+    fs_in_c3d = 300.0
+    if time_arr_for_fs and len(time_arr_for_fs) > 1:
+        for i in range(1, min(len(time_arr_for_fs), 10)):
+            if time_arr_for_fs[i] is not None and time_arr_for_fs[i-1] is not None:
+                _dt = time_arr_for_fs[i] - time_arr_for_fs[i-1]
+                if _dt and _dt > 0:
+                    fs_in_c3d = round(1.0/_dt)
+                    break
+    dt_s_internal = 1.0/fs_in_c3d
+
+    # 분절 ω 시계열 (Z component = longitudinal axis = 회전축, hand만 X)
+    seg_pelvis_arr  = col_by_name('Pelvis_Ang_Vel_Z')
+    seg_trunk_arr   = col_by_name('Thorax_Ang_Vel_Z')
+    seg_humerus_arr = col_by_name('Pitching_Humerus_Ang_Vel_Z')
+    seg_forearm_arr = col_by_name('R_Forearm_Ang_Vel_Z')
+    seg_hand_arr    = col_by_name('Pitching_Hand_Ang_Vel_X')
+
+    # peak frame 검색 윈도우 — 분절 peak는 FC 직전 ~ BR 직후 사이에 발생
+    seg_w_start = max(0, (fc_event or 0) - 50) if fc_event else analysis_window[0]
+    seg_w_end   = min(len(data_rows), (br_event or len(data_rows)) + 10) if br_event else analysis_window[1]
+
+    def peak_frame_in(arr, ws, we):
+        """[ws, we) 구간 내 |arr| max인 frame index"""
+        if not arr: return None
+        best_i, best_v = None, -1.0
+        for i in range(ws, min(we, len(arr))):
+            v = arr[i]
+            if v is None: continue
+            av = abs(v)
+            if av > best_v:
+                best_v, best_i = av, i
+        return best_i
+
+    p_pelvis  = peak_frame_in(seg_pelvis_arr,  seg_w_start, seg_w_end)
+    p_trunk   = peak_frame_in(seg_trunk_arr,   seg_w_start, seg_w_end)
+    p_humerus = peak_frame_in(seg_humerus_arr, seg_w_start, seg_w_end)
+    p_forearm = peak_frame_in(seg_forearm_arr, seg_w_start, seg_w_end)
+    p_hand    = peak_frame_in(seg_hand_arr,    seg_w_start, seg_w_end)
+
+    def _lag_ms(a, b):
+        if a is None or b is None: return None
+        return round((b - a) * dt_s_internal * 1000, 1)
+
+    pelvis_to_trunk_lag_ms    = _lag_ms(p_pelvis,  p_trunk)
+    trunk_to_humerus_lag_ms   = _lag_ms(p_trunk,   p_humerus)
+    humerus_to_forearm_lag_ms = _lag_ms(p_humerus, p_forearm)
+    forearm_to_hand_lag_ms    = _lag_ms(p_forearm, p_hand)
+
+    # peak forearm v (현재 미추출 → 신규)
+    peak_forearm_v_val = safe_max_abs(col_by_name_window('R_Forearm_Ang_Vel_Z'))
+
+    # ─── GRF 수평 + 임펄스 + 타이밍 (v5.32 사용자 매핑 + 좌표계 robust) ───
+    fp1_x_arr = col_by_name('FP1_X'); fp1_y_arr = col_by_name('FP1_Y'); fp1_z_arr = col_by_name('FP1_Z')
+    fp2_x_arr = col_by_name('FP2_X'); fp2_y_arr = col_by_name('FP2_Y'); fp2_z_arr = col_by_name('FP2_Z')
+
+    # v5.32: FP1=lead(앞발), FP2=drive(뒷발) — 강제 매핑
+    lead_y_arr_ts, lead_z_arr_ts = fp1_y_arr, fp1_z_arr
+    drive_y_arr_ts, drive_z_arr_ts = fp2_y_arr, fp2_z_arr
+
+    GRF_THR = 50.0  # N
+
+    # ─── Drive leg 동적 윈도우 (FC 이전 main push-off) ───
+    drive_start = drive_end = None
+    if drive_z_arr_ts and fc_event is not None:
+        active_pre = [(v is not None and v > GRF_THR) for v in drive_z_arr_ts[:fc_event]]
+        end_idx = len(active_pre) - 1
+        while end_idx >= 0 and not active_pre[end_idx]: end_idx -= 1
+        if end_idx >= 0:
+            start_idx = end_idx
+            while start_idx > 0 and active_pre[start_idx-1]: start_idx -= 1
+            drive_start, drive_end = start_idx, end_idx + 1  # exclusive
+
+    # v5.32: Drive propulsive — |Y| 절댓값 (좌표계 부호 robust, mound축 정의 무관)
+    #   드라이브 Y의 dominant 방향(±)을 자동 검출 후 그 방향 force만 적분
+    drive_prop_peak_n = drive_prop_impulse_ns = drive_peak_time_pct = None
+    if drive_y_arr_ts and drive_start is not None and drive_end is not None:
+        seg_y = [v for v in drive_y_arr_ts[drive_start:drive_end] if v is not None]
+        if seg_y:
+            # dominant 방향 = abs sum 큰 쪽
+            sum_pos = sum(v for v in seg_y if v > 0)
+            sum_neg = abs(sum(v for v in seg_y if v < 0))
+            if sum_pos >= sum_neg:
+                propulsive_seg = [v for v in seg_y if v > 0]
+                sign = +1
+            else:
+                propulsive_seg = [abs(v) for v in seg_y if v < 0]
+                sign = -1
+            if propulsive_seg:
+                drive_prop_peak_n = max(propulsive_seg)
+                drive_prop_impulse_ns = sum(propulsive_seg) * dt_s_internal
+                # peak time within drive window
+                seg_abs = [abs(v) for v in seg_y]
+                peak_idx_local = seg_abs.index(max(seg_abs))
+                if len(seg_y) > 1:
+                    drive_peak_time_pct = peak_idx_local / max(1, len(seg_y)-1) * 100
+
+    # ─── Lead leg 동적 윈도우 (FC ~ Lead leg toe-off) ───
+    # 기존 BR+30 frames 고정 → BR 이후 FP1_Z<threshold 첫 frame까지 동적 확장
+    lead_start = fc_event if fc_event is not None else None
+    lead_end = None
+    if lead_z_arr_ts and fc_event is not None and br_event is not None:
+        # BR 이후 FP1_Z<THR 첫 frame (lead leg가 force plate에서 떠나는 시점)
+        for i in range(br_event, min(len(lead_z_arr_ts), br_event + int(0.5*fs_in_c3d))):
+            v = lead_z_arr_ts[i]
+            if v is None or v < GRF_THR:
+                lead_end = i
+                break
+        if lead_end is None:
+            lead_end = min(len(lead_z_arr_ts), br_event + int(0.5*fs_in_c3d))   # fallback BR+500ms
+
+    # v5.32: Lead braking — |Y| 절댓값 + dominant 방향 자동 검출
+    lead_brake_peak_n = lead_brake_impulse_ns = lead_brake_peak_ms = lead_block_dur_ms = None
+    if lead_y_arr_ts and lead_start is not None and lead_end is not None and lead_end > lead_start:
+        seg = [v for v in lead_y_arr_ts[lead_start:lead_end] if v is not None]
+        if seg:
+            sum_pos = sum(v for v in seg if v > 0)
+            sum_neg = abs(sum(v for v in seg if v < 0))
+            if sum_pos >= sum_neg:
+                braking_seg = [v for v in seg if v > 0]
+            else:
+                braking_seg = [abs(v) for v in seg if v < 0]
+            if braking_seg:
+                lead_brake_peak_n = max(braking_seg)
+                lead_brake_impulse_ns = sum(braking_seg) * dt_s_internal
+                # peak timing (after FC, in ms)
+                seg_full = lead_y_arr_ts[lead_start:lead_end]
+                abs_arr = [abs(v) if v is not None else 0 for v in seg_full]
+                peak_local = abs_arr.index(max(abs_arr))
+                lead_brake_peak_ms = peak_local * dt_s_internal * 1000
+        # block duration: FC ~ Lead toe-off
+        lead_block_dur_ms = (lead_end - lead_start) * dt_s_internal * 1000
+
+    # 수평/수직 비율 (drive leg)
+    horiz_to_vert = None
+    if drive_prop_peak_n is not None and drive_z_arr_ts and drive_start is not None and drive_end is not None:
+        z_max = safe_max_abs(drive_z_arr_ts[drive_start:drive_end])
+        if z_max and z_max > 0:
+            horiz_to_vert = drive_prop_peak_n / z_max
+
+    # ═════════════════════════════════════════
+    # v5.29: NewtForce 핵심 추가 변인 — Turning Point Z, Lead Leg Negative Y, Time of Transfer
+    # 출처: Florida Baseball Armory "Force Plate Metrics Chart Guide" (NewtForce 표준)
+    # ═════════════════════════════════════════
+    # back_z_peak_frame — drive leg Z의 peak 시점
+    back_z_peak_frame = None
+    back_z_peak_n = None
+    if drive_z_arr_ts and drive_start is not None and drive_end is not None:
+        seg_z = drive_z_arr_ts[drive_start:drive_end]
+        if seg_z:
+            z_arr_clean = [v if v is not None else 0 for v in seg_z]
+            max_v = max(z_arr_clean)
+            if max_v > 0:
+                back_z_peak_frame = drive_start + z_arr_clean.index(max_v)
+                back_z_peak_n = max_v
+
+    # lead_z_peak_frame — lead leg Z의 peak 시점 (FC ~ BR+30)
+    lead_z_peak_frame = None
+    lead_z_peak_n = None
+    if lead_z_arr_ts and fc_event is not None and br_event is not None:
+        end_lead = min(len(lead_z_arr_ts), br_event + 30)
+        seg_z = lead_z_arr_ts[fc_event:end_lead]
+        if seg_z:
+            z_arr_clean = [v if v is not None else 0 for v in seg_z]
+            max_v = max(z_arr_clean)
+            if max_v > 0:
+                lead_z_peak_frame = fc_event + z_arr_clean.index(max_v)
+                lead_z_peak_n = max_v
+
+    # 1) Turning Point Z (NewtForce #3) — drive leg push 후 lead leg 착지 직전 minimum Z
+    #    drive_z_peak_frame ~ FC 사이의 minimum Z (drive leg 잠깐 unloading 시점)
+    turning_point_z_n = None
+    turning_point_z_frame = None
+    if drive_z_arr_ts and back_z_peak_frame is not None and fc_event is not None:
+        if fc_event > back_z_peak_frame:
+            seg = drive_z_arr_ts[back_z_peak_frame:fc_event]
+            seg_clean = [v for v in seg if v is not None]
+            if seg_clean:
+                turning_point_z_n = min(seg_clean)
+                # frame 위치
+                seg_arr = [v if v is not None else turning_point_z_n for v in seg]
+                turning_point_z_frame = back_z_peak_frame + seg_arr.index(turning_point_z_n)
+
+    # 2) Lead Leg Negative Y (NewtForce #10) — claw back 후 lead leg Y의 max
+    #    BR 후부터 trial 끝까지 (또는 fp_active 종료까지)에서 lead Y의 max (positive 방향)
+    lead_neg_y_n = None  # NewtForce 명명상 'Negative Y'지만 실제로 max Y in claw back phase
+    lead_neg_y_ms_after_br = None
+    if lead_y_arr_ts and br_event is not None:
+        end_search = min(len(lead_y_arr_ts), br_event + int(0.5 * fs_in_c3d))  # BR 후 500ms
+        seg = lead_y_arr_ts[br_event:end_search]
+        seg_clean = [v for v in seg if v is not None]
+        if seg_clean:
+            # positive direction으로 max — lead leg가 claw back하면서 발생
+            max_v = max(seg_clean)
+            if max_v > 0:
+                lead_neg_y_n = max_v
+                seg_arr = [v if v is not None else 0 for v in seg]
+                lead_neg_y_ms_after_br = seg_arr.index(max_v) * dt_s_internal * 1000
+
+    # 3) Time of Transfer (NewtForce #13) — Back Leg Peak Z → Lead Leg Peak Z (가장 중요한 timing)
+    time_of_transfer_ms = None
+    if back_z_peak_frame is not None and lead_z_peak_frame is not None:
+        time_of_transfer_ms = (lead_z_peak_frame - back_z_peak_frame) * dt_s_internal * 1000
+
+    # %BW 환산 (BM_DEFAULT_KG = 91kg, 기존 로직 일관)
+    BM_DEFAULT_KG = 91.0
+    BW_N = BM_DEFAULT_KG * 9.81
+
+    def _r(x, p=1):
+        return None if x is None else round(x, p)
 
     # v5.7: 모든 peak 추출이 FC~BR 분석 구간으로 제한됨 (Theia jerk noise 완화)
     #   참조: Naito et al. (2014) energy flow, Werner et al. (2008) elite pitcher
@@ -348,6 +559,48 @@ def parse_theia_trial(path):
         # CoG (v5.24)
         'max_cog_velo_m_s':         max_cog_velo,
         'cog_decel_m_s':            cog_decel,
+
+        # ─── v5.28: 분절 peak frame + lag (proximal-to-distal sequence) ───
+        'sampling_rate_hz_internal': fs_in_c3d,
+        'peak_pelvis_frame':         p_pelvis,
+        'peak_trunk_frame':          p_trunk,
+        'peak_humerus_frame':        p_humerus,
+        'peak_forearm_frame':        p_forearm,
+        'peak_hand_frame':           p_hand,
+        'peak_forearm_v':            peak_forearm_v_val,
+        'pelvis_to_trunk_lag_ms':    pelvis_to_trunk_lag_ms,
+        'trunk_to_humerus_lag_ms':   trunk_to_humerus_lag_ms,
+        'humerus_to_forearm_lag_ms': humerus_to_forearm_lag_ms,
+        'forearm_to_hand_lag_ms':    forearm_to_hand_lag_ms,
+
+        # ─── v5.28: GRF 수평 + 임펄스 + 타이밍 ───
+        'drive_active_window':                drive_start if drive_start is not None else None,
+        'drive_active_window_end':            drive_end if drive_end is not None else None,
+        'drive_propulsive_peak_n':            _r(drive_prop_peak_n, 1),
+        'drive_propulsive_peak_pct_bw':       _r(drive_prop_peak_n / BW_N * 100, 1) if drive_prop_peak_n else None,
+        'drive_propulsive_impulse_n_s':       _r(drive_prop_impulse_ns, 3),
+        'drive_propulsive_impulse_pct_bw_s':  _r(drive_prop_impulse_ns / BW_N * 100, 2) if drive_prop_impulse_ns else None,
+        'drive_propulsive_peak_time_pct':     _r(drive_peak_time_pct, 1),
+        'lead_braking_peak_n':                _r(lead_brake_peak_n, 1),
+        'lead_braking_peak_pct_bw':           _r(lead_brake_peak_n / BW_N * 100, 1) if lead_brake_peak_n else None,
+        'lead_braking_impulse_n_s':           _r(lead_brake_impulse_ns, 3),
+        'lead_braking_impulse_pct_bw_s':      _r(lead_brake_impulse_ns / BW_N * 100, 2) if lead_brake_impulse_ns else None,
+        'lead_braking_peak_ms_after_fc':      _r(lead_brake_peak_ms, 1),
+        'lead_block_duration_ms':             _r(lead_block_dur_ms, 1),
+        'horizontal_to_vertical_ratio':       _r(horiz_to_vert, 3),
+
+        # ─── v5.29: NewtForce 핵심 8 변인 (Florida Baseball Armory chart) ───
+        # 신규 3개 (나머지 5개는 v5.28 변인을 alias로 매핑 — driveline.js에서)
+        'newtforce_back_z_peak_n':            _r(back_z_peak_n, 1),
+        'newtforce_back_z_peak_frame':        back_z_peak_frame,
+        'newtforce_lead_z_peak_n':            _r(lead_z_peak_n, 1),
+        'newtforce_lead_z_peak_frame':        lead_z_peak_frame,
+        'newtforce_turning_point_z_n':        _r(turning_point_z_n, 1),
+        'newtforce_turning_point_z_pct_bw':   _r(turning_point_z_n / BW_N * 100, 1) if turning_point_z_n else None,
+        'newtforce_lead_negative_y_n':        _r(lead_neg_y_n, 1),
+        'newtforce_lead_negative_y_pct_bw':   _r(lead_neg_y_n / BW_N * 100, 1) if lead_neg_y_n else None,
+        'newtforce_lead_negative_y_ms_after_br': _r(lead_neg_y_ms_after_br, 1),
+        'newtforce_time_of_transfer_ms':      _r(time_of_transfer_ms, 1),
     }
 
 def scan_theia_player(player_dir, log):
@@ -579,6 +832,29 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
     trunk_me    = clip('trunk_me_peak',  50, 1500, 600)
     hum_me      = clip('humerus_me_peak', 50, 1500, 590)
 
+    # v5.28: 분절간 lag (proximal-to-distal sequence) — 실측 median
+    p2t_lag    = clip('pelvis_to_trunk_lag_ms',    -100, 200, None)
+    t2h_lag    = clip('trunk_to_humerus_lag_ms',   -100, 200, None)
+    h2f_lag    = clip('humerus_to_forearm_lag_ms', -100, 200, None)
+    f2h_lag    = clip('forearm_to_hand_lag_ms',    -100, 200, None)
+    peak_forearm_v_clip = clip('peak_forearm_v',  2000, 9000, None)
+
+    # v5.28: GRF 수평 + 임펄스 + 타이밍
+    drive_prop_peak_bw   = clip('drive_propulsive_peak_pct_bw',      0,  150, None)
+    drive_prop_imp_bw_s  = clip('drive_propulsive_impulse_pct_bw_s', 0,   80, None)
+    drive_prop_time_pct  = clip('drive_propulsive_peak_time_pct',    0,  100, None)
+    lead_brake_peak_bw   = clip('lead_braking_peak_pct_bw',          0,  250, None)
+    lead_brake_imp_bw_s  = clip('lead_braking_impulse_pct_bw_s',     0,   60, None)
+    lead_brake_peak_ms   = clip('lead_braking_peak_ms_after_fc',     0,  200, None)
+    lead_block_dur_ms    = clip('lead_block_duration_ms',           50,  400, None)
+    horiz_vert_ratio     = clip('horizontal_to_vertical_ratio',      0,    2, None)
+
+    # v5.29: NewtForce 신규 3개 변인
+    nf_turning_pt_z_bw      = clip('newtforce_turning_point_z_pct_bw',     0,  250, None)
+    nf_lead_neg_y_bw        = clip('newtforce_lead_negative_y_pct_bw',     0,  150, None)
+    nf_lead_neg_y_ms_br     = clip('newtforce_lead_negative_y_ms_after_br', 0, 500, None)
+    nf_time_of_transfer_ms  = clip('newtforce_time_of_transfer_ms',     -200,  400, None)
+
     rh_vals = [t['summary'].get('release_height_m') for t in trials]
     rh_sd_cm = (trial_sd(rh_vals, 0, 2) or 0.04) * 100
 
@@ -673,7 +949,15 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'transfer': {
                 'ete_pct': ete_pct, 'speed_gain_pt': speed_gain_pt, 'speed_gain_ta': speed_gain_ta,
                 'proper_seq': True,
-                'pelvis_to_trunk_lag_ms': 50, 'trunk_to_arm_lag_ms': 35,
+                # v5.28: 실측 lag 4개 (proximal-to-distal). 결측 시 None
+                'pelvis_to_trunk_lag_ms':    round(p2t_lag, 1) if p2t_lag is not None else None,
+                'trunk_to_humerus_lag_ms':   round(t2h_lag, 1) if t2h_lag is not None else None,
+                'humerus_to_forearm_lag_ms': round(h2f_lag, 1) if h2f_lag is not None else None,
+                'forearm_to_hand_lag_ms':    round(f2h_lag, 1) if f2h_lag is not None else None,
+                # legacy alias (기존 ELI 코드가 trunk_to_arm_lag_ms 참조)
+                'trunk_to_arm_lag_ms':       round(t2h_lag, 1) if t2h_lag is not None else None,
+                # 분절 peak ω (forearm 추가)
+                'peak_forearm_v':            round(peak_forearm_v_clip) if peak_forearm_v_clip is not None else None,
                 'score': trf_score,
                 # v5.5: 두 측면 노출
                 'score_kinematic': round(trf_kinematic),
@@ -696,6 +980,20 @@ def synthesize_player_summary(pid, player_meta, theia_data, rapsodo_throws, log)
             'rear_force_pct': round(fp1_peak/(91*9.81)*100*100, 0)/100,  # 축발 = FP1
             'lead_force_pct': round(fp2_peak/(91*9.81)*100*100, 0)/100,  # 착지발 = FP2
             'type': '균형형',
+            # v5.28: 수평 + 임펄스 + 타이밍 (수직 peak 일색이 아닌 운동량 변화의 본질)
+            'drive_propulsive_peak_pct_bw':      round(drive_prop_peak_bw, 1) if drive_prop_peak_bw is not None else None,
+            'drive_propulsive_impulse_pct_bw_s': round(drive_prop_imp_bw_s, 2) if drive_prop_imp_bw_s is not None else None,
+            'drive_propulsive_peak_time_pct':    round(drive_prop_time_pct, 1) if drive_prop_time_pct is not None else None,
+            'lead_braking_peak_pct_bw':          round(lead_brake_peak_bw, 1) if lead_brake_peak_bw is not None else None,
+            'lead_braking_impulse_pct_bw_s':     round(lead_brake_imp_bw_s, 2) if lead_brake_imp_bw_s is not None else None,
+            'lead_braking_peak_ms_after_fc':     round(lead_brake_peak_ms, 1) if lead_brake_peak_ms is not None else None,
+            'lead_block_duration_ms':            round(lead_block_dur_ms, 1) if lead_block_dur_ms is not None else None,
+            'horizontal_to_vertical_ratio':      round(horiz_vert_ratio, 3) if horiz_vert_ratio is not None else None,
+            # v5.29: NewtForce 핵심 8 변인 — 신규 3개 (나머지 5개는 driveline.js에서 alias 처리)
+            'newtforce_turning_point_z_pct_bw':     round(nf_turning_pt_z_bw, 1) if nf_turning_pt_z_bw is not None else None,
+            'newtforce_lead_negative_y_pct_bw':     round(nf_lead_neg_y_bw, 1) if nf_lead_neg_y_bw is not None else None,
+            'newtforce_lead_negative_y_ms_after_br': round(nf_lead_neg_y_ms_br, 1) if nf_lead_neg_y_ms_br is not None else None,
+            'newtforce_time_of_transfer_ms':        round(nf_time_of_transfer_ms, 1) if nf_time_of_transfer_ms is not None else None,
         },
         'faults': {
             'x_factor_deg': round(x_factor, 1), 'lead_knee_change': 12,
