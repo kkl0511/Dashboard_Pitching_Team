@@ -635,6 +635,9 @@ function v514_renderMechanicTables(m, p){
   //   라벨 6: 4 transition + 뒷발 추진 + 앞무릎 + X-factor
   // ──────────────────────────────────────────────────────
   function renderMannequinSvg(m){
+    // v5.43: dynamic Foot Strike pose (측면 view) + 데이터 기반 색깔 + burst circle
+    //   parallel humerus (양팔 상완 수평) + bent lead knee (130°) + drive 에너지 체인
+    //   라벨 박스 모두 제거 (점수/태그는 다른 패널에서 표시)
     const trans = (A.segmentTransitionETE) ? A.segmentTransitionETE({
       peak_pelvis_v:  m.sequence?.pelvis_dps,
       peak_trunk_v:   m.sequence?.trunk_dps,
@@ -651,80 +654,95 @@ function v514_renderMechanicTables(m, p){
     const tTH = trans.trunk_to_humerus   || {};
     const tHF = trans.humerus_to_forearm || {};
     const tFH = trans.forearm_to_hand    || {};
-    const xFactor = m.faults?.x_factor_deg;
-    const kneeChange = m.faults?.lead_knee_change;
-    const driveAP = m.grf?.drive_propulsive_peak_pct_bw;
-    const flyingOpen = xFactor != null && xFactor < 5;
-    const kneeCollapse = kneeChange != null && kneeChange < -10;
-    const kneeCollapseSevere = kneeChange != null && kneeChange < -22.2;
-    const scoreColor = s => s == null ? '#94a3b8' : s >= 80 ? '#1a7f37' : s >= 60 ? '#bc4c00' : '#cf222e';
-    const scoreFlag  = s => s == null ? '—' : s >= 80 ? '✓' : s >= 60 ? '△' : '⚠';
-    const segColor   = s => s == null ? '#3b82f6' : s >= 80 ? '#3b82f6' : s >= 60 ? '#f59e0b' : '#ef4444';
-    const driveStatus = driveAP == null ? 'na' :
-      (driveAP >= 55 && driveAP <= 80) ? 'normal' :
-      driveAP > 80 ? 'over' : driveAP >= 35 ? 'weak' : 'leak';
-    const driveColor = {normal:'#3b82f6',over:'#f59e0b',weak:'#fde68a',leak:'#ef4444',na:'#94a3b8'}[driveStatus];
-    const driveLabel = {normal:'✓ Elite',over:'△ Over-push',weak:'△ Weak',leak:'⚠ 부족',na:'—'}[driveStatus];
-    const F = (n, d=1) => (n == null || isNaN(n)) ? '—' : Number(n).toFixed(d);
+    // 색깔 정책 (Driveline+ 풍): 녹색 ≥80 / 황색 60-80 / 빨강 <60
+    const segColor = s => s == null ? '#00854a' : s >= 80 ? '#00854a' : s >= 60 ? '#ca8a04' : '#e63946';
     const uid = 'm' + Math.random().toString(36).slice(2, 8);
+    // 키 포인트 (Foot Strike pose, viewBox 600x420)
     const K = {
-      head:[470,100], neck:[479,160],
-      rShoulder:[520,162], lShoulder:[438,158],
-      rElbow:[572,108], rWrist:[630,108], ball:[650,108],
-      lElbow:[376,176], lWrist:[424,220],
-      pelvisR:[506,280], pelvisL:[446,280], pelvisC:[476,280],
-      rKnee:[556,400], rAnkle:[620,478], rToe:[658,484],
-      lKnee:[370,384], lAnkle:[332,472], lToe:[290,474]
+      head:      [295, 78],
+      rShoulder: [328, 132],   // pitching shoulder (back side, RIGHT in frame)
+      lShoulder: [268, 132],   // glove shoulder    (front side, LEFT in frame)
+      rElbow:    [400, 132],   // 상완 horizontal (지면과 평행)
+      rWrist:    [400, 60],    // 전완 vertical (ER)
+      ball:      [398, 45],
+      lElbow:    [200, 132],   // 상완 horizontal
+      lWrist:    [212, 215],   // 전완 down (팔꿈치 90°+ flex)
+      glove:     [218, 228],
+      pelvisR:   [315, 225],   // drive hip (RIGHT)
+      pelvisL:   [282, 225],   // lead hip  (LEFT)
+      pelvisC:   [298, 225],
+      midTorso:  [298, 200],
+      rKnee:     [390, 295],   // drive knee (거의 펴짐)
+      rAnkle:    [460, 362],
+      rToe:      [495, 370],
+      lKnee:     [175, 285],   // lead knee (130° 굽힘)
+      lAnkle:    [155, 360],
+      lToe:      [115, 367]
     };
-    const energyPath = `M ${K.lAnkle[0]} ${K.lAnkle[1]} L ${K.lKnee[0]} ${K.lKnee[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} L ${K.pelvisC[0]} ${K.pelvisC[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.rElbow[0]} ${K.rElbow[1]} L ${K.rWrist[0]} ${K.rWrist[1]} L ${K.ball[0]} ${K.ball[1]}`;
-    const driveLegPath = `M ${K.rToe[0]-15} ${K.rToe[1]+8} L ${K.rAnkle[0]} ${K.rAnkle[1]} L ${K.rKnee[0]} ${K.rKnee[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisC[0]} ${K.pelvisC[1]}`;
-    const burstHF = (tHF.score != null && tHF.score < 80) ? `<circle cx="${(K.rElbow[0]+K.rWrist[0])/2}" cy="${(K.rElbow[1]+K.rWrist[1])/2}" r="32" fill="url(#leak-${uid})" opacity="${tHF.score<60?0.85:0.55}"><animate attributeName="r" values="22;36;22" dur="1.4s" repeatCount="indefinite"/></circle>` : '';
-    const burstFH = (tFH.score != null && tFH.score < 80) ? `<circle cx="${(K.rWrist[0]+K.ball[0])/2}" cy="${(K.rWrist[1]+K.ball[1])/2}" r="24" fill="url(#leak-${uid})" opacity="${tFH.score<60?0.85:0.55}"><animate attributeName="r" values="14;28;14" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
-    const burstPT = (tPT.score != null && tPT.score < 60) ? `<circle cx="${K.pelvisC[0]}" cy="${K.pelvisC[1]}" r="28" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="20;32;20" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
-    const burstTH = (tTH.score != null && tTH.score < 60) ? `<circle cx="${(K.pelvisC[0]+K.rShoulder[0])/2}" cy="${(K.pelvisC[1]+K.rShoulder[1])/2}" r="34" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="24;38;24" dur="1.3s" repeatCount="indefinite"/></circle>` : '';
-    const kneeBurst = kneeCollapseSevere ? `<circle cx="${K.lKnee[0]}" cy="${K.lKnee[1]}" r="22" fill="url(#leak-${uid})" opacity="0.8"><animate attributeName="r" values="14;26;14" dur="1.3s" repeatCount="indefinite"/></circle>` : '';
-    return `<svg viewBox="0 0 800 560" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:480px">
+    const energyPath = `M ${K.lAnkle[0]} ${K.lAnkle[1]} L ${K.lKnee[0]} ${K.lKnee[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} L ${K.midTorso[0]} ${K.midTorso[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.rElbow[0]} ${K.rElbow[1]} L ${K.rWrist[0]} ${K.rWrist[1]} L ${K.ball[0]} ${K.ball[1]}`;
+    const driveLegPath = `M ${K.rAnkle[0]} ${K.rAnkle[1]} L ${K.rKnee[0]} ${K.rKnee[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisC[0]} ${K.pelvisC[1]}`;
+    // Burst circles (low score warnings) — pose 위치 갱신
+    const burstPT = (tPT.score != null && tPT.score < 60) ? `<circle cx="${K.pelvisC[0]}" cy="${K.pelvisC[1]}" r="22" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="16;28;16" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
+    const burstTH = (tTH.score != null && tTH.score < 60) ? `<circle cx="${(K.pelvisC[0]+K.rShoulder[0])/2}" cy="${(K.pelvisC[1]+K.rShoulder[1])/2}" r="26" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="20;32;20" dur="1.3s" repeatCount="indefinite"/></circle>` : '';
+    const burstHF = (tHF.score != null && tHF.score < 80) ? `<circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="24" fill="url(#leak-${uid})" opacity="${tHF.score<60?0.85:0.55}"><animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite"/></circle>` : '';
+    const burstFH = (tFH.score != null && tFH.score < 80) ? `<circle cx="${(K.rWrist[0]+K.ball[0])/2}" cy="${(K.rWrist[1]+K.ball[1])/2}" r="20" fill="url(#leak-${uid})" opacity="${tFH.score<60?0.85:0.55}"><animate attributeName="r" values="14;24;14" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
+    return `<svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:480px">
 <defs>
-<linearGradient id="bg-${uid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f5f7fa" stop-opacity="0"/><stop offset="1" stop-color="#f5f7fa" stop-opacity="0.35"/></linearGradient>
+<linearGradient id="bodyG-${uid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#1a2a47"/><stop offset="100%" stop-color="#14213d"/></linearGradient>
 <linearGradient id="energy-${uid}" gradientUnits="userSpaceOnUse" x1="${K.lAnkle[0]}" y1="${K.lAnkle[1]}" x2="${K.ball[0]}" y2="${K.ball[1]}">
-<stop offset="0%" stop-color="${kneeCollapse?'#fde68a':'#22d3ee'}"/><stop offset="20%" stop-color="${kneeCollapse?'#f59e0b':'#60a5fa'}"/><stop offset="40%" stop-color="${segColor(tPT.score)}"/><stop offset="58%" stop-color="${segColor(tTH.score)}"/><stop offset="78%" stop-color="${segColor(tHF.score)}"/><stop offset="100%" stop-color="${segColor(tFH.score)}"/></linearGradient>
-<linearGradient id="drive-${uid}" gradientUnits="userSpaceOnUse" x1="${K.rToe[0]}" y1="${K.rToe[1]+10}" x2="${K.pelvisC[0]}" y2="${K.pelvisC[1]}"><stop offset="0%" stop-color="#22d3ee"/><stop offset="35%" stop-color="${driveColor}"/><stop offset="70%" stop-color="${driveColor}"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient>
+<stop offset="0%"  stop-color="#00854a"/>
+<stop offset="35%" stop-color="${segColor(tPT.score)}"/>
+<stop offset="55%" stop-color="${segColor(tTH.score)}"/>
+<stop offset="80%" stop-color="${segColor(tHF.score)}"/>
+<stop offset="100%" stop-color="${segColor(tFH.score)}"/>
+</linearGradient>
+<linearGradient id="drive-${uid}" gradientUnits="userSpaceOnUse" x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.pelvisC[0]}" y2="${K.pelvisC[1]}"><stop offset="0%" stop-color="#00854a"/><stop offset="100%" stop-color="#0969da"/></linearGradient>
 <radialGradient id="leak-${uid}"><stop offset="0%" stop-color="#fee2e2" stop-opacity="0.95"/><stop offset="40%" stop-color="#ef4444" stop-opacity="0.75"/><stop offset="100%" stop-color="#7f1d1d" stop-opacity="0"/></radialGradient>
-<radialGradient id="mSphere-${uid}" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#f1f5f9"/><stop offset="45%" stop-color="#cbd5e1"/><stop offset="85%" stop-color="#64748b"/><stop offset="100%" stop-color="#334155"/></radialGradient>
-<linearGradient id="mLimb-${uid}" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#475569"/></linearGradient>
-<linearGradient id="mLimbD-${uid}" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#94a3b8"/><stop offset="55%" stop-color="#64748b"/><stop offset="100%" stop-color="#1e293b"/></linearGradient>
-<linearGradient id="mTorso-${uid}" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="40%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#334155"/></linearGradient>
-<radialGradient id="mJoint-${uid}" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#f8fafc"/><stop offset="60%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#334155"/></radialGradient>
-<radialGradient id="aoShadow-${uid}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000" stop-opacity="0.45"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
-<filter id="glow-${uid}" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<radialGradient id="moundShadow-${uid}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000" stop-opacity="0.18"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
 </defs>
-<line x1="40" y1="490" x2="760" y2="490" stroke="#2a3a5a" stroke-width="1.5" stroke-dasharray="3 6"/>
-<rect x="0" y="0" width="800" height="560" fill="url(#bg-${uid})"/>
-<ellipse cx="${(K.lAnkle[0]+K.rAnkle[0])/2}" cy="492" rx="190" ry="13" fill="url(#aoShadow-${uid})"/>
-<line x1="${K.lShoulder[0]}" y1="${K.lShoulder[1]}" x2="${K.lElbow[0]}" y2="${K.lElbow[1]}" stroke="url(#mLimbD-${uid})" stroke-width="22" stroke-linecap="round"/><circle cx="${K.lElbow[0]}" cy="${K.lElbow[1]}" r="12" fill="url(#mJoint-${uid})"/><line x1="${K.lElbow[0]}" y1="${K.lElbow[1]}" x2="${K.lWrist[0]}" y2="${K.lWrist[1]}" stroke="url(#mLimbD-${uid})" stroke-width="19" stroke-linecap="round"/><circle cx="${K.lWrist[0]}" cy="${K.lWrist[1]}" r="13" fill="url(#mSphere-${uid})"/>
-<line x1="${K.pelvisR[0]}" y1="${K.pelvisR[1]}" x2="${K.rKnee[0]}" y2="${K.rKnee[1]}" stroke="url(#mLimbD-${uid})" stroke-width="28" stroke-linecap="round"/><circle cx="${K.rKnee[0]}" cy="${K.rKnee[1]}" r="14" fill="url(#mJoint-${uid})"/><line x1="${K.rKnee[0]}" y1="${K.rKnee[1]}" x2="${K.rAnkle[0]}" y2="${K.rAnkle[1]}" stroke="url(#mLimbD-${uid})" stroke-width="24" stroke-linecap="round"/><circle cx="${K.rAnkle[0]}" cy="${K.rAnkle[1]}" r="11" fill="url(#mSphere-${uid})"/><line x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.rToe[0]}" y2="${K.rToe[1]}" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
-<path d="M ${K.lShoulder[0]-6} ${K.lShoulder[1]} L ${K.rShoulder[0]+6} ${K.rShoulder[1]} L ${K.pelvisR[0]+4} ${K.pelvisR[1]} L ${K.pelvisL[0]-4} ${K.pelvisL[1]} Z" fill="url(#mTorso-${uid})" stroke="#475569" stroke-width="1.2"/>
-<line x1="${K.pelvisL[0]}" y1="${K.pelvisL[1]}" x2="${K.lKnee[0]}" y2="${K.lKnee[1]}" stroke="url(#mLimb-${uid})" stroke-width="28" stroke-linecap="round"/><circle cx="${K.lKnee[0]}" cy="${K.lKnee[1]}" r="14" fill="${kneeCollapseSevere?'#ef4444':'url(#mJoint-'+uid+')'}" stroke="${kneeCollapseSevere?'#7f1d1d':'#475569'}" stroke-width="${kneeCollapseSevere?2:1}"/><line x1="${K.lKnee[0]}" y1="${K.lKnee[1]}" x2="${K.lAnkle[0]}" y2="${K.lAnkle[1]}" stroke="url(#mLimb-${uid})" stroke-width="24" stroke-linecap="round"/><circle cx="${K.lAnkle[0]}" cy="${K.lAnkle[1]}" r="11" fill="url(#mSphere-${uid})"/><line x1="${K.lAnkle[0]}" y1="${K.lAnkle[1]}" x2="${K.lToe[0]}" y2="${K.lToe[1]}" stroke="#94a3b8" stroke-width="18" stroke-linecap="round"/>
-<line x1="${K.rShoulder[0]}" y1="${K.rShoulder[1]}" x2="${K.rElbow[0]}" y2="${K.rElbow[1]}" stroke="url(#mLimb-${uid})" stroke-width="22" stroke-linecap="round"/><circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="12" fill="url(#mJoint-${uid})"/><line x1="${K.rElbow[0]}" y1="${K.rElbow[1]}" x2="${K.rWrist[0]}" y2="${K.rWrist[1]}" stroke="url(#mLimb-${uid})" stroke-width="19" stroke-linecap="round"/><circle cx="${K.rWrist[0]}" cy="${K.rWrist[1]}" r="11" fill="url(#mSphere-${uid})"/><circle cx="${K.ball[0]}" cy="${K.ball[1]}" r="10" fill="#fff" stroke="#1f2937" stroke-width="1.5"/><circle cx="${K.ball[0]-3}" cy="${K.ball[1]-2}" r="3" fill="#dc2626"/>
-<circle cx="${K.head[0]}" cy="${K.head[1]}" r="22" fill="url(#mSphere-${uid})" stroke="#475569" stroke-width="1.2"/><line x1="${K.head[0]}" y1="${K.head[1]+22}" x2="${K.neck[0]}" y2="${K.neck[1]}" stroke="#94a3b8" stroke-width="14" stroke-linecap="round"/>
-${burstPT}${burstTH}${burstHF}${burstFH}${kneeBurst}
-<path d="${driveLegPath}" fill="none" stroke="url(#drive-${uid})" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-${uid})" opacity="0.85"/><path d="${driveLegPath}" fill="none" stroke="url(#drive-${uid})" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-<path d="${energyPath}" fill="none" stroke="url(#energy-${uid})" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-${uid})" opacity="0.95"/><path d="${energyPath}" fill="none" stroke="url(#energy-${uid})" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-<line x1="446" y1="40" x2="${K.rWrist[0]-6}" y2="${K.rWrist[1]+2}" stroke="${scoreColor(tFH.score)}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(290, 12)"><rect x="0" y="0" width="156" height="44" rx="6" fill="#fff" stroke="${scoreColor(tFH.score)}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">④ 아래팔 → 손</text><text x="8" y="35" fill="${scoreColor(tFH.score)}" font-size="13" font-weight="700">${tFH.score!=null?tFH.score+'점':'—'} ${scoreFlag(tFH.score)} <tspan font-size="10" fill="#64748b">${F(tFH.lag_ms,1)} ms</tspan></text></g>
-<line x1="672" y1="100" x2="${K.ball[0]+8}" y2="${K.ball[1]}" stroke="${scoreColor(tHF.score)}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(672, 78)"><rect x="0" y="0" width="124" height="44" rx="6" fill="#fff" stroke="${scoreColor(tHF.score)}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">③ 위팔 → 아래팔</text><text x="8" y="35" fill="${scoreColor(tHF.score)}" font-size="13" font-weight="700">${tHF.score!=null?tHF.score+'점':'—'} ${scoreFlag(tHF.score)} <tspan font-size="10" fill="#64748b">${F(tHF.lag_ms,1)} ms</tspan></text></g>
-<line x1="640" y1="170" x2="${K.rShoulder[0]+12}" y2="${K.rShoulder[1]+2}" stroke="${scoreColor(tTH.score)}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(640, 150)"><rect x="0" y="0" width="156" height="44" rx="6" fill="#fff" stroke="${scoreColor(tTH.score)}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">② 몸통 → 위팔</text><text x="8" y="35" fill="${scoreColor(tTH.score)}" font-size="13" font-weight="700">${tTH.score!=null?tTH.score+'점':'—'} ${scoreFlag(tTH.score)} <tspan font-size="10" fill="#64748b">${F(tTH.lag_ms,0)} ms</tspan></text></g>
-<line x1="170" y1="245" x2="${K.pelvisL[0]-8}" y2="${K.pelvisL[1]+2}" stroke="${scoreColor(tPT.score)}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(10, 224)"><rect x="0" y="0" width="156" height="44" rx="6" fill="#fff" stroke="${scoreColor(tPT.score)}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">① 골반 → 몸통</text><text x="8" y="35" fill="${scoreColor(tPT.score)}" font-size="13" font-weight="700">${tPT.score!=null?tPT.score+'점':'—'} ${scoreFlag(tPT.score)} <tspan font-size="10" fill="#64748b">${F(tPT.lag_ms,0)} ms</tspan></text></g>
-<line x1="640" y1="248" x2="${K.pelvisR[0]+10}" y2="${K.pelvisR[1]+2}" stroke="${flyingOpen?'#cf222e':'#94a3b8'}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(640, 226)"><rect x="0" y="0" width="156" height="44" rx="6" fill="#fff" stroke="${flyingOpen?'#cf222e':'#94a3b8'}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">🛡 X-factor (분리각)</text><text x="8" y="35" fill="${flyingOpen?'#cf222e':'#1a7f37'}" font-size="13" font-weight="700">${xFactor!=null?F(xFactor,1):'—'}° ${flyingOpen?'⚠ Flying Open':'✓'}</text></g>
-<line x1="170" y1="376" x2="${K.lKnee[0]-12}" y2="${K.lKnee[1]+2}" stroke="${kneeCollapseSevere?'#cf222e':kneeCollapse?'#bc4c00':'#94a3b8'}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(10, 354)"><rect x="0" y="0" width="156" height="44" rx="6" fill="#fff" stroke="${kneeCollapseSevere?'#cf222e':kneeCollapse?'#bc4c00':'#94a3b8'}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">🦶 앞무릎 신전 (FC→BR)</text><text x="8" y="35" fill="${kneeCollapseSevere?'#cf222e':kneeCollapse?'#bc4c00':'#1a7f37'}" font-size="13" font-weight="700">${kneeChange!=null?(kneeChange>=0?'+':'')+F(kneeChange,1):'—'}° ${!kneeCollapse?'✓ Block 우수':(kneeCollapseSevere?'⚠ 무너짐':'△ 약함')}</text></g>
-<line x1="672" y1="478" x2="${K.rToe[0]+5}" y2="${K.rToe[1]}" stroke="${driveColor}" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
-<g transform="translate(672, 456)"><rect x="0" y="0" width="124" height="44" rx="6" fill="#fff" stroke="${driveColor}" stroke-width="1.5"/><text x="8" y="17" fill="#1f2937" font-size="11" font-weight="700">🦵 뒷발 추진 (Drive)</text><text x="8" y="35" fill="${driveColor}" font-size="13" font-weight="700">${driveAP!=null?F(driveAP,1)+' %BW':'—'}<tspan font-size="11"> ${driveLabel}</tspan></text></g>
-<g transform="translate(280, 528)"><text x="0" y="0" fill="#1f2937" font-size="10.5" font-weight="600">에너지 흐름: 뒷발 추진 (보조) + 앞발 → 골반 → 몸통 → 팔 → 공 (메인)</text><circle cx="0" cy="14" r="5" fill="#3b82f6"/><text x="9" y="18" fill="#475569" font-size="10">정상 (≥80점)</text><circle cx="100" cy="14" r="5" fill="#f59e0b"/><text x="109" y="18" fill="#475569" font-size="10">누수 mild (60~80)</text><circle cx="225" cy="14" r="5" fill="#ef4444"/><text x="234" y="18" fill="#475569" font-size="10">누수 severe (&lt;60)</text></g>
+<!-- 마운드 -->
+<path d="M 580 362 Q 480 360 400 365 Q 250 372 20 370" fill="none" stroke="#d4d4d4" stroke-width="1.5" stroke-dasharray="4,4"/>
+<rect x="440" y="358" width="60" height="6" rx="1" fill="#a3a3a3" opacity="0.5"/>
+<ellipse cx="300" cy="378" rx="240" ry="9" fill="url(#moundShadow-${uid})"/>
+<!-- 머리 -->
+<circle cx="${K.head[0]}" cy="${K.head[1]}" r="22" fill="url(#bodyG-${uid})" stroke="#1a2a47" stroke-width="1.2"/>
+<line x1="292" y1="100" x2="298" y2="128" stroke="#14213d" stroke-width="13" stroke-linecap="round"/>
+<!-- 몸통 -->
+<path d="M ${K.lShoulder[0]} ${K.lShoulder[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} Z" fill="url(#bodyG-${uid})" stroke="#1a2a47" stroke-width="1.2"/>
+<!-- 오른팔 (Pitching arm: 상완 horizontal + 전완 vertical UP) -->
+<line x1="${K.rShoulder[0]}" y1="${K.rShoulder[1]}" x2="${K.rElbow[0]}" y2="${K.rElbow[1]}" stroke="#14213d" stroke-width="18" stroke-linecap="round"/>
+<circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="11" fill="#1a2a47"/>
+<line x1="${K.rElbow[0]}" y1="${K.rElbow[1]}" x2="${K.rWrist[0]}" y2="${K.rWrist[1]}" stroke="#14213d" stroke-width="16" stroke-linecap="round"/>
+<circle cx="${K.rWrist[0]}" cy="${K.rWrist[1]}" r="9" fill="#1a2a47"/>
+<circle cx="${K.ball[0]}" cy="${K.ball[1]}" r="9" fill="#fff" stroke="#14213d" stroke-width="1.5"/>
+<circle cx="${K.ball[0]+3}" cy="${K.ball[1]-3}" r="2.8" fill="#e63946"/>
+<!-- 왼팔 (Glove arm: 상완 horizontal + 전완 DOWN, 팔꿈치 90°+ flex) -->
+<line x1="${K.lShoulder[0]}" y1="${K.lShoulder[1]}" x2="${K.lElbow[0]}" y2="${K.lElbow[1]}" stroke="#14213d" stroke-width="17" stroke-linecap="round"/>
+<circle cx="${K.lElbow[0]}" cy="${K.lElbow[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.lElbow[0]}" y1="${K.lElbow[1]}" x2="${K.lWrist[0]}" y2="${K.lWrist[1]}" stroke="#14213d" stroke-width="15" stroke-linecap="round"/>
+<ellipse cx="${K.glove[0]}" cy="${K.glove[1]}" rx="14" ry="11" fill="#1a2a47" stroke="#0a1424" stroke-width="1.2"/>
+<!-- 뒷다리 (Drive leg: 거의 펴짐, 발등 끌림) -->
+<line x1="${K.pelvisR[0]}" y1="${K.pelvisR[1]}" x2="${K.rKnee[0]}" y2="${K.rKnee[1]}" stroke="#14213d" stroke-width="22" stroke-linecap="round"/>
+<circle cx="${K.rKnee[0]}" cy="${K.rKnee[1]}" r="12" fill="#1a2a47"/>
+<line x1="${K.rKnee[0]}" y1="${K.rKnee[1]}" x2="${K.rAnkle[0]}" y2="${K.rAnkle[1]}" stroke="#14213d" stroke-width="20" stroke-linecap="round"/>
+<circle cx="${K.rAnkle[0]}" cy="${K.rAnkle[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.rToe[0]}" y2="${K.rToe[1]}" stroke="#14213d" stroke-width="14" stroke-linecap="round"/>
+<path d="M 495 372 Q 510 374 525 374" stroke="#a3a3a3" stroke-width="2.5" stroke-dasharray="2,3" fill="none" opacity="0.6"/>
+<!-- 앞다리 (Lead leg: 무릎 130° 굽힘, 발 착지) -->
+<line x1="${K.pelvisL[0]}" y1="${K.pelvisL[1]}" x2="${K.lKnee[0]}" y2="${K.lKnee[1]}" stroke="#14213d" stroke-width="22" stroke-linecap="round"/>
+<circle cx="${K.lKnee[0]}" cy="${K.lKnee[1]}" r="12" fill="#1a2a47"/>
+<line x1="${K.lKnee[0]}" y1="${K.lKnee[1]}" x2="${K.lAnkle[0]}" y2="${K.lAnkle[1]}" stroke="#14213d" stroke-width="20" stroke-linecap="round"/>
+<circle cx="${K.lAnkle[0]}" cy="${K.lAnkle[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.lAnkle[0]}" y1="${K.lAnkle[1]}" x2="${K.lToe[0]}" y2="${K.lToe[1]}" stroke="#14213d" stroke-width="14" stroke-linecap="round"/>
+<!-- Burst circles (low score warning) -->
+${burstPT}${burstTH}${burstHF}${burstFH}
+<!-- 메인 에너지 체인 (Lead foot → 공) -->
+<path d="${energyPath}" fill="none" stroke="url(#energy-${uid})" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+<!-- 드라이브 에너지 체인 (Drive foot → 골반 합류) -->
+<path d="${driveLegPath}" fill="none" stroke="url(#drive-${uid})" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+<!-- 라벨 (텍스트만) -->
+<text x="20" y="402" font-size="11" font-weight="600" fill="#6c757d">키네틱 체인 · Foot Strike (측면 view, RHP)</text>
+<text x="20" y="414" font-size="9.5" fill="#a3a3a3">메인 (녹→황→적): Lead foot → 몸통 → 공 · 보조 (녹→청): Drive foot → 골반</text>
 </svg>`;
   }
 
