@@ -592,13 +592,13 @@
       </div>
       <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
            title="Driveline Mechanical Ceiling — 메카닉 5 모델이 모두 ceiling(150점) 도달 시 기대 구속">
-        <div class="label">⚙️ Mechanical Ceiling</div>
+        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
         <div class="value" id="p-mech-velo">—</div>
         <div class="delta" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
       </div>
       <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
            title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
-        <div class="label">🎯 통합 향상 기대 구속</div>
+        <div class="label">🎯 체력+메카닉 향상 기대 구속</div>
         <div class="value" id="p-total-velo">—</div>
         <div class="delta" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
       </div>
@@ -651,8 +651,17 @@
           Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph (≈ 145 km/h) cohort 50th percentile.
           <b>Per 1km/h</b> = "1 km/h 향상에 필요한 변인 변화량" (학술 reference의 Per 1mph × 0.621).
           <b>차이</b> = (본인 − Median Elite) / Per 1km/h (km/h 환산, 양수 = elite 대비 우수).<br>
-          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
-          <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
+          영향력 (Driveline 학술): 🛡 자세 구속 1위 · 🚀 팔동작 AE 1위 · 🎯 체중이동 · 🔄 회전 속도 · 🦵 앞다리 제동<br><br>
+          <b>📐 좌표계 정의 (우투 기준, v5.39)</b><br>
+          • <b>Peak Torso Counter Rot</b> — 골반 대비 상대회전 ❌. <b>수평면(transverse plane)에서 몸통의 절대 반대 회전각</b>.
+            부호: <b>+</b> 오른쪽 (3루쪽) / <b>−</b> 왼쪽 (홈쪽). Elite ≈ −38° (홈쪽으로 깊게 비틀림).<br>
+          • <b>Torso Forward Tilt at FP</b> — 수직선 기준. <b>+</b> 앞으로 숙임 (forward) / <b>−</b> 뒤로 기울어짐 (lay back).<br>
+          • <b>Torso Rotation at FP</b> — 우투 기준 3루 정면 = 0°, 홈플레이트 정면 = 90°.
+            <b>+</b> 열림 (홈쪽으로 회전 진행) / <b>−</b> 닫힘. Elite ≈ 2° (FP 시점에 거의 폐쇄 자세 유지).<br>
+          • <b>Torso Rotation at BR</b> — 동일 좌표계. Elite ≈ 111° (BR 때 홈쪽 통과 후 follow-through).<br>
+          • <b>Scap Load at FP</b> — markerless Theia 부호 caveat (절댓값 평가 권장).<br><br>
+          <b>⚠ CoG Decel AE 정의 fact-check 필요</b> — 단위 m/s, median_elite 0.02 m/s 는 max−min 으로 보기엔 너무 작음.
+          Driveline 원 정의 ("Acceleration Equivalent" = 단위 시간당 감속량 가능성). 현재 cog_decel(=max−BR) 와 동일 매핑됨.
         </div>
       </details>
     </div>
@@ -839,33 +848,24 @@
     </div>
   </div>
 
-  <!-- v5.14: 3-5. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 (v5.25: 번호 §3-3 → §3-5) -->
-  <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
-    <div class="panel">
-      <h2 style="font-size:15px">3-5. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
-      <table style="width:100%;font-size:11.5px;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">Zone</th>
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">정의</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)">점수</th>
-          </tr>
-        </thead>
-        <tbody id="p-eli-detail-body"></tbody>
-      </table>
-      <div class="footnote" style="font-size:10.5px;margin-top:8px">
-        <b>Zone 1</b> Sequential timing · <b>Z2</b> X-factor 분리 · <b>Z3</b> Lead leg block · <b>Z4</b> Trunk at FC · <b>Z5</b> Shoulder ER · <b>Z6</b> Pelvis braking
-      </div>
+  <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복으로 제거)
+       Z1↔3-2 시퀀싱 / Z2↔Posture(X-factor) / Z3↔Block / Z4↔Posture(trunk tilt) / Z5↔Arm(Layback) / Z6↔CoG(감속) -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-5. 메카닉 결함 — 에너지 손실 Top 3 <span class="badge" style="background:#fee9e9;color:#cf222e">Driveline 분석 기반</span></h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+      <b>5 모델 중요도 높음 변인의 음의 차이 (km/h)</b> + <b>분절간 ETE 100점 미만 transition</b> 결합 → 구속 손실 큰 순 Top 3.
+      <b>훈련 처방 1순위</b>.
     </div>
-    <div class="panel">
-      <h2 style="font-size:15px">🔗 메카닉 결함 → 손실 인과 분석 <span class="badge" style="background:#fee9e9;color:#cf222e">Top 3</span></h2>
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. <b>훈련 처방 1순위</b>.
-      </div>
-      <div id="p-causal-chains"></div>
-      <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
+    <div id="p-energy-loss-top3"></div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px">
+      <b>산출 방식</b> — Driveline 5 모델 중 <b>중요도 높음</b> 변인의 (본인 − Median Elite)/Per 1km/h × 1.609 km/h 손실량 + ETE 4 transition 점수 100점 미만 영역.
+      음의 차이 큰 순으로 Top 3.
+      <span style="color:var(--muted)">※ 이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복되어 삭제 (Z1↔3-2 시퀀싱, Z2↔Posture/X-factor, Z3↔Block, Z4↔Posture/Trunk tilt, Z5↔Arm Action/Layback, Z6↔CoG/감속).</span>
     </div>
+    <!-- 호환성: 다른 코드가 #p-eli-detail-body 등을 참조해도 안전하게 hidden -->
+    <span id="p-eli-detail-body" style="display:none"></span>
+    <span id="p-causal-chains" style="display:none"></span>
+    <span id="p-outcome-diagnosis" style="display:none"></span>
   </div>
 
   <!-- v5.25: 3-6. 메카닉 발달 권장 카드 (이전 §3-4 → §3-6) -->
@@ -1452,7 +1452,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
  */
 const DRIVELINE_5_MODELS = {
   arm_action: {
-    label: '🚀 Arm Action',
+    label: '🚀 팔동작 (Arm Action)',
     sub:   '팔 동작 — 어깨/팔꿈치 효율',
     velo_rank: 2, ae_rank: 1, weight: 0.22,
     metrics: {
@@ -1465,7 +1465,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   posture: {
-    label: '🛡 Posture',
+    label: '🛡 자세 (Posture)',
     sub:   '자세 — FP~릴리즈 자세 유지',
     velo_rank: 1, ae_rank: 2, weight: 0.25,
     metrics: {
@@ -1478,7 +1478,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   rotation: {
-    label: '🔄 Rotation',
+    label: '🔄 회전 속도 (Rotation)',
     sub:   '회전 — Trunk + Pelvis 회전 속도',
     velo_rank: 4, ae_rank: 3, weight: 0.18,
     metrics: {
@@ -1489,7 +1489,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   block: {
-    label: '🦵 Block',
+    label: '🦵 앞다리 제동 (Block)',
     sub:   '앞발 블록 — Lead leg 활용',
     velo_rank: 5, ae_rank: 4, weight: 0.15,
     metrics: {
@@ -1500,7 +1500,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   cog: {
-    label: '🎯 CoG',
+    label: '🎯 체중이동 (CoG)',
     sub:   '무게중심 이동 — Drive 속도/감속',
     velo_rank: 3, ae_rank: 5, weight: 0.20,
     metrics: {
@@ -6356,7 +6356,7 @@ function v514_renderMechanicTables(m, p){
     });
     if(dvl5){
       const modelOrder = ['arm_action','posture','rotation','block','cog'];
-      const modelLabel = {arm_action:'🚀 Arm Action', posture:'🛡 Posture', rotation:'🔄 Rotation', block:'🦵 Block', cog:'🎯 CoG'};
+      const modelLabel = {arm_action:'🚀 팔동작', posture:'🛡 자세', rotation:'🔄 회전 속도', block:'🦵 앞다리 제동', cog:'🎯 체중이동'};
       const impColor = imp => imp === 'high' ? '#cf222e' : imp === 'med' ? '#bc4c00' : '#656d76';
       const impLabel = imp => imp === 'high' ? '높음' : imp === 'med' ? '보통' : '낮음';
       const fmtV = (v, unit) => v == null ? '<span style="color:var(--muted)">—</span>' :
@@ -6388,6 +6388,94 @@ function v514_renderMechanicTables(m, p){
         });
       });
       dvBody.innerHTML = html;
+
+      // [3-5] v5.39: 에너지 손실 Top 3 (이전 ELI causal-chains 대체) — 동일 dvl5 + ETE 결합
+      const top3wrap = document.getElementById('p-energy-loss-top3');
+      if(top3wrap){
+        const trans = (A.segmentTransitionETE) ? A.segmentTransitionETE({
+          peak_pelvis_v:  m.sequence?.pelvis_dps,
+          peak_trunk_v:   m.sequence?.trunk_dps,
+          peak_humerus_v: m.sequence?.arm_dps,
+          peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+          peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+          pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+          trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+          humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+          forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms
+        }) : null;
+        const candidates = [];
+        // 5 모델 high-importance 음의 차이
+        ['arm_action','posture','rotation','block','cog'].forEach(mk => {
+          const md = dvl5[mk]; if(!md || !md.metrics) return;
+          Object.values(md.metrics).forEach(mt => {
+            if(mt.value == null || mt.median_elite == null || !mt.per_1mph) return;
+            const diff_kmh = (mt.value - mt.median_elite)/mt.per_1mph * 1.609;
+            if(diff_kmh < 0 && mt.importance === 'high'){
+              candidates.push({type:'driveline', model:mk, model_lbl:modelLabel[mk], var_lbl:mt.label,
+                value:mt.value, elite:mt.median_elite, unit:mt.unit||'',
+                loss:Math.abs(diff_kmh)});
+            }
+          });
+        });
+        // ETE transitions <100점
+        if(trans){
+          ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'].forEach(k => {
+            const t = trans[k]; if(!t || t.score == null || t.score >= 95) return;
+            const loss = (100 - t.score) * 0.06;
+            candidates.push({type:'ete', model_lbl:'🔗 분절간 흐름',
+              var_lbl:`${t.label_kr} (Lag ${t.lag_ms!=null?t.lag_ms.toFixed(1):'—'} ms · Gain ${t.speed_gain?t.speed_gain.toFixed(2)+'×':'—'})`,
+              value:t.score, elite:100, unit:'점', loss, ete_score:t.score,
+              ete_fault:t.lag_fault || t.gain_fault || ''});
+          });
+        }
+        candidates.sort((a,b)=>b.loss-a.loss);
+        const top3 = candidates.slice(0,3);
+        const rxMap = {
+          'Layback (어깨 최대 외회전)':'어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill',
+          'Shoulder Abduction at FP':'어깨 셋업 단계에서 외전 90° 유지 · scap retraction throw',
+          'Scap Load at FP':'광배·후면삼각근 강화 · scap retraction throw drill (절댓값 평가)',
+          'Shoulder Rotation Velo':'Layback 후 explosive 외→내회전 plyo throw · ball weight 진행',
+          'Peak Hip-Shoulder Sep at FP (X-factor)':'골반-몸통 분리 강조 throw · medball rotational throw',
+          'Peak Torso Counter Rot':'와인드업 시 몸통 반대 회전 강조 · stride 시 어깨 잔류 cueing',
+          'Torso Forward Tilt at FP':'FP 시점 trunk forward tilt 만들기 — front leg block + 코어 stability drill',
+          'Torso Rotation at FP':'FP closed posture 유지 → release 직전 폭발적 회전',
+          'Torso Rotation at BR':'follow-through trunk 회전 끝까지 (홈쪽 110°+)',
+          'Torso Side Bend at MER':'release 직전 contralateral side bend drill',
+          'Torso Rotation Velo':'medball rotational throw (heavy → light) · 코어 power',
+          'Pelvis Rotation Velo':'골반 가속 drill (markerless 보정 caveat)',
+          'Lead Knee Extension':'앞발 착지 후 knee 신전 강조 · RDL · lateral squat',
+          'Stride Length':'Stride 거리 점진 증가 (체중 90%+ 권장) · towel drill',
+          'CoG Decel AE':'앞발 block + 골반 braking 통합 drill (정의 caveat)',
+          'Peak Lead Knee Ext Velo':'single leg jumping · 앞발 explosive block',
+          'CoG Decel':'Lead leg AP impulse 18-28 %BW·s 목표 · 앞발 block + 골반 braking 통합',
+          'Max CoG Velo':'explosive stride drill, KB swing'
+        };
+        const eteRxMap = {
+          'pelvis_to_trunk':'골반→몸통 lag 보정 — 골반 단독 회전 후 몸통 따라가기 drill',
+          'trunk_to_humerus':'몸통→위팔 lag 보정 — Layback 유지 → 폭발적 내회전 plyo',
+          'humerus_to_forearm':'위팔→아래팔 — 너무 이른 elbow 신전 방지 (valgus stress ↑)',
+          'forearm_to_hand':'아래팔→손 — release 시점 손 가속 cueing (towel drill)'
+        };
+        if(top3.length === 0){
+          top3wrap.innerHTML = `<div style="padding:14px;background:#dafbe1;border-radius:5px;color:#1a7f37;font-weight:600">✅ 큰 에너지 손실 영역 없음 — 5 모델 + ETE 모두 elite 수준</div>`;
+        } else {
+          top3wrap.innerHTML = top3.map((c,i) => {
+            const num = i+1;
+            const numColor = ['#cf222e','#bc4c00','#8250df'][i];
+            const rx = c.type==='ete' ? eteRxMap[c.model||''] : (rxMap[c.var_lbl] || '해당 변인 강화 drill');
+            const valStr = c.type==='ete'
+              ? `점수 ${c.value} <span style="color:var(--muted);font-size:11px">(${c.ete_fault || 'gain·lag 누수'})</span>`
+              : `${c.unit==='m/s'?c.value.toFixed(2):Math.round(c.value)} ${c.unit} <span style="color:var(--muted);font-size:11px">(Elite ${c.unit==='m/s'?c.elite.toFixed(2):Math.round(c.elite)} ${c.unit})</span>`;
+            return `<div style="position:relative;padding:8px 11px 8px 48px;background:#fff5f5;border:1px solid #ffaaa3;border-radius:5px;margin:5px 0;font-size:12px">
+              <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:${numColor};color:#fff;text-align:center;line-height:28px;font-weight:700">${num}</div>
+              <div style="font-weight:700;color:${numColor};margin-bottom:4px">${c.model_lbl} — ${c.var_lbl}</div>
+              <div style="font-size:11.5px"><b>현재:</b> ${valStr}</div>
+              <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span style="color:#cf222e;font-weight:600">−${c.loss.toFixed(1)} km/h</span></div>
+              <div style="font-size:11.5px;margin-top:4px;color:#1a7f37"><b>💪 처방:</b> ${rx}</div>
+            </div>`;
+          }).join('');
+        }
+      }
     }
   }
 

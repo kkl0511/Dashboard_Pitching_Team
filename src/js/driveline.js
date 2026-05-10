@@ -33,7 +33,7 @@
  */
 const DRIVELINE_5_MODELS = {
   arm_action: {
-    label: '🚀 Arm Action',
+    label: '🚀 팔동작 (Arm Action)',
     sub:   '팔 동작 — 어깨/팔꿈치 효율',
     velo_rank: 2, ae_rank: 1, weight: 0.22,
     metrics: {
@@ -46,7 +46,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   posture: {
-    label: '🛡 Posture',
+    label: '🛡 자세 (Posture)',
     sub:   '자세 — FP~릴리즈 자세 유지',
     velo_rank: 1, ae_rank: 2, weight: 0.25,
     metrics: {
@@ -59,7 +59,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   rotation: {
-    label: '🔄 Rotation',
+    label: '🔄 회전 속도 (Rotation)',
     sub:   '회전 — Trunk + Pelvis 회전 속도',
     velo_rank: 4, ae_rank: 3, weight: 0.18,
     metrics: {
@@ -70,7 +70,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   block: {
-    label: '🦵 Block',
+    label: '🦵 앞다리 제동 (Block)',
     sub:   '앞발 블록 — Lead leg 활용',
     velo_rank: 5, ae_rank: 4, weight: 0.15,
     metrics: {
@@ -81,7 +81,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   cog: {
-    label: '🎯 CoG',
+    label: '🎯 체중이동 (CoG)',
     sub:   '무게중심 이동 — Drive 속도/감속',
     velo_rank: 3, ae_rank: 5, weight: 0.20,
     metrics: {

@@ -295,7 +295,7 @@ function v514_renderMechanicTables(m, p){
     });
     if(dvl5){
       const modelOrder = ['arm_action','posture','rotation','block','cog'];
-      const modelLabel = {arm_action:'🚀 Arm Action', posture:'🛡 Posture', rotation:'🔄 Rotation', block:'🦵 Block', cog:'🎯 CoG'};
+      const modelLabel = {arm_action:'🚀 팔동작', posture:'🛡 자세', rotation:'🔄 회전 속도', block:'🦵 앞다리 제동', cog:'🎯 체중이동'};
       const impColor = imp => imp === 'high' ? '#cf222e' : imp === 'med' ? '#bc4c00' : '#656d76';
       const impLabel = imp => imp === 'high' ? '높음' : imp === 'med' ? '보통' : '낮음';
       const fmtV = (v, unit) => v == null ? '<span style="color:var(--muted)">—</span>' :
@@ -327,6 +327,94 @@ function v514_renderMechanicTables(m, p){
         });
       });
       dvBody.innerHTML = html;
+
+      // [3-5] v5.39: 에너지 손실 Top 3 (이전 ELI causal-chains 대체) — 동일 dvl5 + ETE 결합
+      const top3wrap = document.getElementById('p-energy-loss-top3');
+      if(top3wrap){
+        const trans = (A.segmentTransitionETE) ? A.segmentTransitionETE({
+          peak_pelvis_v:  m.sequence?.pelvis_dps,
+          peak_trunk_v:   m.sequence?.trunk_dps,
+          peak_humerus_v: m.sequence?.arm_dps,
+          peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+          peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+          pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+          trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+          humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+          forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms
+        }) : null;
+        const candidates = [];
+        // 5 모델 high-importance 음의 차이
+        ['arm_action','posture','rotation','block','cog'].forEach(mk => {
+          const md = dvl5[mk]; if(!md || !md.metrics) return;
+          Object.values(md.metrics).forEach(mt => {
+            if(mt.value == null || mt.median_elite == null || !mt.per_1mph) return;
+            const diff_kmh = (mt.value - mt.median_elite)/mt.per_1mph * 1.609;
+            if(diff_kmh < 0 && mt.importance === 'high'){
+              candidates.push({type:'driveline', model:mk, model_lbl:modelLabel[mk], var_lbl:mt.label,
+                value:mt.value, elite:mt.median_elite, unit:mt.unit||'',
+                loss:Math.abs(diff_kmh)});
+            }
+          });
+        });
+        // ETE transitions <100점
+        if(trans){
+          ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'].forEach(k => {
+            const t = trans[k]; if(!t || t.score == null || t.score >= 95) return;
+            const loss = (100 - t.score) * 0.06;
+            candidates.push({type:'ete', model_lbl:'🔗 분절간 흐름',
+              var_lbl:`${t.label_kr} (Lag ${t.lag_ms!=null?t.lag_ms.toFixed(1):'—'} ms · Gain ${t.speed_gain?t.speed_gain.toFixed(2)+'×':'—'})`,
+              value:t.score, elite:100, unit:'점', loss, ete_score:t.score,
+              ete_fault:t.lag_fault || t.gain_fault || ''});
+          });
+        }
+        candidates.sort((a,b)=>b.loss-a.loss);
+        const top3 = candidates.slice(0,3);
+        const rxMap = {
+          'Layback (어깨 최대 외회전)':'어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill',
+          'Shoulder Abduction at FP':'어깨 셋업 단계에서 외전 90° 유지 · scap retraction throw',
+          'Scap Load at FP':'광배·후면삼각근 강화 · scap retraction throw drill (절댓값 평가)',
+          'Shoulder Rotation Velo':'Layback 후 explosive 외→내회전 plyo throw · ball weight 진행',
+          'Peak Hip-Shoulder Sep at FP (X-factor)':'골반-몸통 분리 강조 throw · medball rotational throw',
+          'Peak Torso Counter Rot':'와인드업 시 몸통 반대 회전 강조 · stride 시 어깨 잔류 cueing',
+          'Torso Forward Tilt at FP':'FP 시점 trunk forward tilt 만들기 — front leg block + 코어 stability drill',
+          'Torso Rotation at FP':'FP closed posture 유지 → release 직전 폭발적 회전',
+          'Torso Rotation at BR':'follow-through trunk 회전 끝까지 (홈쪽 110°+)',
+          'Torso Side Bend at MER':'release 직전 contralateral side bend drill',
+          'Torso Rotation Velo':'medball rotational throw (heavy → light) · 코어 power',
+          'Pelvis Rotation Velo':'골반 가속 drill (markerless 보정 caveat)',
+          'Lead Knee Extension':'앞발 착지 후 knee 신전 강조 · RDL · lateral squat',
+          'Stride Length':'Stride 거리 점진 증가 (체중 90%+ 권장) · towel drill',
+          'CoG Decel AE':'앞발 block + 골반 braking 통합 drill (정의 caveat)',
+          'Peak Lead Knee Ext Velo':'single leg jumping · 앞발 explosive block',
+          'CoG Decel':'Lead leg AP impulse 18-28 %BW·s 목표 · 앞발 block + 골반 braking 통합',
+          'Max CoG Velo':'explosive stride drill, KB swing'
+        };
+        const eteRxMap = {
+          'pelvis_to_trunk':'골반→몸통 lag 보정 — 골반 단독 회전 후 몸통 따라가기 drill',
+          'trunk_to_humerus':'몸통→위팔 lag 보정 — Layback 유지 → 폭발적 내회전 plyo',
+          'humerus_to_forearm':'위팔→아래팔 — 너무 이른 elbow 신전 방지 (valgus stress ↑)',
+          'forearm_to_hand':'아래팔→손 — release 시점 손 가속 cueing (towel drill)'
+        };
+        if(top3.length === 0){
+          top3wrap.innerHTML = `<div style="padding:14px;background:#dafbe1;border-radius:5px;color:#1a7f37;font-weight:600">✅ 큰 에너지 손실 영역 없음 — 5 모델 + ETE 모두 elite 수준</div>`;
+        } else {
+          top3wrap.innerHTML = top3.map((c,i) => {
+            const num = i+1;
+            const numColor = ['#cf222e','#bc4c00','#8250df'][i];
+            const rx = c.type==='ete' ? eteRxMap[c.model||''] : (rxMap[c.var_lbl] || '해당 변인 강화 drill');
+            const valStr = c.type==='ete'
+              ? `점수 ${c.value} <span style="color:var(--muted);font-size:11px">(${c.ete_fault || 'gain·lag 누수'})</span>`
+              : `${c.unit==='m/s'?c.value.toFixed(2):Math.round(c.value)} ${c.unit} <span style="color:var(--muted);font-size:11px">(Elite ${c.unit==='m/s'?c.elite.toFixed(2):Math.round(c.elite)} ${c.unit})</span>`;
+            return `<div style="position:relative;padding:8px 11px 8px 48px;background:#fff5f5;border:1px solid #ffaaa3;border-radius:5px;margin:5px 0;font-size:12px">
+              <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:${numColor};color:#fff;text-align:center;line-height:28px;font-weight:700">${num}</div>
+              <div style="font-weight:700;color:${numColor};margin-bottom:4px">${c.model_lbl} — ${c.var_lbl}</div>
+              <div style="font-size:11.5px"><b>현재:</b> ${valStr}</div>
+              <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span style="color:#cf222e;font-weight:600">−${c.loss.toFixed(1)} km/h</span></div>
+              <div style="font-size:11.5px;margin-top:4px;color:#1a7f37"><b>💪 처방:</b> ${rx}</div>
+            </div>`;
+          }).join('');
+        }
+      }
     }
   }
 

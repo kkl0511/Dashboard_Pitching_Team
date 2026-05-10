@@ -391,7 +391,7 @@
 <header>
   <div class="top">
     <div>
-      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v2.0 · 📱 모바일 (SVG 차트)</span></h1>
+      <h1>상동고 투구 리포트 통합 대시보드 <span class="ver">v2.0 · 데스크탑</span></h1>
       <div class="sub">
         바이오모션 ↔ 상동고등학교 야구부 · 투수 <b id="hdr-pcount">—</b>명
         × 측정 4회 &nbsp;
@@ -592,13 +592,13 @@
       </div>
       <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
            title="Driveline Mechanical Ceiling — 메카닉 5 모델이 모두 ceiling(150점) 도달 시 기대 구속">
-        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
+        <div class="label">⚙️ Mechanical Ceiling</div>
         <div class="value" id="p-mech-velo">—</div>
         <div class="delta" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
       </div>
       <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
            title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
-        <div class="label">🎯 체력+메카닉 향상 기대 구속</div>
+        <div class="label">🎯 통합 향상 기대 구속</div>
         <div class="value" id="p-total-velo">—</div>
         <div class="delta" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
       </div>
@@ -651,17 +651,8 @@
           Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph (≈ 145 km/h) cohort 50th percentile.
           <b>Per 1km/h</b> = "1 km/h 향상에 필요한 변인 변화량" (학술 reference의 Per 1mph × 0.621).
           <b>차이</b> = (본인 − Median Elite) / Per 1km/h (km/h 환산, 양수 = elite 대비 우수).<br>
-          영향력 (Driveline 학술): 🛡 자세 구속 1위 · 🚀 팔동작 AE 1위 · 🎯 체중이동 · 🔄 회전 속도 · 🦵 앞다리 제동<br><br>
-          <b>📐 좌표계 정의 (우투 기준, v5.39)</b><br>
-          • <b>Peak Torso Counter Rot</b> — 골반 대비 상대회전 ❌. <b>수평면(transverse plane)에서 몸통의 절대 반대 회전각</b>.
-            부호: <b>+</b> 오른쪽 (3루쪽) / <b>−</b> 왼쪽 (홈쪽). Elite ≈ −38° (홈쪽으로 깊게 비틀림).<br>
-          • <b>Torso Forward Tilt at FP</b> — 수직선 기준. <b>+</b> 앞으로 숙임 (forward) / <b>−</b> 뒤로 기울어짐 (lay back).<br>
-          • <b>Torso Rotation at FP</b> — 우투 기준 3루 정면 = 0°, 홈플레이트 정면 = 90°.
-            <b>+</b> 열림 (홈쪽으로 회전 진행) / <b>−</b> 닫힘. Elite ≈ 2° (FP 시점에 거의 폐쇄 자세 유지).<br>
-          • <b>Torso Rotation at BR</b> — 동일 좌표계. Elite ≈ 111° (BR 때 홈쪽 통과 후 follow-through).<br>
-          • <b>Scap Load at FP</b> — markerless Theia 부호 caveat (절댓값 평가 권장).<br><br>
-          <b>⚠ CoG Decel AE 정의 fact-check 필요</b> — 단위 m/s, median_elite 0.02 m/s 는 max−min 으로 보기엔 너무 작음.
-          Driveline 원 정의 ("Acceleration Equivalent" = 단위 시간당 감속량 가능성). 현재 cog_decel(=max−BR) 와 동일 매핑됨.
+          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
+          <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
         </div>
       </details>
     </div>
@@ -848,24 +839,33 @@
     </div>
   </div>
 
-  <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복으로 제거)
-       Z1↔3-2 시퀀싱 / Z2↔Posture(X-factor) / Z3↔Block / Z4↔Posture(trunk tilt) / Z5↔Arm(Layback) / Z6↔CoG(감속) -->
-  <div class="panel">
-    <h2 style="font-size:15px">3-5. 메카닉 결함 — 에너지 손실 Top 3 <span class="badge" style="background:#fee9e9;color:#cf222e">Driveline 분석 기반</span></h2>
-    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-      <b>5 모델 중요도 높음 변인의 음의 차이 (km/h)</b> + <b>분절간 ETE 100점 미만 transition</b> 결합 → 구속 손실 큰 순 Top 3.
-      <b>훈련 처방 1순위</b>.
+  <!-- v5.14: 3-5. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 (v5.25: 번호 §3-3 → §3-5) -->
+  <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
+    <div class="panel">
+      <h2 style="font-size:15px">3-5. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
+      <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+        <thead>
+          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
+            <th style="text-align:left;padding:5px 6px;color:var(--muted)">Zone</th>
+            <th style="text-align:left;padding:5px 6px;color:var(--muted)">정의</th>
+            <th style="text-align:right;padding:5px 6px;color:var(--muted)">점수</th>
+          </tr>
+        </thead>
+        <tbody id="p-eli-detail-body"></tbody>
+      </table>
+      <div class="footnote" style="font-size:10.5px;margin-top:8px">
+        <b>Zone 1</b> Sequential timing · <b>Z2</b> X-factor 분리 · <b>Z3</b> Lead leg block · <b>Z4</b> Trunk at FC · <b>Z5</b> Shoulder ER · <b>Z6</b> Pelvis braking
+      </div>
     </div>
-    <div id="p-energy-loss-top3"></div>
-    <div class="footnote" style="font-size:10.5px;margin-top:10px">
-      <b>산출 방식</b> — Driveline 5 모델 중 <b>중요도 높음</b> 변인의 (본인 − Median Elite)/Per 1km/h × 1.609 km/h 손실량 + ETE 4 transition 점수 100점 미만 영역.
-      음의 차이 큰 순으로 Top 3.
-      <span style="color:var(--muted)">※ 이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복되어 삭제 (Z1↔3-2 시퀀싱, Z2↔Posture/X-factor, Z3↔Block, Z4↔Posture/Trunk tilt, Z5↔Arm Action/Layback, Z6↔CoG/감속).</span>
+    <div class="panel">
+      <h2 style="font-size:15px">🔗 메카닉 결함 → 손실 인과 분석 <span class="badge" style="background:#fee9e9;color:#cf222e">Top 3</span></h2>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. <b>훈련 처방 1순위</b>.
+      </div>
+      <div id="p-causal-chains"></div>
+      <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
     </div>
-    <!-- 호환성: 다른 코드가 #p-eli-detail-body 등을 참조해도 안전하게 hidden -->
-    <span id="p-eli-detail-body" style="display:none"></span>
-    <span id="p-causal-chains" style="display:none"></span>
-    <span id="p-outcome-diagnosis" style="display:none"></span>
   </div>
 
   <!-- v5.25: 3-6. 메카닉 발달 권장 카드 (이전 §3-4 → §3-6) -->
@@ -1413,167 +1413,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 
 </main>
 
-<script>
-/* v1.12 모바일 — Chart.js 대신 SVG로 직접 렌더링.
-   200KB 라이브러리 없이도 라디아·산점도·막대·라인 차트를 보여줌. */
-(function(){
-  function _q(canvas){return canvas && canvas.getContext;}
-  function _esc(s){return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
-  function _replace(canvas, svgHtml){
-    if(!canvas || !canvas.parentElement) return;
-    canvas.style.display='none';
-    var prev = canvas.parentElement.querySelector('.svg-chart-out');
-    if(prev) prev.remove();
-    var d = document.createElement('div');
-    d.className='svg-chart-out';
-    d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center';
-    d.innerHTML = svgHtml;
-    canvas.parentElement.appendChild(d);
-  }
-  // ───── Scatter (4분면 / 분포 / 구속vs잠재) ─────
-  function svgScatter(data, opts){
-    var W=420,H=240,M={l:42,r:14,t:12,b:36};
-    var xs=opts.scales&&opts.scales.x||{}, ys=opts.scales&&opts.scales.y||{};
-    var allPts=[]; (data.datasets||[]).forEach(function(ds){(ds.data||[]).forEach(function(p){if(p&&typeof p.x==='number')allPts.push(p);});});
-    var xMin=xs.min!=null?xs.min:Math.min.apply(null,allPts.map(function(p){return p.x;}).concat([0]));
-    var xMax=xs.max!=null?xs.max:Math.max.apply(null,allPts.map(function(p){return p.x;}).concat([100]));
-    var yMin=ys.min!=null?ys.min:Math.min.apply(null,allPts.map(function(p){return p.y;}).concat([0]));
-    var yMax=ys.max!=null?ys.max:Math.max.apply(null,allPts.map(function(p){return p.y;}).concat([100]));
-    if(xMax===xMin)xMax=xMin+1; if(yMax===yMin)yMax=yMin+1;
-    function xPx(x){return M.l+(x-xMin)/(xMax-xMin)*(W-M.l-M.r);}
-    function yPx(y){return H-M.b-(y-yMin)/(yMax-yMin)*(H-M.t-M.b);}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=Math.round(yMax-(yMax-yMin)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
-    for(var j=0;j<=4;j++){var gx=M.l+j*(W-M.l-M.r)/4;svg+='<line x1="'+gx+'" y1="'+M.t+'" x2="'+gx+'" y2="'+(H-M.b)+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv2=Math.round(xMin+(xMax-xMin)*j/4); svg+='<text x="'+gx+'" y="'+(H-M.b+12)+'" font-size="9" fill="#888" text-anchor="middle">'+gv2+'</text>';}
-    // axes
-    svg+='<line x1="'+M.l+'" y1="'+(H-M.b)+'" x2="'+(W-M.r)+'" y2="'+(H-M.b)+'" stroke="#999"/>';
-    svg+='<line x1="'+M.l+'" y1="'+M.t+'" x2="'+M.l+'" y2="'+(H-M.b)+'" stroke="#999"/>';
-    // datasets
-    (data.datasets||[]).forEach(function(ds,di){
-      var bg=ds.backgroundColor, br=ds.borderColor;
-      // line dataset (e.g. diagonal)
-      if(ds.type==='line' && ds.data && ds.data.length>1){
-        var pts=ds.data.map(function(p){return xPx(p.x)+','+yPx(p.y);}).join(' ');
-        svg+='<polyline points="'+pts+'" fill="none" stroke="'+(br||'#cf222e')+'" stroke-width="1.5" stroke-dasharray="4,3"/>';
-        return;
-      }
-      (ds.data||[]).forEach(function(p,i){
-        if(!p||typeof p.x!=='number') return;
-        var c=Array.isArray(bg)?bg[i]:(bg||'#0969da80');
-        var r=Array.isArray(ds.pointRadius)?ds.pointRadius[i]:(ds.pointRadius||4);
-        svg+='<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="'+r+'" fill="'+c+'" stroke="'+(Array.isArray(br)?br[i]:br||'#0969da')+'" stroke-width="1"/>';
-      });
-    });
-    var xt=opts.scales&&opts.scales.x&&opts.scales.x.title&&opts.scales.x.title.text||'';
-    var yt=opts.scales&&opts.scales.y&&opts.scales.y.title&&opts.scales.y.title.text||'';
-    if(xt) svg+='<text x="'+(W/2)+'" y="'+(H-2)+'" font-size="10" fill="#555" text-anchor="middle">'+_esc(xt)+'</text>';
-    if(yt) svg+='<text x="10" y="'+(H/2)+'" font-size="10" fill="#555" text-anchor="middle" transform="rotate(-90 10 '+(H/2)+')">'+_esc(yt)+'</text>';
-    svg+='</svg>'; return svg;
-  }
-  // ───── Bar (시퀀스, 향상도) ─────
-  function svgBar(data, opts){
-    var W=420,H=240,M={l:42,r:14,t:14,b:48};
-    var labels=data.labels||[];
-    var dss=data.datasets||[];
-    var allVals=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
-    var maxV=Math.max.apply(null,allVals.concat([1]));
-    var minV=Math.min.apply(null,allVals.concat([0]));
-    if(minV>0)minV=0;
-    function yPx(v){return H-M.b-(v-minV)/(maxV-minV)*(H-M.t-M.b);}
-    var groupW=(W-M.l-M.r)/Math.max(1,labels.length);
-    var barW=Math.max(4,(groupW-4)/Math.max(1,dss.length));
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=Math.round(maxV-(maxV-minV)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv+'</text>';}
-    // zero line if minV<0
-    if(minV<0){var z=yPx(0);svg+='<line x1="'+M.l+'" y1="'+z+'" x2="'+(W-M.r)+'" y2="'+z+'" stroke="#999" stroke-width="0.8"/>';}
-    // bars
-    labels.forEach(function(lbl,li){
-      var groupX=M.l+li*groupW+2;
-      dss.forEach(function(ds,di){
-        var v=ds.data[li]; if(typeof v!=='number') return;
-        var c=Array.isArray(ds.backgroundColor)?ds.backgroundColor[li]:(ds.backgroundColor||'#0969da');
-        var x=groupX+di*barW;
-        var y=yPx(Math.max(0,v)), h=Math.abs(yPx(v)-yPx(0));
-        svg+='<rect x="'+x+'" y="'+y+'" width="'+(barW-1)+'" height="'+h+'" fill="'+c+'" rx="1"/>';
-      });
-      var lx=groupX+groupW/2-2;
-      svg+='<text x="'+lx+'" y="'+(H-M.b+12)+'" font-size="8.5" fill="#666" text-anchor="middle">'+_esc(String(lbl).slice(0,6))+'</text>';
-    });
-    svg+='</svg>'; return svg;
-  }
-  // ───── Radar (5축) ─────
-  function svgRadar(data, opts){
-    var W=300,H=240,cx=W/2,cy=H/2-8,R=Math.min(cx,cy)-30;
-    var labels=data.labels||[]; var n=labels.length||5;
-    function ang(i){return -Math.PI/2+i*2*Math.PI/n;}
-    function pt(i,v){var r=R*Math.max(0,Math.min(1,v/100));return [cx+r*Math.cos(ang(i)),cy+r*Math.sin(ang(i))];}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // rings
-    [0.2,0.4,0.6,0.8,1.0].forEach(function(f){
-      var pts=[];for(var i=0;i<n;i++){var x=cx+R*f*Math.cos(ang(i)),y=cy+R*f*Math.sin(ang(i));pts.push(x+','+y);}
-      svg+='<polygon points="'+pts.join(' ')+'" fill="none" stroke="#ddd" stroke-width="0.5"/>';
-    });
-    // spokes
-    for(var i=0;i<n;i++){var p=pt(i,100);svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#ddd" stroke-width="0.5"/>';}
-    // datasets
-    (data.datasets||[]).forEach(function(ds,di){
-      var pts=(ds.data||[]).map(function(v,i){return pt(i,v||0).join(',');}).join(' ');
-      var fill=ds.backgroundColor||'rgba(9,105,218,0.18)', stk=ds.borderColor||'#0969da';
-      var dash=ds.borderDash?' stroke-dasharray="4,3"':'';
-      svg+='<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="1.5"'+dash+'/>';
-    });
-    // labels
-    for(var i=0;i<n;i++){var p2=pt(i,118);svg+='<text x="'+p2[0]+'" y="'+p2[1]+'" font-size="10" fill="#333" text-anchor="middle">'+_esc(labels[i]||'')+'</text>';}
-    svg+='</svg>'; return svg;
-  }
-  // ───── Line (시계열) ─────
-  function svgLine(data, opts){
-    var W=420,H=240,M={l:42,r:42,t:12,b:36};
-    var labels=data.labels||[];
-    var dss=data.datasets||[];
-    var allY=[].concat.apply([],dss.map(function(d){return (d.data||[]).filter(function(v){return typeof v==='number';});}));
-    var maxY=Math.max.apply(null,allY.concat([1]));
-    var minY=Math.min.apply(null,allY.concat([0]));
-    if(maxY===minY)maxY=minY+1;
-    function xPx(i){return M.l+(labels.length>1?i/(labels.length-1):0.5)*(W-M.l-M.r);}
-    function yPx(v){return H-M.b-(v-minY)/(maxY-minY)*(H-M.t-M.b);}
-    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">';
-    // grid
-    for(var i=0;i<=4;i++){var gy=M.t+i*(H-M.t-M.b)/4;svg+='<line x1="'+M.l+'" y1="'+gy+'" x2="'+(W-M.r)+'" y2="'+gy+'" stroke="#eee" stroke-width="0.5"/>';
-      var gv=(maxY-(maxY-minY)*i/4); svg+='<text x="'+(M.l-4)+'" y="'+(gy+3)+'" font-size="9" fill="#888" text-anchor="end">'+gv.toFixed(0)+'</text>';}
-    // x labels
-    labels.forEach(function(l,i){svg+='<text x="'+xPx(i)+'" y="'+(H-M.b+14)+'" font-size="9" fill="#666" text-anchor="middle">'+_esc(String(l).split('\n')[0])+'</text>';});
-    // lines
-    dss.forEach(function(ds,di){
-      var pts=(ds.data||[]).map(function(v,i){return typeof v==='number'?(xPx(i)+','+yPx(v)):null;}).filter(Boolean).join(' ');
-      svg+='<polyline points="'+pts+'" fill="none" stroke="'+(ds.borderColor||'#0969da')+'" stroke-width="2"/>';
-      (ds.data||[]).forEach(function(v,i){if(typeof v==='number')svg+='<circle cx="'+xPx(i)+'" cy="'+yPx(v)+'" r="3" fill="'+(ds.borderColor||'#0969da')+'"/>';});
-    });
-    return svg+'</svg>';
-  }
-  function StubChart(canvas, config){
-    if(!_q(canvas)){return {destroy:function(){},update:function(){},resize:function(){}};}
-    try{
-      var t=config.type, svg='';
-      if(t==='scatter') svg=svgScatter(config.data, config.options||{});
-      else if(t==='bar') svg=svgBar(config.data, config.options||{});
-      else if(t==='radar') svg=svgRadar(config.data, config.options||{});
-      else if(t==='line') svg=svgLine(config.data, config.options||{});
-      else svg='<div style="color:#999;font-size:11px;padding:20px">📊 차트 ('+t+')</div>';
-      _replace(canvas, svg);
-    }catch(e){console.warn('SVG chart error:',e);}
-    return {destroy:function(){var p=canvas&&canvas.parentElement&&canvas.parentElement.querySelector('.svg-chart-out');if(p)p.remove();},
-            update:function(){},resize:function(){}};
-  }
-  StubChart.register=function(){};StubChart.defaults={};StubChart.helpers={};
-  window.Chart=StubChart;
-})();
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 
 /* ===== js/driveline.js ===== */
@@ -1612,7 +1452,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
  */
 const DRIVELINE_5_MODELS = {
   arm_action: {
-    label: '🚀 팔동작 (Arm Action)',
+    label: '🚀 Arm Action',
     sub:   '팔 동작 — 어깨/팔꿈치 효율',
     velo_rank: 2, ae_rank: 1, weight: 0.22,
     metrics: {
@@ -1625,7 +1465,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   posture: {
-    label: '🛡 자세 (Posture)',
+    label: '🛡 Posture',
     sub:   '자세 — FP~릴리즈 자세 유지',
     velo_rank: 1, ae_rank: 2, weight: 0.25,
     metrics: {
@@ -1638,7 +1478,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   rotation: {
-    label: '🔄 회전 속도 (Rotation)',
+    label: '🔄 Rotation',
     sub:   '회전 — Trunk + Pelvis 회전 속도',
     velo_rank: 4, ae_rank: 3, weight: 0.18,
     metrics: {
@@ -1649,7 +1489,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   block: {
-    label: '🦵 앞다리 제동 (Block)',
+    label: '🦵 Block',
     sub:   '앞발 블록 — Lead leg 활용',
     velo_rank: 5, ae_rank: 4, weight: 0.15,
     metrics: {
@@ -1660,7 +1500,7 @@ const DRIVELINE_5_MODELS = {
     }
   },
   cog: {
-    label: '🎯 체중이동 (CoG)',
+    label: '🎯 CoG',
     sub:   '무게중심 이동 — Drive 속도/감속',
     velo_rank: 3, ae_rank: 5, weight: 0.20,
     metrics: {
@@ -6516,7 +6356,7 @@ function v514_renderMechanicTables(m, p){
     });
     if(dvl5){
       const modelOrder = ['arm_action','posture','rotation','block','cog'];
-      const modelLabel = {arm_action:'🚀 팔동작', posture:'🛡 자세', rotation:'🔄 회전 속도', block:'🦵 앞다리 제동', cog:'🎯 체중이동'};
+      const modelLabel = {arm_action:'🚀 Arm Action', posture:'🛡 Posture', rotation:'🔄 Rotation', block:'🦵 Block', cog:'🎯 CoG'};
       const impColor = imp => imp === 'high' ? '#cf222e' : imp === 'med' ? '#bc4c00' : '#656d76';
       const impLabel = imp => imp === 'high' ? '높음' : imp === 'med' ? '보통' : '낮음';
       const fmtV = (v, unit) => v == null ? '<span style="color:var(--muted)">—</span>' :
@@ -6548,94 +6388,6 @@ function v514_renderMechanicTables(m, p){
         });
       });
       dvBody.innerHTML = html;
-
-      // [3-5] v5.39: 에너지 손실 Top 3 (이전 ELI causal-chains 대체) — 동일 dvl5 + ETE 결합
-      const top3wrap = document.getElementById('p-energy-loss-top3');
-      if(top3wrap){
-        const trans = (A.segmentTransitionETE) ? A.segmentTransitionETE({
-          peak_pelvis_v:  m.sequence?.pelvis_dps,
-          peak_trunk_v:   m.sequence?.trunk_dps,
-          peak_humerus_v: m.sequence?.arm_dps,
-          peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
-          peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
-          pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
-          trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
-          humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
-          forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms
-        }) : null;
-        const candidates = [];
-        // 5 모델 high-importance 음의 차이
-        ['arm_action','posture','rotation','block','cog'].forEach(mk => {
-          const md = dvl5[mk]; if(!md || !md.metrics) return;
-          Object.values(md.metrics).forEach(mt => {
-            if(mt.value == null || mt.median_elite == null || !mt.per_1mph) return;
-            const diff_kmh = (mt.value - mt.median_elite)/mt.per_1mph * 1.609;
-            if(diff_kmh < 0 && mt.importance === 'high'){
-              candidates.push({type:'driveline', model:mk, model_lbl:modelLabel[mk], var_lbl:mt.label,
-                value:mt.value, elite:mt.median_elite, unit:mt.unit||'',
-                loss:Math.abs(diff_kmh)});
-            }
-          });
-        });
-        // ETE transitions <100점
-        if(trans){
-          ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'].forEach(k => {
-            const t = trans[k]; if(!t || t.score == null || t.score >= 95) return;
-            const loss = (100 - t.score) * 0.06;
-            candidates.push({type:'ete', model_lbl:'🔗 분절간 흐름',
-              var_lbl:`${t.label_kr} (Lag ${t.lag_ms!=null?t.lag_ms.toFixed(1):'—'} ms · Gain ${t.speed_gain?t.speed_gain.toFixed(2)+'×':'—'})`,
-              value:t.score, elite:100, unit:'점', loss, ete_score:t.score,
-              ete_fault:t.lag_fault || t.gain_fault || ''});
-          });
-        }
-        candidates.sort((a,b)=>b.loss-a.loss);
-        const top3 = candidates.slice(0,3);
-        const rxMap = {
-          'Layback (어깨 최대 외회전)':'어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill',
-          'Shoulder Abduction at FP':'어깨 셋업 단계에서 외전 90° 유지 · scap retraction throw',
-          'Scap Load at FP':'광배·후면삼각근 강화 · scap retraction throw drill (절댓값 평가)',
-          'Shoulder Rotation Velo':'Layback 후 explosive 외→내회전 plyo throw · ball weight 진행',
-          'Peak Hip-Shoulder Sep at FP (X-factor)':'골반-몸통 분리 강조 throw · medball rotational throw',
-          'Peak Torso Counter Rot':'와인드업 시 몸통 반대 회전 강조 · stride 시 어깨 잔류 cueing',
-          'Torso Forward Tilt at FP':'FP 시점 trunk forward tilt 만들기 — front leg block + 코어 stability drill',
-          'Torso Rotation at FP':'FP closed posture 유지 → release 직전 폭발적 회전',
-          'Torso Rotation at BR':'follow-through trunk 회전 끝까지 (홈쪽 110°+)',
-          'Torso Side Bend at MER':'release 직전 contralateral side bend drill',
-          'Torso Rotation Velo':'medball rotational throw (heavy → light) · 코어 power',
-          'Pelvis Rotation Velo':'골반 가속 drill (markerless 보정 caveat)',
-          'Lead Knee Extension':'앞발 착지 후 knee 신전 강조 · RDL · lateral squat',
-          'Stride Length':'Stride 거리 점진 증가 (체중 90%+ 권장) · towel drill',
-          'CoG Decel AE':'앞발 block + 골반 braking 통합 drill (정의 caveat)',
-          'Peak Lead Knee Ext Velo':'single leg jumping · 앞발 explosive block',
-          'CoG Decel':'Lead leg AP impulse 18-28 %BW·s 목표 · 앞발 block + 골반 braking 통합',
-          'Max CoG Velo':'explosive stride drill, KB swing'
-        };
-        const eteRxMap = {
-          'pelvis_to_trunk':'골반→몸통 lag 보정 — 골반 단독 회전 후 몸통 따라가기 drill',
-          'trunk_to_humerus':'몸통→위팔 lag 보정 — Layback 유지 → 폭발적 내회전 plyo',
-          'humerus_to_forearm':'위팔→아래팔 — 너무 이른 elbow 신전 방지 (valgus stress ↑)',
-          'forearm_to_hand':'아래팔→손 — release 시점 손 가속 cueing (towel drill)'
-        };
-        if(top3.length === 0){
-          top3wrap.innerHTML = `<div style="padding:14px;background:#dafbe1;border-radius:5px;color:#1a7f37;font-weight:600">✅ 큰 에너지 손실 영역 없음 — 5 모델 + ETE 모두 elite 수준</div>`;
-        } else {
-          top3wrap.innerHTML = top3.map((c,i) => {
-            const num = i+1;
-            const numColor = ['#cf222e','#bc4c00','#8250df'][i];
-            const rx = c.type==='ete' ? eteRxMap[c.model||''] : (rxMap[c.var_lbl] || '해당 변인 강화 drill');
-            const valStr = c.type==='ete'
-              ? `점수 ${c.value} <span style="color:var(--muted);font-size:11px">(${c.ete_fault || 'gain·lag 누수'})</span>`
-              : `${c.unit==='m/s'?c.value.toFixed(2):Math.round(c.value)} ${c.unit} <span style="color:var(--muted);font-size:11px">(Elite ${c.unit==='m/s'?c.elite.toFixed(2):Math.round(c.elite)} ${c.unit})</span>`;
-            return `<div style="position:relative;padding:8px 11px 8px 48px;background:#fff5f5;border:1px solid #ffaaa3;border-radius:5px;margin:5px 0;font-size:12px">
-              <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:${numColor};color:#fff;text-align:center;line-height:28px;font-weight:700">${num}</div>
-              <div style="font-weight:700;color:${numColor};margin-bottom:4px">${c.model_lbl} — ${c.var_lbl}</div>
-              <div style="font-size:11.5px"><b>현재:</b> ${valStr}</div>
-              <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span style="color:#cf222e;font-weight:600">−${c.loss.toFixed(1)} km/h</span></div>
-              <div style="font-size:11.5px;margin-top:4px;color:#1a7f37"><b>💪 처방:</b> ${rx}</div>
-            </div>`;
-          }).join('');
-        }
-      }
     }
   }
 
@@ -9987,6 +9739,61 @@ document.getElementById('rep-session-co')?.addEventListener('change', renderCoac
 </script>
 
 
+
+
+<script>
+/* === TestPlayer auto-import (선수별 1차 리포트 자동 표시) === */
+(function() {
+  const RECORD = {"athlete_external_id": "TEST", "athlete_name": "TestPlayer", "session_id": 1, "test_date": "2026-05-15", "protocol": "Theia+GRF", "theia_n_trials": 8, "rapsodo_n_throws": 8, "velocity": {"measured_kmh": 141.1, "measured_avg_kmh": 139.8, "measured_sd": 0.95, "potential_kmh": 146.1, "score": 80}, "sequence": {"pelvis_dps": 775, "trunk_dps": 1021, "arm_dps": 4755, "ete_pct": 80, "speed_gain": 1.32, "proper_seq": true, "score": 82, "peak_elbow_v": null, "elbow_dps": null, "peak_shoulder_v": 5055}, "energy": {"generation": {"hip_R_W": 1384, "hip_L_W": 1386, "knee_R_W": 716, "knee_L_W": 1383, "shoulder_W": 3814, "elbow_W": 4490, "total_W": 13172, "mech_energy_pelvis_J": 144, "mech_energy_trunk_J": 592, "mech_energy_humerus_J": 206, "score": 78}, "transfer": {"ete_pct": 80, "speed_gain_pt": 1.32, "speed_gain_ta": 4.66, "proper_seq": true, "pelvis_to_trunk_lag_ms": 15.0, "trunk_to_humerus_lag_ms": 66.7, "humerus_to_forearm_lag_ms": 1.6, "forearm_to_hand_lag_ms": -5.0, "trunk_to_arm_lag_ms": 66.7, "peak_forearm_v": 5844, "score": 82, "score_kinematic": 65, "score_kinetic_ete": 98, "ratio_humerus_to_pelvis_pct": 143.1, "basis": "combined"}, "leakage": {"zone1_sequence": 88, "zone2_x_factor": 21, "zone3_lead_block": 98, "zone4_trunk_at_fc": 78, "zone5_shoulder_align": 84, "zone6_pelvis_brake": 72, "eli_score": 74, "causal_chains": [{"zone": "zone2", "zone_label": "골반-상체 분리 (X-팩터)", "defect": "X-factor 미달", "impact_kmh": -7.0}, {"zone": "zone6", "zone_label": "골반 감속 (브레이크)", "defect": "Pelvis braking 부족", "impact_kmh": -2.7}, {"zone": "zone4", "zone_label": "앞발 착지 시 몸통 자세", "defect": "FC 시 트렁크 기울기 부적절", "impact_kmh": -2.2}]}}, "grf": {"lhei": 93, "rear_force_pct": 123.22, "lead_force_pct": 59.38, "type": "균형형", "drive_propulsive_peak_pct_bw": 82.9, "drive_propulsive_impulse_pct_bw_s": 36.38, "drive_propulsive_peak_time_pct": 23.7, "lead_braking_peak_pct_bw": 127.1, "lead_braking_impulse_pct_bw_s": 27.46, "lead_braking_peak_ms_after_fc": 113.3, "lead_block_duration_ms": null, "horizontal_to_vertical_ratio": 0.453, "newtforce_turning_point_z_pct_bw": 27.6, "newtforce_lead_negative_y_pct_bw": 4.0, "newtforce_lead_negative_y_ms_after_br": 0.0, "newtforce_time_of_transfer_ms": null}, "faults": {"x_factor_deg": 31.3, "lead_knee_change": 12, "release_height_sd_cm": 4.0, "wrist_pos_sd_cm": 2.5, "trunk_tilt_sd_deg": 1.8, "consistency_score": 88, "fault_score": 85, "injury_risk": "low", "fault_count": 1, "shoulder_er_max_deg": 175.5, "shoulder_abd_fp_deg": 64.4, "scap_load_fp_deg": -41.3, "elbow_flex_fp_deg": 130.5, "torso_counter_rot_deg": -4.0, "trunk_tilt_at_fc_deg": -5.0, "torso_rot_fp_deg": 101.8, "trunk_lat_tilt_deg": 34.0, "torso_rot_br_deg": -14.6, "stride_length_m": 1.511, "lead_knee_ext_velo": 471.1}, "cog": {"max_velo": 2.8, "decel": 1.77}};
+  function autoImport() {
+    try {
+      // PLAYERS auto-add
+      if (typeof PLAYERS !== 'undefined' && !PLAYERS.find(p => p.id === RECORD.athlete_external_id)) {
+        PLAYERS.push({
+          id: RECORD.athlete_external_id, name: RECORD.athlete_name,
+          arm: 'R', height: 192, weight: 91, dob: '2008-01-01', grade: 1
+        });
+        if (typeof DATA !== 'undefined' && !DATA[RECORD.athlete_external_id]) {
+          DATA[RECORD.athlete_external_id] = {};
+          if (typeof SESSIONS !== 'undefined') SESSIONS.forEach(s => DATA[RECORD.athlete_external_id][s.id] = {});
+        }
+      }
+      // record 적용
+      if (typeof parseTheiaJson === 'function' && typeof applyTheiaRecord === 'function') {
+        const recs = parseTheiaJson({results: [RECORD], session: {date: '2026-05-15', protocol: 'Theia+GRF'}});
+        recs.forEach(applyTheiaRecord);
+        if (typeof refreshAllAfterImport === 'function') refreshAllAfterImport();
+      }
+      // Tab 2 + TEST 선수 자동 선택
+      setTimeout(() => {
+        if (typeof switchTab === 'function') switchTab('player');
+        const sel = document.getElementById('player-select');
+        if (sel) {
+          sel.value = RECORD.athlete_external_id;
+          if (typeof renderPlayerView === 'function') renderPlayerView(RECORD.athlete_external_id);
+        }
+      }, 200);
+    } catch(e) {
+      console.error('auto-import error:', e);
+      document.body.insertAdjacentHTML('afterbegin',
+        '<div style="background:#ffebe9;border:2px solid #cf222e;padding:16px;margin:10px;border-radius:6px;font:14px sans-serif">'
+        + '<b>자동 import 에러:</b> ' + e.message + '<br>F12 콘솔 확인</div>');
+    }
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(autoImport, 500);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(autoImport, 500));
+  }
+  // 헤더에 안내 배너
+  setTimeout(() => {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#dafbe1;border-bottom:2px solid #1a7f37;padding:8px 16px;font:13px sans-serif;color:#1a7f37;text-align:center';
+    banner.innerHTML = '✅ <b>자동 분석 완료</b>: ' + RECORD.athlete_name + ' (192cm/91kg, 9 trial 합성, v5.38) — Tab 2 선수별 1차 리포트가 표시됩니다';
+    document.body.insertBefore(banner, document.body.firstChild);
+  }, 100);
+})();
+</script>
 
 </body>
 </html>

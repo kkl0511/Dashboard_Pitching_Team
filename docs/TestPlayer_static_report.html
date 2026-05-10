@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>TestPlayer 1차 투구 리포트</title>
+<style>
+:root{
+  --bg:#fafbfc; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de; --line-soft:#e1e4e8;
+  --text:#1f2328; --text-soft:#424a53; --muted:#656d76;
+  --accent:#0969da; --accent-bg:#ddf4ff; --accent2:#8250df;
+  --good:#1a7f37; --good-bg:#dafbe1;
+  --warn:#bc4c00; --warn-bg:#fff8c5;
+  --bad:#cf222e; --bad-bg:#ffebe9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","맑은 고딕",sans-serif;
+  font-size:13px;line-height:1.55}
+main{max-width:1180px;margin:0 auto;padding:18px 28px 40px}
+header{background:#fff;border-bottom:1px solid var(--line);padding:18px 28px;margin-bottom:18px}
+header .top{display:flex;justify-content:space-between;align-items:flex-end;max-width:1180px;margin:0 auto}
+header h1{font-size:18px;margin:0;font-weight:700}
+header .ver{color:var(--muted);font-size:13px;font-weight:400;margin-left:6px}
+header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+header .meta{font-size:12px;color:var(--muted);text-align:right}
+header .meta b{color:var(--text);font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.panel h2{margin:0 0 12px;font-size:15px;font-weight:600;color:var(--text)}
+.panel h2 .badge{font-size:10.5px;background:var(--panel2);color:var(--muted);
+  border:1px solid var(--line-soft);padding:2px 7px;border-radius:3px;margin-left:8px;font-weight:500;vertical-align:middle}
+.panel h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--text-soft)}
+.section-marker{margin:18px 0 8px;padding:8px 12px;border-left:4px solid var(--accent);border-radius:4px;
+  background:linear-gradient(90deg,#0969da10,transparent)}
+.section-marker .lbl{font-size:14px;font-weight:600;color:var(--accent)}
+.section-marker.fitness{border-color:#bc4c00;background:linear-gradient(90deg,#bc4c0010,transparent)}
+.section-marker.fitness .lbl{color:#bc4c00}
+.section-marker.mech{border-color:var(--good);background:linear-gradient(90deg,#1a7f3710,transparent)}
+.section-marker.mech .lbl{color:var(--good)}
+.section-marker.result{border-color:var(--accent2);background:linear-gradient(90deg,#8250df10,transparent)}
+.section-marker.result .lbl{color:var(--accent2)}
+.player-meta{display:flex;gap:16px;color:var(--muted);font-size:12.5px;flex-wrap:wrap;margin-top:8px}
+.player-meta b{color:var(--text);font-weight:600}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.kpi{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
+  padding:10px 12px;border-left:3px solid var(--accent)}
+.kpi.bk-warn{border-left-color:#bc4c00;background:#fff8f0}
+.kpi.bk-good{border-left-color:#1a7f37;background:#f0f9f4}
+.kpi.bk-acc2{border-left-color:#8250df;background:#f5f0ff}
+.kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.kpi .value{font-size:22px;font-weight:600;color:var(--text);margin-top:3px}
+.kpi .delta{font-size:11.5px;color:var(--muted);margin-top:3px}
+.info-bar{display:flex;gap:14px;align-items:center;margin-top:8px;padding:6px 10px;
+  background:var(--panel2);border-radius:6px;font-size:12px;flex-wrap:wrap}
+.info-bar .sep{color:var(--line)}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.grid-2{display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:stretch}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-1-1{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-1-13{display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start}
+table.data{width:100%;border-collapse:collapse;font-size:11.5px}
+table.data thead th{background:var(--panel2);padding:7px 9px;text-align:left;
+  border-bottom:1px solid var(--line);font-weight:600;color:var(--text-soft);font-size:11px}
+table.data tbody td{padding:6px 9px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+table.data tbody tr:hover{background:var(--panel2)}
+table.data .num{text-align:right;font-variant-numeric:tabular-nums}
+.score-good{color:var(--good);font-weight:600}
+.score-warn{color:var(--warn);font-weight:600}
+.score-bad{color:var(--bad);font-weight:600}
+.diff-pos{color:var(--good);font-weight:600}
+.diff-neg{color:var(--bad);font-weight:600}
+.muted{color:var(--muted)}
+.sec-quality{padding:10px 12px;border-radius:5px;font-size:12px;border-left:3px solid #ccc;margin-bottom:8px}
+.sec-quality b{font-size:13px}
+.grf-card{padding:10px 12px;border-radius:5px}
+.grf-card.fp1{background:#fff8c5;border-left:4px solid #9a6700}
+.grf-card.fp2{background:var(--accent-bg);border-left:4px solid var(--accent)}
+.grf-card.lhei{background:var(--good-bg);border-left:4px solid var(--good)}
+.grf-card .lbl{font-size:11px;color:var(--muted)}
+.grf-card .ttl{font-size:13px;font-weight:600;margin:3px 0}
+.grf-card .v{font-size:21px;font-weight:700}
+.grf-card .sub{font-size:10.5px;color:var(--muted)}
+.grf-card .bar{margin-top:8px;height:6px;background:#fff;border-radius:3px;overflow:hidden;border:1px solid #e1e4e8}
+.grf-card .bar > div{height:100%;border-radius:3px}
+.grf-card.fp1 .bar > div{background:#9a6700}
+.grf-card.fp2 .bar > div{background:var(--accent)}
+.grf-card.lhei .bar > div{background:var(--good)}
+.footnote{font-size:10.5px;color:var(--muted);margin-top:10px;padding:8px 12px;
+  background:var(--panel2);border-radius:5px;border-left:3px solid var(--accent);line-height:1.5}
+.footnote b{color:var(--text)}
+.action-card{padding:8px 11px;border:1px solid var(--line-soft);border-radius:5px;margin:5px 0;
+  font-size:12px;background:#fff}
+.action-card.warn{background:#fff5f5;border-color:#ffaaa3}
+.action-card.ok{background:var(--good-bg);border-color:#74dba1}
+.zone-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;margin:3px 0;font-size:11.5px}
+.zone-row .z{flex:0 0 36px;font-weight:700}
+.zone-row .nm{flex:1}
+.zone-row .sc{flex:0 0 50px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.zone-row .ev{flex:0 0 70px;text-align:right;font-size:11px}
+.zone-row.s-good{background:var(--good-bg)}
+.zone-row.s-warn{background:var(--warn-bg)}
+.zone-row.s-bad{background:var(--bad-bg)}
+.legend{font-size:11px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body{background:#fff;font-size:11px}
+  main{padding:0;max-width:none}
+  header{padding:8px 0;border-bottom:1px solid #999}
+  header h1{font-size:14px}
+  .panel{box-shadow:none;border:1px solid #bbb;padding:10px 12px;margin-bottom:10px;
+    page-break-inside:avoid;break-inside:avoid}
+  .panel h2{font-size:12px;margin-bottom:6px}
+  .kpi .value{font-size:16px}
+  .grid-2{grid-template-columns:0.85fr 1.5fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>TestPlayer 1차 투구 리포트 <span class="ver">v5.38 · standalone</span></h1>
+      <div class="sub">바이오모션 ↔ 상동고등학교 야구부 · 단일 선수 1차 측정 (Theia + AMTI Force plate)</div>
+    </div>
+    <div class="meta">
+      <div>측정 프로토콜: <b>Theia markerless 300 Hz + AMTI Force plate 1200 Hz</b></div>
+      <div>분석 알고리즘: <b>process_pitching_session.py v5.38</b> · 9 trial 합성</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- 선수 정보 + ① 현재 상태 -->
+<div class="panel">
+  <div style="font-size:16px;font-weight:700">TestPlayer</div>
+  <div class="player-meta">
+    <span><b>192</b> cm</span>
+    <span><b>91</b> kg</span>
+    <span>측정일 <b>2026-05-15</b></span>
+    <span>총 <b>9</b> trial 합성 (event 잘못된 trial 6, 10 제외)</span>
+  </div>
+
+  <div class="section-marker" style="margin-top:14px">
+    <div class="lbl">📍 1. 현재 상태</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">📍 현재 측정 구속</div>
+      <div class="value">141.1 <span style="font-size:13px;font-weight:400">km/h</span></div>
+      <div class="delta">최고 <b>141.1</b> · 평균 <b>139.8</b> · SD <b>0.95</b></div>
+    </div>
+    <div class="kpi bk-warn">
+      <div class="label">💪 체력 향상 기대 구속</div>
+      <div class="value">— <span style="font-size:13px;font-weight:400">km/h</span></div>
+      <div class="delta">체력 데이터 미입력 (1차 GRF 단독 측정)</div>
+    </div>
+    <div class="kpi bk-good">
+      <div class="label">⚙️ 메카닉 향상 기대 구속</div>
+      <div class="value">146.1 <span style="font-size:13px;font-weight:400">km/h</span></div>
+      <div class="delta">현재 141.1 · 잠재 +5.0 km/h</div>
+    </div>
+    <div class="kpi bk-acc2">
+      <div class="label">🎯 체력+메카닉 향상 기대 구속</div>
+      <div class="value">146.1 <span style="font-size:13px;font-weight:400">km/h</span></div>
+      <div class="delta">메카닉 +5.0 · 체력 — km/h</div>
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <span><b>부상 위험:</b> <span class="pill warn">주의</span>
+      <span class="muted" style="font-size:11px">Elbow flex at FP 131°</span></span>
+    <span class="sep">|</span>
+    <span><b>메카닉 효율 (AE):</b> <span class="pill good">우수</span> <span class="muted" style="font-size:11px">73.7 score/(km/h)</span></span>
+    <span class="sep">|</span>
+    <span style="font-size:11px;color:var(--muted)">메카닉 종합 <b>104</b> · ETE <b>88</b> · GRF LHEI <b>93</b></span>
+  </div>
+</div>
+
+<!-- ② 체력 (1차 측정에서는 미실시) -->
+<div class="section-marker fitness">
+  <div class="lbl">💪 2. 체력 <span style="font-size:12px;color:var(--muted);font-weight:400">— 1차 측정 미실시 (Theia+GRF 단독)</span></div>
+</div>
+
+<!-- ③ 메카닉 -->
+<div class="section-marker mech">
+  <div class="lbl">⚙️ 3. 메카닉</div>
+</div>
+
+<!-- 3-1 + 3-2 -->
+<div class="grid-2">
+  <div class="panel">
+    <h2>3-1. 메카닉 5 모델 <span class="badge">Driveline 표준</span></h2>
+    <svg width="100%" viewBox="0 0 380 340" xmlns="http://www.w3.org/2000/svg" style="font:11px sans-serif;max-height:300px"><polygon points="190,149 223.28697807033038,173.18440519687684 210.57248383023656,212.31559480312316 169.42751616976344,212.31559480312316 156.71302192966962,173.18440519687684" fill="none" stroke="#e1e4e8" stroke-width="1" stroke-dasharray="2,2"/><polygon points="190,114 256.57395614066075,162.36881039375368 231.14496766047313,240.63118960624632 148.85503233952687,240.63118960624632 123.42604385933925,162.36881039375368" fill="none" stroke="#e1e4e8" stroke-width="1" stroke-dasharray="2,2"/><polygon points="190,79 289.8609342109911,151.55321559063051 251.71745149070966,268.94678440936946 128.28254850929034,268.94678440936946 90.13906578900887,151.55321559063054" fill="none" stroke="#e1e4e8" stroke-width="1" stroke-dasharray="2,2"/><line x1="190" y1="184" x2="190" y2="79" stroke="#eaecef"/><line x1="190" y1="184" x2="289.8609342109911" y2="151.55321559063051" stroke="#eaecef"/><line x1="190" y1="184" x2="251.71745149070966" y2="268.94678440936946" stroke="#eaecef"/><line x1="190" y1="184" x2="128.28254850929034" y2="268.94678440936946" stroke="#eaecef"/><line x1="190" y1="184" x2="90.13906578900887" y2="151.55321559063054" stroke="#eaecef"/><polygon points="190,79 289.8609342109911,151.55321559063051 251.71745149070966,268.94678440936946 128.28254850929034,268.94678440936946 90.13906578900887,151.55321559063054" fill="rgba(252,194,109,0.10)" stroke="#bc4c00" stroke-width="1.2" stroke-dasharray="3,3"/><polygon points="190,114 256.57395614066075,162.36881039375368 231.14496766047313,240.63118960624632 148.85503233952687,240.63118960624632 123.42604385933925,162.36881039375368" fill="rgba(252,231,121,0.18)" stroke="#9a6700" stroke-width="1.2" stroke-dasharray="3,3"/><polygon points="190,121.69999999999999 257.905435263474,161.93618660162875 234.02511539670624,244.59537287868358 145.97488460329376,244.59537287868358 112.10847131542691,158.69150816069182" fill="rgba(9,105,218,0.30)" stroke="#0969da" stroke-width="2.5"/><text x="190" y="51" text-anchor="middle" font-weight="600" font-size="11.5" fill="#1f2328">🚀 팔동작</text><text x="190" y="64" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">89</text><text x="316.4905166672554" y="142.900739748132" text-anchor="middle" font-weight="600" font-size="11.5" fill="#1f2328">🛡 자세</text><text x="316.4905166672554" y="155.900739748132" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">102</text><text x="268.17543855489896" y="291.59926025186803" text-anchor="middle" font-weight="600" font-size="11.5" fill="#1f2328">🔄 회전</text><text x="268.17543855489896" y="304.59926025186803" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">107</text><text x="111.82456144510108" y="291.59926025186803" text-anchor="middle" font-weight="600" font-size="11.5" fill="#1f2328">🦵 앞다리</text><text x="111.82456144510108" y="304.59926025186803" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">107</text><text x="63.509483332744566" y="142.90073974813203" text-anchor="middle" font-weight="600" font-size="11.5" fill="#1f2328">🎯 체중이동</text><text x="63.509483332744566" y="155.90073974813203" text-anchor="middle" fill="#0969da" font-size="11" font-weight="700">117</text><text x="10" y="334" font-size="10" fill="#656d76"><tspan fill="#0969da">━ 본인</tspan> · <tspan fill="#9a6700">--- Elite</tspan> · <tspan fill="#bc4c00">--- Ceiling</tspan></text></svg>
+    <table class="data" style="margin-top:10px">
+      <thead><tr><th>모델</th><th class="num">점수</th><th>주요 변인 (Top 2)</th></tr></thead>
+      <tbody>
+        <tr><td><b>🚀 팔동작 (Arm Action)</b></td><td class="num score-warn">89</td><td class="muted" style="font-size:10.5px">Layback (어깨 최대 외회전), Shoulder Abduction at FP</td></tr><tr><td><b>🛡 자세 (Posture)</b></td><td class="num score-good">102</td><td class="muted" style="font-size:10.5px">Peak Hip-Shoulder Sep at FP (X-factor), Peak Torso Counter Rot</td></tr><tr><td><b>🔄 회전 속도 (Rotation)</b></td><td class="num score-good">107</td><td class="muted" style="font-size:10.5px">Torso Rotation Velo, Pelvis Rotation Velo</td></tr><tr><td><b>🦵 앞다리 제동 (Block)</b></td><td class="num score-good">107</td><td class="muted" style="font-size:10.5px">Lead Knee Extension, Stride Length</td></tr><tr><td><b>🎯 체중이동 (CoG)</b></td><td class="num score-good">117</td><td class="muted" style="font-size:10.5px">CoG Decel, Max CoG Velo</td></tr>
+      </tbody>
+    </table>
+    <div class="footnote">
+      <b>100</b> = Median Elite (90+ mph cohort) · <b>150</b> = Mechanical Ceiling.
+      본인 141.1 km/h, 메카닉 종합 <b>104</b>/100.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>3-2. 시간축 분석 — 키네틱 시퀀스</h2>
+    <svg width="100%" viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" style="font:10.5px sans-serif"><line x1="50" y1="204" x2="580" y2="204" stroke="#f0f3f6"/><line x1="50" y1="164" x2="580" y2="164" stroke="#f0f3f6"/><line x1="50" y1="124.00000000000001" x2="580" y2="124.00000000000001" stroke="#f0f3f6"/><line x1="50" y1="84" x2="580" y2="84" stroke="#f0f3f6"/><line x1="50" y1="44" x2="580" y2="44" stroke="#f0f3f6"/><line x1="50" y1="244" x2="580" y2="244" stroke="#656d76"/><line x1="50" y1="24" x2="50" y2="244" stroke="#656d76"/><line x1="50" y1="244" x2="50" y2="248" stroke="#656d76"/><text x="50" y="262" text-anchor="middle" fill="#656d76">-300</text><line x1="125.71428571428571" y1="244" x2="125.71428571428571" y2="248" stroke="#656d76"/><text x="125.71428571428571" y="262" text-anchor="middle" fill="#656d76">-250</text><line x1="201.42857142857142" y1="244" x2="201.42857142857142" y2="248" stroke="#656d76"/><text x="201.42857142857142" y="262" text-anchor="middle" fill="#656d76">-200</text><line x1="277.1428571428571" y1="244" x2="277.1428571428571" y2="248" stroke="#656d76"/><text x="277.1428571428571" y="262" text-anchor="middle" fill="#656d76">-150</text><line x1="352.85714285714283" y1="244" x2="352.85714285714283" y2="248" stroke="#656d76"/><text x="352.85714285714283" y="262" text-anchor="middle" fill="#656d76">-100</text><line x1="428.57142857142856" y1="244" x2="428.57142857142856" y2="248" stroke="#656d76"/><text x="428.57142857142856" y="262" text-anchor="middle" fill="#656d76">-50</text><line x1="504.2857142857143" y1="244" x2="504.2857142857143" y2="248" stroke="#656d76"/><text x="504.2857142857143" y="262" text-anchor="middle" fill="#656d76">0</text><line x1="580" y1="244" x2="580" y2="248" stroke="#656d76"/><text x="580" y="262" text-anchor="middle" fill="#656d76">50</text><text x="44" y="248" text-anchor="end" fill="#656d76">0</text><text x="44" y="208" text-anchor="end" fill="#656d76">1000</text><text x="44" y="168" text-anchor="end" fill="#656d76">2000</text><text x="44" y="128" text-anchor="end" fill="#656d76">3000</text><text x="44" y="88" text-anchor="end" fill="#656d76">4000</text><text x="44" y="48" text-anchor="end" fill="#656d76">5000</text><line x1="504.2857142857143" y1="24" x2="504.2857142857143" y2="244" stroke="#cf222e" stroke-width="1.5" stroke-dasharray="4,3"/><text x="508.2857142857143" y="36" fill="#cf222e" font-weight="700">BR</text><polyline points="50,243.1681164363702 56.05714285714286,243.03147517385662 62.114285714285714,242.87606585076117 68.17142857142858,242.69997150419536 74.22857142857143,242.50118934285666 80.28571428571428,242.2776454027992 86.34285714285714,242.02721271438114 92.4,241.7477331352336 98.45714285714286,241.43704293783784 104.5142857142857,241.09300216170894 110.57142857142857,240.71352764991786 116.62857142857143,240.2966295888903 122.68571428571428,239.84045126077967 128.74285714285713,239.34331160144276 134.8,238.8037500368911 140.85714285714286,238.2205729502858 146.9142857142857,237.59290101375476 152.9714285714286,236.92021650855173 159.0285714285714,236.20240965759695 165.0857142857143,235.43982291059265 171.14285714285714,234.6332920580003 177.2,233.78418301028861 183.25714285714287,232.8944230667115 189.31428571428572,231.96652551658082 195.37142857142857,231.0036064679381 201.42857142857142,230.0093928851868 207.4857142857143,228.9882209390447 213.54285714285714,227.94502392840667 219.6,226.88530922241776 225.65714285714284,225.8151238890606 231.71428571428572,224.74100891942626 237.77142857142854,223.66994221898779 243.82857142857142,222.60927081200907 249.8857142857143,221.56663298522275 255.94285714285715,220.54987137398044 262,219.56693825972195 268.0571428571428,218.6257945932363 274.11428571428576,217.7343044754297 280.1714285714286,216.90012700834598 286.2285714285714,216.13060756701427 292.2857142857143,215.43267063149216 298.34285714285716,214.8127163537783 304.4,214.27652301325728 310.45714285714286,213.82915743594342 316.51428571428573,213.47489531780255 322.57142857142856,213.2171532035244 328.62857142857143,213.05843363379392 334.6857142857143,213.0002846925703 340.74285714285713,213.04327486883233 346.8,213.18698380365475 352.85714285714283,213.4300091332305 358.9142857142857,213.7699892720527 364.9714285714286,214.2036416186198 371.02857142857147,214.72681531928416 377.0857142857143,215.33455740423574 383.1428571428571,216.0211908222209 389.2,216.7804026553549 395.25714285714287,217.60534059873768 401.3142857142857,218.4887156462906 407.37142857142857,219.42290883725093 413.42857142857144,220.40007988816433 419.4857142857143,221.412275562214 425.5428571428571,222.45153570873987 431.59999999999997,223.50999503661782 437.65714285714284,224.57997886013885 443.7142857142857,225.65409126832 449.7714285714286,226.72529441047243 455.8285714285714,227.7869778540382 461.8857142857143,228.83301724660924 467.9428571428572,229.85782179413494 474,230.85637034341016 480.0571428571428,231.82423612143035 486.1142857142857,232.75760043034148 492.1714285714286,233.65325581875695 498.22857142857146,234.50859944355213 504.2857142857143,235.3216174975027 510.34285714285716,236.09086170517318 516.4,236.8154189813878 522.4571428571428,237.49487540369444 528.5142857142857,238.129275673791 534.5714285714286,238.71907923517853 540.6285714285714,239.26511417836426 546.6857142857143,239.76853000438075 552.7428571428572,240.2307502362624 558.8,240.65342577070595 564.8571428571429,241.03838975280067 570.9142857142857,241.38761463971528 576.9714285714286,241.703171998633" fill="rgba(139,148,158,0.18)" stroke="#8b949e" stroke-width="2.2"/><polyline points="50,243.9559262130208 56.05714285714286,243.94248492862403 62.114285714285714,243.92534036487433 68.17142857142858,243.90359646297122 74.22857142857143,243.87617652759164 80.28571428571428,243.8417965702256 86.34285714285714,243.79893720498492 92.4,243.74581469372959 98.45714285714286,243.6803519399976 104.5142857142857,243.60015045187788 110.57142857142857,243.50246452576306 116.62857142857143,243.38417913648826 122.68571428571428,243.2417932427614 128.74285714285713,243.07141041561167 134.8,242.8687388552721 140.85714285714286,242.6291029602883 146.9142857142857,242.34746863270001 152.9714285714286,242.01848442604606 159.0285714285714,241.63654045129852 165.0857142857143,241.19584663510412 171.14285714285714,240.69053146474187 177.2,240.1147617507947 183.25714285714287,239.46288319487988 189.31428571428572,238.72958067773172 195.37142857142857,237.9100562038708 201.42857142857142,237.00022138433175 207.4857142857143,235.99690024950365 213.54285714285714,234.89803710991092 219.6,233.70290318074763 225.65714285714284,232.4122948179433 231.71428571428572,231.02871554290567 237.77142857142854,229.55653362125983 243.82857142857142,228.0021068632091 249.8857142857143,226.37386657462287 255.94285714285715,224.68235323929034 262,222.94019756668112 268.0571428571428,221.16204198789657 274.11428571428576,219.36439949452947 280.1714285714286,217.56544883699505 286.2285714285714,215.78476745452838 292.2857142857143,214.0430060028199 298.34285714285716,212.3615108659592 304.4,210.76190346557524 310.45714285714286,209.26562738670367 316.51428571428573,207.8934762053779 322.57142857142856,206.6651163165902 328.62857142857143,205.5986199306011 334.6857142857143,204.71002366268513 340.74285714285713,204.0129277481239 346.8,203.51814986569326 352.85714285714283,203.23344587887863 358.9142857142857,203.16330756853466 364.9714285714286,203.308844728849 371.02857142857147,203.6677559517879 377.0857142857143,204.2343891748807 383.1428571428571,204.99988976612343 389.2,205.95243072376357 395.25714285714287,207.077516627524 401.3142857142857,208.35835042658834 407.37142857142857,209.77625010136737 413.42857142857144,211.3111007753942 419.4857142857143,212.94182703287422 425.5428571428571,214.64687003408585 431.59999999999997,216.40465449817336 437.65714285714284,218.19403169182067 443.7142857142857,219.99468614567863 449.7714285714286,221.78749581859762 455.8285714285714,223.55483772738037 461.8857142857143,225.28083353324263 467.9428571428572,226.95153210086102 474,228.5550285032698 480.0571428571428,230.08152122962014 486.1142857142857,231.52331137377882 492.1714285714286,232.87474927143668 498.22857142857146,234.13213536599966 504.2857142857143,235.29358299634774 510.34285714285716,236.35885131199618 516.4,237.32915665265494 522.4571428571428,238.20697051580422 528.5142857142857,238.99581172680143 534.5714285714286,239.7000396791426 540.6285714285714,240.32465459036877 546.6857142857143,240.87510968497895 552.7428571428572,241.3571391300047 558.8,241.77660446636565 564.8571428571429,242.13936124667762 570.9142857142857,242.45114664552568 576.9714285714286,242.71748797917425" fill="rgba(26,127,55,0.18)" stroke="#1a7f37" stroke-width="2.2"/><polyline points="50,243.99999979803857 56.05714285714286,243.99999962915416 62.114285714285714,243.99999932519356 68.17142857142858,243.99999878318138 74.22857142857143,243.99999782563071 80.28571428571428,243.99999614963787 86.34285714285714,243.99999324336164 92.4,243.99998825046734 98.45714285714286,243.99997975250358 104.5142857142857,243.99996542335185 110.57142857142857,243.99994148660852 116.62857142857143,243.99990187301108 122.68571428571428,243.999836926837 128.74285714285713,243.99973144246712 134.8,243.9995617186374 140.85714285714286,243.99929119056668 146.9142857142857,243.9988640301745 152.9714285714286,243.9981958820682 159.0285714285714,243.99716061769257 165.0857142857143,243.99557163263464 171.14285714285714,243.99315577572386 177.2,243.98951748134058 183.25714285714287,243.9840900843569 189.31428571428572,243.9760706484083 195.37142857142857,243.96433396711586 201.42857142857142,243.9473207599091 207.4857142857143,243.92289456023718 213.54285714285714,243.88816149412725 219.6,243.83924721142068 225.65714285714284,243.77102582898368 231.71428571428572,243.6767970646719 237.77142857142854,243.54790998161846 243.82857142857142,243.37333511256045 249.8857142857143,243.13919134374098 255.94285714285715,242.82823988623892 262,242.4193649178523 268.0571428571428,241.88706885842632 274.11428571428576,241.20101937489093 280.1714285714286,240.32569451191713 286.2285714285714,239.22018099500082 292.2857142857143,237.83818772544473 298.34285714285716,236.12834058159615 304.4,234.03482456851918 310.45714285714286,231.4984338571359 316.51428571428573,228.4580782392887 322.57142857142856,224.85277526319484 328.62857142857143,220.62413060095494 334.6857142857143,215.7192755285857 340.74285714285713,210.09419108292389 346.8,203.71730569148005 352.85714285714283,196.57320989055825 358.9142857142857,188.66629189982262 364.9714285714286,180.02406550601847 371.02857142857147,170.6999412141344 377.0857142857143,160.77518688940881 383.1428571428571,150.35983824207636 389.2,139.59235429586914 395.25714285714287,128.63786852265713 401.3142857142857,117.68496074040394 407.37142857142857,106.94096423280865 413.42857142857144,96.62592102640596 419.4857142857143,86.96539849973917 425.5428571428571,78.18247421385743 431.59999999999997,70.4892745872107 437.65714285714284,64.07850901393323 443.7142857142857,59.11546799148715 449.7714285714286,55.73094779736482 455.8285714285714,54.01552405624565 461.8857142857143,54.01552405624565 467.9428571428572,55.73094779736482 474,59.11546799148715 480.0571428571428,64.07850901393323 486.1142857142857,70.4892745872107 492.1714285714286,78.18247421385743 498.22857142857146,86.96539849973917 504.2857142857143,96.62592102640596 510.34285714285716,106.94096423280865 516.4,117.68496074040394 522.4571428571428,128.63786852265713 528.5142857142857,139.59235429586914 534.5714285714286,150.35983824207636 540.6285714285714,160.77518688940881 546.6857142857143,170.6999412141344 552.7428571428572,180.02406550601847 558.8,188.66629189982262 564.8571428571429,196.57320989055825 570.9142857142857,203.71730569148005 576.9714285714286,210.09419108292389" fill="rgba(207,34,46,0.18)" stroke="#cf222e" stroke-width="2.2"/><text x="60" y="16" fill="#8b949e" font-weight="600">━ 골반</text><text x="140" y="16" fill="#1a7f37" font-weight="600">━ 몸통</text><text x="220" y="16" fill="#cf222e" font-weight="600">━ 팔</text><text x="14" y="134" text-anchor="middle" transform="rotate(-90 14 134)" fill="#656d76">각속도 (°/s)</text><text x="315" y="277" text-anchor="middle" fill="#656d76">시간 (ms, BR=0)</text></svg>
+    <div class="sec-quality" style="background:#dafbe1;border-left-color:#1a7f37;margin-top:10px">
+      <b style="color:#1a7f37">✅ 좋은 시퀀스</b>
+      <span class="muted" style="font-size:11.5px;margin-left:8px">두 lag 모두 정상 범위 (markerless 표준 0–80 ms / 40–130 ms)</span>
+    </div>
+    <div class="grid-1-1">
+      <table class="data">
+        <thead><tr><th>분절</th><th class="num">Peak ω (°/s)</th><th class="num">Peak time</th></tr></thead>
+        <tbody>
+          <tr><td>골반 (Pelvis)</td><td class="num">775</td><td class="num muted">BR -112 ms</td></tr>
+          <tr><td>몸통 (Trunk)</td><td class="num">1021</td><td class="num muted">BR -97 ms</td></tr>
+          <tr><td>팔 (Humerus)</td><td class="num">4755</td><td class="num muted">BR -30 ms</td></tr>
+        </tbody>
+      </table>
+      <table class="data">
+        <thead><tr><th>Lag (ms)</th><th class="num">이상 범위</th><th class="num">본인</th></tr></thead>
+        <tbody>
+          <tr><td>골반 → 몸통</td><td class="num muted">0–80</td><td class="num score-good">15.0</td></tr>
+          <tr><td>몸통 → 팔</td><td class="num muted">40–130</td><td class="num score-good">66.7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 3-1 변인 상세 표 -->
+<div class="panel">
+  <h3>📋 5 모델 변인 상세 + Per 1km/h <span class="muted" style="font-size:11px;font-weight:400">(분석가용)</span></h3>
+  <table class="data">
+    <thead>
+      <tr><th>모델</th><th>변인</th><th class="num">본인</th><th class="num">Median Elite</th><th>중요도</th><th class="num">Per 1km/h</th><th class="num">차이 (km/h)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+<td class="muted" style="font-size:10px">🚀 팔동작</td>
+<td>Layback (어깨 최대 외회전)</td>
+<td class="num"><b>176</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">190</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">3.10</td>
+<td class="num diff-neg">-4.7</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Elbow Extension Velo</td>
+<td class="num"><b>—</b> <span class="muted" style="font-size:10px">deg/s</span></td>
+<td class="num muted">2318</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">126.06</td>
+<td class="num muted">—</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Shoulder Abduction at FP</td>
+<td class="num"><b>64</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">84</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">6.21</td>
+<td class="num diff-neg">-3.2</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Scap Load at FP</td>
+<td class="num"><b>-41</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">51</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">9.94</td>
+<td class="num diff-neg">-9.3</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Shoulder Rotation Velo</td>
+<td class="num"><b>5055</b> <span class="muted" style="font-size:10px">deg/s</span></td>
+<td class="num muted">4673</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">365.15</td>
+<td class="num diff-pos">+1.0</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Elbow Flexion at FP</td>
+<td class="num"><b>131</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">102</td>
+<td style="color:var(--muted);font-weight:600;font-size:10.5px">낮음</td>
+<td class="num muted">21.73</td>
+<td class="num diff-pos">+1.3</td></tr><tr>
+<td class="muted" style="font-size:10px">🛡 자세</td>
+<td>Peak Hip-Shoulder Sep at FP (X-factor)</td>
+<td class="num"><b>31</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">34</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">1.86</td>
+<td class="num diff-neg">-1.4</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Peak Torso Counter Rot</td>
+<td class="num"><b>-4</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">-38</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">8.07</td>
+<td class="num diff-pos">+4.2</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Torso Forward Tilt at FP</td>
+<td class="num"><b>-5</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">4</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">3.73</td>
+<td class="num diff-neg">-2.4</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Torso Rotation at FP</td>
+<td class="num"><b>102</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">2</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">6.21</td>
+<td class="num diff-pos">+16.1</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Torso Side Bend at MER</td>
+<td class="num"><b>34</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">22</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">1.86</td>
+<td class="num diff-pos">+6.4</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Torso Rotation at BR</td>
+<td class="num"><b>-15</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">111</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">3.73</td>
+<td class="num diff-neg">-33.7</td></tr><tr>
+<td class="muted" style="font-size:10px">🔄 회전</td>
+<td>Torso Rotation Velo</td>
+<td class="num"><b>1021</b> <span class="muted" style="font-size:10px">deg/s</span></td>
+<td class="num muted">965</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">24.84</td>
+<td class="num diff-pos">+2.3</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Pelvis Rotation Velo</td>
+<td class="num"><b>775</b> <span class="muted" style="font-size:10px">deg/s</span></td>
+<td class="num muted">597</td>
+<td style="color:var(--muted);font-weight:600;font-size:10.5px">낮음</td>
+<td class="num muted">79.49</td>
+<td class="num diff-pos">+2.2</td></tr><tr>
+<td class="muted" style="font-size:10px">🦵 앞다리</td>
+<td>Lead Knee Extension</td>
+<td class="num"><b>12</b> <span class="muted" style="font-size:10px">deg</span></td>
+<td class="num muted">11</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">3.10</td>
+<td class="num diff-pos">+0.3</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Stride Length</td>
+<td class="num"><b>59</b> <span class="muted" style="font-size:10px">in</span></td>
+<td class="num muted">58</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">3.10</td>
+<td class="num diff-pos">+0.5</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>CoG Decel AE</td>
+<td class="num"><b>1.77</b> <span class="muted" style="font-size:10px">m/s</span></td>
+<td class="num muted">0.02</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">0.22</td>
+<td class="num diff-pos">+8.0</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Peak Lead Knee Ext Velo</td>
+<td class="num"><b>471</b> <span class="muted" style="font-size:10px">deg/s</span></td>
+<td class="num muted">316</td>
+<td style="color:var(--muted);font-weight:600;font-size:10.5px">낮음</td>
+<td class="num muted">63.96</td>
+<td class="num diff-pos">+2.4</td></tr><tr>
+<td class="muted" style="font-size:10px">🎯 체중이동</td>
+<td>CoG Decel</td>
+<td class="num"><b>1.77</b> <span class="muted" style="font-size:10px">m/s</span></td>
+<td class="num muted">1.32</td>
+<td style="color:var(--bad);font-weight:600;font-size:10.5px">높음</td>
+<td class="num muted">0.06</td>
+<td class="num diff-pos">+7.2</td></tr><tr>
+<td class="muted" style="font-size:10px"></td>
+<td>Max CoG Velo</td>
+<td class="num"><b>2.80</b> <span class="muted" style="font-size:10px">m/s</span></td>
+<td class="num muted">2.50</td>
+<td style="color:var(--warn);font-weight:600;font-size:10.5px">보통</td>
+<td class="num muted">0.12</td>
+<td class="num diff-pos">+2.4</td></tr>
+    </tbody>
+  </table>
+  <div class="footnote">
+    Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph (≈ 145 km/h) cohort 50th percentile.
+    <b>Per 1km/h</b> = "1 km/h 향상에 필요한 변인 변화량" (학술 ref Per 1mph × 0.621).
+    <b>차이</b> = (본인 − Median Elite) / Per 1km/h × 1.609 km/h.<br><br>
+    <b>📐 좌표계 정의 (우투 기준)</b><br>
+    • <b>Peak Torso Counter Rot</b> — 골반 대비 상대회전 ❌. 수평면(transverse plane)에서 몸통의 <b>절대 반대 회전각</b>.
+       부호: <b>+</b> 오른쪽 (3루쪽) / <b>−</b> 왼쪽 (홈쪽). Elite ≈ −38° (홈쪽으로 깊게 비틀림).<br>
+    • <b>Torso Forward Tilt at FP</b> — 수직선 기준. <b>+</b> 앞으로 숙임 (forward) / <b>−</b> 뒤로 기울어짐 (lay back).<br>
+    • <b>Torso Rotation at FP</b> — 3루 정면 자세 = 0°, 홈플레이트 정면 = 90°.
+       <b>+</b> 열림 (홈쪽으로 회전 진행) / <b>−</b> 닫힘 (3루쪽에서 더 닫힘). Elite ≈ 2° (FP 시점에 거의 폐쇄 자세 유지).<br>
+    • <b>Torso Rotation at BR</b> — 동일 좌표계. Elite ≈ 111° (BR 때 홈쪽 통과 후 follow-through).<br>
+    • <b>Scap Load at FP</b> — markerless Theia 기준 부호 caveat 있음 (절댓값 권장).<br><br>
+    <b>⚠ CoG Decel AE 정의 불명확</b> — 단위 m/s, median_elite 0.02 m/s 는 max−min 으로 보기엔 너무 작음.
+    Driveline 원 정의 ("Acceleration Equivalent" = 단위 시간당 감속량 일 가능성).
+    현재 본인 값은 cog_decel(=max−BR) 와 동일한 1.77 m/s 로 임시 매핑됨 → <b>fact-check 필요</b>.
+  </div>
+</div>
+
+<!-- 3-3 분절간 ETE -->
+<div class="panel">
+  <h2>3-3. 분절간 ETE — Proximal-to-Distal 4 Transition <span class="badge">Aguinaldo 2007 / Naito 2008</span></h2>
+  <table class="data">
+    <thead><tr><th>Transition</th><th class="num">Lag (ms)</th><th class="num">Lag 이상</th><th class="num">Speed Gain</th><th class="num">Gain 이상</th><th class="num">점수</th></tr></thead>
+    <tbody>
+      <tr><td><b>골반 → 몸통</b></td><td class="num">15.0</td><td class="num muted">-5–25</td>
+<td class="num">1.32×</td><td class="num muted">1.3–1.7×</td>
+<td class="num score-good">100</td></tr><tr><td><b>몸통 → 위팔</b></td><td class="num">66.7</td><td class="num muted">50–110</td>
+<td class="num">4.66×</td><td class="num muted">4.0–6.0×</td>
+<td class="num score-good">100</td></tr><tr><td><b>위팔 → 아래팔</b></td><td class="num">1.6</td><td class="num muted">10–25</td>
+<td class="num">1.23×</td><td class="num muted">1.1–1.4×</td>
+<td class="num score-warn">79</td></tr><tr><td><b>아래팔 → 손</b></td><td class="num">-5.0</td><td class="num muted">5–15</td>
+<td class="num">1.00×</td><td class="num muted">1.0–1.3×</td>
+<td class="num score-warn">79</td></tr>
+      <tr style="background:var(--panel2)">
+        <td colspan="5"><b>종합 점수 (markerless 골반 weight 0.5)</b></td>
+        <td class="num"><b class="score-good">88</b></td>
+      </tr>
+      <tr><td colspan="6" style="background:var(--bad-bg);color:var(--bad);font-size:11.5px">⚠ <b>가장 큰 누수 (Bottleneck)</b>: 위팔 → 아래팔 — 점수 79점</td></tr>
+    </tbody>
+  </table>
+  <div class="footnote">
+    <b>Lag</b> = 분절 간 피크 시각 차 (proper sequence: 골반→몸통 5–25 ms, 몸통→위팔 50–110 ms, 위팔→아래팔 10–25 ms).<br>
+    <b>Speed Gain</b> = 다음 분절 ω / 현재 분절 ω. 위팔→아래팔 1.1–1.4× 가 정상 (너무 크면 elbow valgus stress 증가).
+  </div>
+</div>
+
+<!-- 3-4 GRF -->
+<div class="panel">
+  <h2>3-4. 지면반력 (GRF) — 수평 + 임펄스 + 타이밍 <span class="badge">Force Plate 측정</span></h2>
+  <div style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px">
+    뒷발(FP2 · Drive Leg)과 앞발(FP1 · Lead Leg)의 지면반력 활용 정도. 운동량 변화의 본질은 <b>Impulse(∫F·dt)</b>.
+  </div>
+
+  <div class="grid-3">
+    <div class="grf-card fp1">
+      <div class="lbl">🦵 뒷발 (Drive Leg / FP2)</div>
+      <div class="ttl">Z Peak Vertical</div>
+      <div class="v">123.2 <span style="font-size:12px;font-weight:400">%BW</span></div>
+      <div class="sub">목표 ≥ 80 %BW</div>
+      <div class="bar"><div style="width:68.45555555555556%"></div></div>
+    </div>
+    <div class="grf-card fp2">
+      <div class="lbl">🦶 앞발 (Lead Leg / FP1)</div>
+      <div class="ttl">Z Peak Vertical</div>
+      <div class="v">59.4 <span style="font-size:12px;font-weight:400">%BW</span></div>
+      <div class="sub">목표 ≥ 110 %BW</div>
+      <div class="bar"><div style="width:24.741666666666667%"></div></div>
+    </div>
+    <div class="grf-card lhei">
+      <div class="lbl">📊 GRF 종합</div>
+      <div class="ttl">LHEI</div>
+      <div class="v" style="color:var(--good)">93 <span style="font-size:12px;font-weight:400">/100</span></div>
+      <div class="sub">100 = 양발 최적 활용</div>
+      <div class="bar"><div style="width:93%"></div></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:14px">수평 성분 + 임펄스 (Force Plate 본질)</h3>
+  <div class="grid-1-1">
+    <table class="data">
+      <thead><tr><th colspan="4" style="background:#fff8c5;color:#9a6700">🦵 Drive Leg — Mound 추진 (AP 후방·Y−)</th></tr>
+      <tr><th>변인</th><th class="num">본인</th><th class="num">Elite</th><th class="num">평가</th></tr></thead>
+      <tbody>
+        <tr><td>AP Peak (propulsive)</td><td class="num"><b>82.9</b> %BW</td><td class="num muted">55–80</td>
+          <td class="num score-warn">⚠ Over</td></tr>
+        <tr><td>AP Impulse</td><td class="num"><b>36.38</b> %BW·s</td><td class="num muted">18–28</td><td class="num muted">—</td></tr>
+        <tr><td>Z Peak (vertical)</td><td class="num">123.2 %BW</td><td class="num muted">135–165</td><td class="num muted">—</td></tr>
+      </tbody>
+    </table>
+    <table class="data">
+      <thead><tr><th colspan="4" style="background:var(--accent-bg);color:var(--accent)">🦶 Lead Leg — 블록 (AP 전방·Y+ braking)</th></tr>
+      <tr><th>변인</th><th class="num">본인</th><th class="num">Elite</th><th class="num">평가</th></tr></thead>
+      <tbody>
+        <tr><td>AP Peak (braking)</td><td class="num"><b>127.1</b> %BW</td><td class="num muted">100–145</td>
+          <td class="num score-good">✅ Elite</td></tr>
+        <tr><td>AP Impulse</td><td class="num"><b>27.46</b> %BW·s</td><td class="num muted">18–28</td><td class="num muted">—</td></tr>
+        <tr><td>Z Peak (vertical)</td><td class="num">59.4 %BW</td><td class="num muted">195–240</td><td class="num muted">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footnote">
+    <b>FP1 (앞발 / Lead Leg)</b> 착지 후 블로킹·트렁크 회전 핵심 (Werner 2008). <b>FP2 (뒷발 / Drive Leg)</b> 와인드업~릴리스 push-off.
+    <b>수평 성분</b> — 추진(Drive Y−)·블록(Lead Y+) 임펄스가 운동량 변화의 본질. peak는 정점, impulse(∫F·dt)는 면적.
+    Kageyama 2014, MacWilliams 1998, Howenstein 2020 기준.
+  </div>
+</div>
+
+<!-- 3-5 메카닉 결함 (에너지 손실 Top 3) — ELI 섹션은 5 모델/ETE/GRF 와 중복으로 제거 -->
+<div class="panel">
+  <h2>3-5. 메카닉 결함 — 에너지 손실 Top 3 <span class="badge" style="background:var(--bad-bg);color:var(--bad)">Driveline 분석 기반</span></h2>
+  <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+    <b>5 모델 변인</b> 중 <b>중요도 높음</b> + <b>큰 음의 차이 (km/h)</b> + <b>분절간 ETE 누수 transition</b> 을 결합해
+    구속 손실에 가장 많이 기여하는 영역 Top 3 자동 산출. <b>훈련 처방 1순위</b>.
+  </div>
+  <div class="action-card warn" style="position:relative;padding-left:48px">
+        <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:#cf222e;color:#fff;text-align:center;line-height:28px;font-weight:700">1</div>
+        <div style="font-weight:700;color:#cf222e;margin-bottom:4px">🚀 팔동작 — Layback (어깨 최대 외회전)</div>
+        <div style="font-size:11.5px"><b>현재:</b> 176 deg <span class="muted" style="font-size:11px">(Elite 190 deg)</span></div>
+        <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span class="diff-neg">−4.7 km/h</span></div>
+        <div style="font-size:11.5px;margin-top:4px;color:var(--good)"><b>💪 처방:</b> 어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill</div>
+      </div><div class="action-card warn" style="position:relative;padding-left:48px">
+        <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:#bc4c00;color:#fff;text-align:center;line-height:28px;font-weight:700">2</div>
+        <div style="font-weight:700;color:#bc4c00;margin-bottom:4px">🛡 자세 — Torso Forward Tilt at FP</div>
+        <div style="font-size:11.5px"><b>현재:</b> -5 deg <span class="muted" style="font-size:11px">(Elite 4 deg)</span></div>
+        <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span class="diff-neg">−2.4 km/h</span></div>
+        <div style="font-size:11.5px;margin-top:4px;color:var(--good)"><b>💪 처방:</b> FP 시점 trunk forward tilt 만들기 — front leg block + 코어 stability drill</div>
+      </div><div class="action-card warn" style="position:relative;padding-left:48px">
+        <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:#8250df;color:#fff;text-align:center;line-height:28px;font-weight:700">3</div>
+        <div style="font-weight:700;color:#8250df;margin-bottom:4px">🛡 자세 — Peak Hip-Shoulder Sep at FP (X-factor)</div>
+        <div style="font-size:11.5px"><b>현재:</b> 31 deg <span class="muted" style="font-size:11px">(Elite 34 deg)</span></div>
+        <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span class="diff-neg">−1.4 km/h</span></div>
+        <div style="font-size:11.5px;margin-top:4px;color:var(--good)"><b>💪 처방:</b> 골반-몸통 분리 강조 throw · 골반 회전 단독 drill (medball rotational throw)</div>
+      </div>
+  <div class="footnote" style="margin-top:10px">
+    <b>산출 방식</b> — Driveline 5 모델 중 <b>중요도 높음</b> 변인의 (본인 − Median Elite)/Per 1km/h × 1.609 km/h 손실량 + ETE 4 transition 점수 100점 미만 영역.
+    음의 차이 큰 순으로 Top 3.
+    <span class="muted">※ <b>이전 §3-5 자세 안정성 (ELI 6 zone) 섹션은 Driveline 5 모델 (Z1↔3-2 시퀀싱, Z2↔Posture/X-factor, Z3↔Block, Z4↔Posture/Trunk tilt, Z5↔Arm Action/Layback, Z6↔CoG/감속) 와 중복되어 삭제했습니다.</b></span>
+  </div>
+</div>
+
+<!-- 3-6 메카닉 발달 권장 -->
+<div class="panel" style="border-left:4px solid var(--good)">
+  <h2>3-6. 메카닉 발달 권장 — Action Plan <span class="badge" style="background:var(--good-bg);color:var(--good)">자동 산출</span></h2>
+  <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">5 모델 점수 + ETE bottleneck + GRF 임펄스 종합 → 우선순위 훈련 자동 매핑.</div>
+  <div class="action-card warn">🔗 <b>ETE Bottleneck — 위팔 → 아래팔</b> (79점) · 해당 분절 transition 강조 드릴</div><div class="action-card ok">✅ <b>Lead leg block 우수</b> — 127 %BW (Elite 100–145 범위 내)</div><div class="action-card ok">✅ <b>CoG deceleration 우수</b> — 1.77 m/s · 골반 braking 적절</div><div class="action-card ok">✅ <b>X-factor 분리</b> 31° (markerless 표준)</div><div class="action-card ok">✅ <b>구속 elite 수준</b> — 141.1 km/h (한국 고1 elite 기준)</div><div class="action-card warn">⚠ <b>Scap Load 부호 caveat</b> — markerless Theia 좌표계가 Driveline 양수 standard와 반대일 수 있음. 절댓값 |41.3°| 기준 평가</div>
+</div>
+
+<!-- ④ 결과 -->
+<div class="section-marker result">
+  <div class="lbl">🎯 4. 결과 — 부상위험 · 제구 일관성</div>
+</div>
+
+<div class="panel">
+  <h2>🩺 부상위험 · 제구 일관성</h2>
+  <div class="grid-1-1">
+    <div>
+      <h3>정렬 · 분리</h3>
+      <table class="data">
+        <tbody>
+          <tr><td>X-factor (분리각)</td><td class="num"><b>31°</b></td></tr>
+          <tr><td>Lead knee (FC→BR)</td><td class="num"><b>12°</b></td></tr>
+          <tr><td>Trunk forward tilt at FC</td><td class="num"><b>-5°</b></td></tr>
+          <tr><td>Trunk lateral tilt</td><td class="num"><b>34°</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>제구 일관성 (trial SD)</h3>
+      <table class="data">
+        <tbody>
+          <tr><td>측정 구속 SD</td><td class="num"><b>0.95 km/h</b></td></tr>
+          <tr><td>9 trial 합성</td><td class="num muted">trial 6, 10 제외</td></tr>
+          <tr><td>Sequence quality</td><td class="num"><span class="pill good">✅ 2/2</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div style="font-size:10.5px;color:var(--muted);margin-top:24px;padding:12px;border-top:1px solid var(--line);text-align:center;line-height:1.6">
+  분석 알고리즘: <b>process_pitching_session.py v5.38</b> (event-free GRF detection) · 9 trial 합성 (event 잘못된 trial 6, 10 제외) · markerless Theia 300 Hz + AMTI Force plate 1200 Hz<br>
+  학술 reference: Driveline Pitching Assessment 표준 + KR markerless 보정 · Aguinaldo 2007/2019, Naito 2008, Howenstein 2020, MacWilliams 1998, Kageyama 2014, Werner 2008<br>
+  국민대 스포츠과학과 야구 바이오메카닉스 · kklee@kookmin.ac.kr
+</div>
+
+</main>
+</body></html>

@@ -213,13 +213,13 @@
       </div>
       <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
            title="Driveline Mechanical Ceiling — 메카닉 5 모델이 모두 ceiling(150점) 도달 시 기대 구속">
-        <div class="label">⚙️ Mechanical Ceiling</div>
+        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
         <div class="value" id="p-mech-velo">—</div>
         <div class="delta" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
       </div>
       <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
            title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
-        <div class="label">🎯 통합 향상 기대 구속</div>
+        <div class="label">🎯 체력+메카닉 향상 기대 구속</div>
         <div class="value" id="p-total-velo">—</div>
         <div class="delta" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
       </div>
@@ -272,8 +272,17 @@
           Driveline Pitching Assessment 표준. <b>Median Elite</b> = 90+ mph (≈ 145 km/h) cohort 50th percentile.
           <b>Per 1km/h</b> = "1 km/h 향상에 필요한 변인 변화량" (학술 reference의 Per 1mph × 0.621).
           <b>차이</b> = (본인 − Median Elite) / Per 1km/h (km/h 환산, 양수 = elite 대비 우수).<br>
-          영향력 (Driveline 학술): 🛡 Posture 구속 1위 · 🚀 Arm Action AE 1위 · 🎯 CoG · 🔄 Rotation · 🦵 Block<br>
-          <span style="color:var(--muted)">⚠ <b>좌표계 caveat</b>: <b>Torso Rotation at FP/BR</b>은 Theia가 lab frame 절대 좌표로 산출 (몸통 방향 기준이 다름) — Driveline mound-relative 기준값과 절대값은 직접 비교 어려움. <b>변화 방향과 크기</b>만 참고 권장.</span>
+          영향력 (Driveline 학술): 🛡 자세 구속 1위 · 🚀 팔동작 AE 1위 · 🎯 체중이동 · 🔄 회전 속도 · 🦵 앞다리 제동<br><br>
+          <b>📐 좌표계 정의 (우투 기준, v5.39)</b><br>
+          • <b>Peak Torso Counter Rot</b> — 골반 대비 상대회전 ❌. <b>수평면(transverse plane)에서 몸통의 절대 반대 회전각</b>.
+            부호: <b>+</b> 오른쪽 (3루쪽) / <b>−</b> 왼쪽 (홈쪽). Elite ≈ −38° (홈쪽으로 깊게 비틀림).<br>
+          • <b>Torso Forward Tilt at FP</b> — 수직선 기준. <b>+</b> 앞으로 숙임 (forward) / <b>−</b> 뒤로 기울어짐 (lay back).<br>
+          • <b>Torso Rotation at FP</b> — 우투 기준 3루 정면 = 0°, 홈플레이트 정면 = 90°.
+            <b>+</b> 열림 (홈쪽으로 회전 진행) / <b>−</b> 닫힘. Elite ≈ 2° (FP 시점에 거의 폐쇄 자세 유지).<br>
+          • <b>Torso Rotation at BR</b> — 동일 좌표계. Elite ≈ 111° (BR 때 홈쪽 통과 후 follow-through).<br>
+          • <b>Scap Load at FP</b> — markerless Theia 부호 caveat (절댓값 평가 권장).<br><br>
+          <b>⚠ CoG Decel AE 정의 fact-check 필요</b> — 단위 m/s, median_elite 0.02 m/s 는 max−min 으로 보기엔 너무 작음.
+          Driveline 원 정의 ("Acceleration Equivalent" = 단위 시간당 감속량 가능성). 현재 cog_decel(=max−BR) 와 동일 매핑됨.
         </div>
       </details>
     </div>
@@ -460,33 +469,24 @@
     </div>
   </div>
 
-  <!-- v5.14: 3-5. 자세 안정성 — ELI 6 zone 상세 + 결함 인과 분석 (v5.25: 번호 §3-3 → §3-5) -->
-  <div class="grid" style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start">
-    <div class="panel">
-      <h2 style="font-size:15px">3-5. 자세 안정성 — ELI 6 zone <span class="badge" style="background:#ddf4ff;color:#0969da">학술 표준</span></h2>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">100=완벽 / 50=중간 / 0=완전누수. 각 zone은 학술 정의된 자세 결함 영역.</div>
-      <table style="width:100%;font-size:11.5px;border-collapse:collapse">
-        <thead>
-          <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">Zone</th>
-            <th style="text-align:left;padding:5px 6px;color:var(--muted)">정의</th>
-            <th style="text-align:right;padding:5px 6px;color:var(--muted)">점수</th>
-          </tr>
-        </thead>
-        <tbody id="p-eli-detail-body"></tbody>
-      </table>
-      <div class="footnote" style="font-size:10.5px;margin-top:8px">
-        <b>Zone 1</b> Sequential timing · <b>Z2</b> X-factor 분리 · <b>Z3</b> Lead leg block · <b>Z4</b> Trunk at FC · <b>Z5</b> Shoulder ER · <b>Z6</b> Pelvis braking
-      </div>
+  <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복으로 제거)
+       Z1↔3-2 시퀀싱 / Z2↔Posture(X-factor) / Z3↔Block / Z4↔Posture(trunk tilt) / Z5↔Arm(Layback) / Z6↔CoG(감속) -->
+  <div class="panel">
+    <h2 style="font-size:15px">3-5. 메카닉 결함 — 에너지 손실 Top 3 <span class="badge" style="background:#fee9e9;color:#cf222e">Driveline 분석 기반</span></h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
+      <b>5 모델 중요도 높음 변인의 음의 차이 (km/h)</b> + <b>분절간 ETE 100점 미만 transition</b> 결합 → 구속 손실 큰 순 Top 3.
+      <b>훈련 처방 1순위</b>.
     </div>
-    <div class="panel">
-      <h2 style="font-size:15px">🔗 메카닉 결함 → 손실 인과 분석 <span class="badge" style="background:#fee9e9;color:#cf222e">Top 3</span></h2>
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
-        가장 점수 낮은 ELI zone 3개를 결함 원인 ↔ 추정 손실로 매핑. <b>훈련 처방 1순위</b>.
-      </div>
-      <div id="p-causal-chains"></div>
-      <div id="p-outcome-diagnosis" style="margin-top:14px"></div>
+    <div id="p-energy-loss-top3"></div>
+    <div class="footnote" style="font-size:10.5px;margin-top:10px">
+      <b>산출 방식</b> — Driveline 5 모델 중 <b>중요도 높음</b> 변인의 (본인 − Median Elite)/Per 1km/h × 1.609 km/h 손실량 + ETE 4 transition 점수 100점 미만 영역.
+      음의 차이 큰 순으로 Top 3.
+      <span style="color:var(--muted)">※ 이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복되어 삭제 (Z1↔3-2 시퀀싱, Z2↔Posture/X-factor, Z3↔Block, Z4↔Posture/Trunk tilt, Z5↔Arm Action/Layback, Z6↔CoG/감속).</span>
     </div>
+    <!-- 호환성: 다른 코드가 #p-eli-detail-body 등을 참조해도 안전하게 hidden -->
+    <span id="p-eli-detail-body" style="display:none"></span>
+    <span id="p-causal-chains" style="display:none"></span>
+    <span id="p-outcome-diagnosis" style="display:none"></span>
   </div>
 
   <!-- v5.25: 3-6. 메카닉 발달 권장 카드 (이전 §3-4 → §3-6) -->
