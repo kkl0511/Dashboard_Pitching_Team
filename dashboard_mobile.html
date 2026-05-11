@@ -8953,7 +8953,10 @@ function parseC3DTxtTrial(text){
   let maxCogVelo = null, cogDecel = null;
   {
     const comY = colByNameWindow('COM_displacement_Y');
-    const timeArr = colByNameWindow('TIME_X') || colByNameWindow('TIME');
+    // v6.x bug fix: 빈 배열도 truthy 라 || 가 항상 첫 번째 반환 → 길이 기반 fallback
+    const timeArr = colByNameWindow('TIME_X').length ? colByNameWindow('TIME_X')
+                  : colByNameWindow('TIME').length   ? colByNameWindow('TIME')
+                  : colByNameWindow('TIME_0');
     if(comY.length >= 5 && timeArr.length >= 5){
       const velos = [];
       for(let i = 1; i < comY.length - 1; i++){
@@ -9034,7 +9037,14 @@ function parseC3DTxtTrial(text){
     scap_load_at_fp:        (() => { const v = valueAtFrame('Pitching_Shoulder_Angle_X', fcEvent); return v == null ? null : -v; })(),
     elbow_flex_at_fp:       valueAtFrame('Pitching_Elbow_Angle_X', fcEvent),
     hip_shoulder_sep_at_fp: valueAtFrame('Trunk_wrt_Pelvis_Angle_Z', fcEvent),
-    torso_counter_rot:      (() => { const arr = colByNameWindow('Trunk_wrt_Pelvis_Angle_Z').filter(v => v !== null); return arr.length ? Math.min(...arr) : null; })(),
+    // v6.x bug fix: counter rot = windup phase (FC 이전) Trunk_Angle_Z max — 이전엔 X-factor 컬럼 잘못 사용
+    torso_counter_rot:      (() => {
+      const arr = colByName('Trunk_Angle_Z');
+      if(!arr.length) return null;
+      const end = (fcEvent != null && fcEvent > 5) ? fcEvent : arr.length;
+      const sub = arr.slice(0, end).filter(v => v !== null);
+      return sub.length ? Math.max(...sub) : null;
+    })(),
     torso_fwd_tilt_at_fp:   valueAtFrame('Trunk_Angle_X', fcEvent),
     torso_rot_at_fp:        valueAtFrame('Trunk_Angle_Z', fcEvent),
     torso_side_bend_at_mer: valueAtFrame('Trunk_Angle_Y', merFrame),
@@ -9151,9 +9161,9 @@ function synthesizeRecordFromTrials(pid, trials, sid){
   // m.faults / m.sequence / m.cog 에 채움. 안 채우면 5 모델 변인 상세표에서
   // "— deg" / "— deg/s" 로 표시됨.
   const rnd  = (v, d=0) => v == null ? null : (d === 0 ? Math.round(v) : Math.round(v * Math.pow(10, d)) / Math.pow(10, d));
-  // 어깨/팔꿈치/손 추가 peak velocity
-  const peakShoulderV = median(trials.map(t => t.peak_shoulder_v),  300, 4500, null);
-  const peakElbowV    = median(trials.map(t => t.peak_elbow_v),     500, 5000, null);
+  // v6.x: 어깨/팔꿈치 peak ω — Elite RHP 4000~5500 deg/s 라 상한 6000 으로 확대
+  const peakShoulderV = median(trials.map(t => t.peak_shoulder_v),  300, 6000, null);
+  const peakElbowV    = median(trials.map(t => t.peak_elbow_v),     200, 5000, null);
   const peakHandV     = median(trials.map(t => t.peak_hand_v),      500, 8000, null);  // v6.x
   // 팔동작 (Arm Action) 5모델 변인
   const layback         = median(trials.map(t => t.layback_deg),            120, 230, null);
