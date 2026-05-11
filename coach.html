@@ -13,23 +13,24 @@
      다크 모바일 전용. 분석가용 dashboard.html 과 분리.
      ════════════════════════════════════════════════════════ */
   :root{
-    --bg:         #0a1628;
-    --bg-2:       #0f1d33;
-    --panel:      #14213d;
-    --panel-2:    #1a2a47;
-    --line:       #243046;
-    --line-soft:  #1e2a44;
-    --text:       #f1f5f9;
-    --text-soft:  #cbd5e1;
-    --muted:      #94a3b8;
-    --accent:     #ff6b6b;
-    --accent-2:   #ff9b9b;
-    --accent-bg:  rgba(255,107,107,0.15);
-    --grade-elite: #4ade80;
-    --grade-above: #93c5fd;
-    --grade-avg:   #94a3b8;
-    --grade-below: #fbbf24;
-    --grade-poor:  #f87171;
+    /* v5: 라이트 모드 — 분석가 대시보드와 동일 palette (일관성) */
+    --bg:         #ffffff;
+    --bg-2:       #fafafa;
+    --panel:      #ffffff;
+    --panel-2:    #fafafa;
+    --line:       #e5e5e5;
+    --line-soft:  #f0f0f0;
+    --text:       #14213d;
+    --text-soft:  #2c3e5c;
+    --muted:      #6c757d;
+    --accent:     #e63946;
+    --accent-2:   #ff6b6b;
+    --accent-bg:  #fef2f2;
+    --grade-elite: #00854a;
+    --grade-above: #0969da;
+    --grade-avg:   #6c757d;
+    --grade-below: #ca8a04;
+    --grade-poor:  #e63946;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text)}
@@ -44,7 +45,7 @@
   /* ── 헤더 ── */
   header.coach-h{
     position:sticky;top:0;z-index:60;
-    background:linear-gradient(180deg, var(--panel), var(--bg));
+    background:#ffffff;
     border-bottom:1px solid var(--line);
     padding:12px 18px;
     display:flex;align-items:center;gap:12px;
@@ -294,7 +295,7 @@
   }
   /* TALKING POINTS */
   .talking-points{
-    background:linear-gradient(180deg, rgba(255,107,107,0.06), var(--panel-2));
+    background:linear-gradient(180deg, #fef2f2, #ffffff);
     border:1px solid var(--line);border-left:4px solid var(--accent);
     border-radius:10px;padding:18px 20px;
   }
@@ -320,9 +321,42 @@
     font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5;
   }
 
-  /* ── 마네킹 ── */
+  /* ── 마네킹 (라이트 모드: 흰 카드 안 마네킹) ── */
   .mannequin-wrap{
-    background:var(--panel-2);border-radius:10px;padding:10px;display:grid;place-items:center;min-height:240px;
+    background:transparent;border-radius:0;padding:0;display:block;min-height:240px;
+  }
+  /* v5: 체력 + 랩소도 카드 */
+  .stat-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;
+  }
+  .stat-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;
+  }
+  .stat-card .lbl{
+    font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;
+    margin-bottom:6px;
+  }
+  .stat-card .num{
+    font-size:24px;font-weight:800;color:var(--text);font-feature-settings:"tnum";letter-spacing:-0.02em;
+    line-height:1.1;
+  }
+  .stat-card .num .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px}
+  .stat-card .interp{
+    font-size:11.5px;color:var(--text-soft);margin-top:8px;line-height:1.5;
+  }
+  .stat-card.hi  {border-left:3px solid var(--grade-elite)}
+  .stat-card.mid {border-left:3px solid var(--grade-below)}
+  .stat-card.lo  {border-left:3px solid var(--grade-poor)}
+  .stat-summary{
+    background:var(--accent-bg);border-left:3px solid var(--accent);
+    border-radius:8px;padding:12px 14px;margin-bottom:14px;
+    font-size:13px;color:var(--text);line-height:1.6;
+  }
+  .stat-summary b{color:var(--accent)}
+  .stat-empty{
+    padding:18px;background:var(--panel-2);border-radius:8px;
+    color:var(--muted);text-align:center;font-size:13px;
   }
 
   /* ── 선수 dropdown ── */
@@ -842,23 +876,33 @@ function renderPlayerMain(p, m, dvl5){
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">2</span><span>힘 흐름</span><span class="h">투구 자세 — 힘이 어디서 새는가</span></h2>
+      <h2 class="section-title"><span class="step">2</span><span>공의 질</span><span class="h">랩소도 — 구속 · 회전 · 무브 · Stuff · 제구</span></h2>
+      ${renderRapsodo(m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">3</span><span>체력</span><span class="h">ForceDecks — 점프 · 근력 · 반응속도 · 비대칭</span></h2>
+      ${renderFitness(m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">4</span><span>힘 흐름</span><span class="h">투구 자세 — 힘이 어디서 새는가</span></h2>
       <div class="mannequin-wrap">${renderMannequin(p, m, dvl5)}</div>
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">3</span><span>고칠 곳</span><span class="h">회전 순서 + 가장 시급한 3가지</span></h2>
+      <h2 class="section-title"><span class="step">5</span><span>고칠 곳</span><span class="h">회전 순서 + 가장 시급한 3가지</span></h2>
       ${renderSequenceChart(m)}
       ${renderProblems(dvl5, m)}
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">4</span><span>훈련 처방</span><span class="h">drill + 선수에게 말할 cue + 관찰 포인트</span></h2>
+      <h2 class="section-title"><span class="step">6</span><span>훈련 처방</span><span class="h">drill + 선수에게 말할 cue + 관찰 포인트</span></h2>
       ${renderSolutions(dvl5, m)}
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">5</span><span>설명 가이드</span><span class="h">선수에게 이렇게 말하세요 — 자동 생성 스크립트</span></h2>
+      <h2 class="section-title"><span class="step">7</span><span>설명 가이드</span><span class="h">선수에게 이렇게 말하세요 — 자동 생성 스크립트</span></h2>
       ${renderTalkingPoints(p, m, dvl5)}
     </section>
   `;
@@ -935,6 +979,92 @@ function renderComposite(dvl5, composite){
     </div>
     <div class="composite-bars">${bars}</div>
   </div>`;
+}
+
+// v5: 체력 (HP Composite) + 랩소도 (FB) 핵심 변인 — 코칭용 친근 언어
+function renderFitness(m){
+  const f = m.fitness;
+  if(!f) return '<div class="stat-empty">체력 측정 데이터 없음 (ForceDecks)</div>';
+  const cls = (s) => s == null ? '' : s >= 70 ? 'hi' : s >= 50 ? 'mid' : 'lo';
+  // 핵심 6변인 + 종합점수
+  const cmjJh   = f.cmj?.jump_height_cm;
+  const cmjPp   = f.cmj?.peak_power_bm_w_kg;
+  const rsiMod  = f.cmj?.rsi_modified_ms;
+  const imtpPf  = f.imtp?.peak_force_bm_n_kg;
+  const imtpRfd = f.imtp?.rfd_0_100ms_n_s;
+  const asym    = f.imtp?.asymmetry_pct;
+  const pogoRsi = f.pogo?.rsi_ms;
+  const overall = f.score;
+  // 친근 해석
+  const interpJh = cmjJh == null ? '—' : cmjJh >= 50 ? '점프력 매우 좋음 — 폭발력 elite' : cmjJh >= 40 ? '점프력 양호' : cmjJh >= 30 ? '점프력 평균' : '점프력 부족 — 하체 폭발력 강화 필요';
+  const interpPp = cmjPp == null ? '—' : cmjPp >= 55 ? '하체 출력 elite' : cmjPp >= 45 ? '하체 출력 양호' : '하체 출력 부족';
+  const interpPf = imtpPf == null ? '—' : imtpPf >= 35 ? '최대 근력 elite' : imtpPf >= 28 ? '최대 근력 양호' : '최대 근력 부족 — 스쿼트·데드리프트 강화';
+  const interpRsi = rsiMod == null ? '—' : rsiMod >= 0.5 ? '반응속도 elite' : rsiMod >= 0.35 ? '반응속도 양호' : '반응속도 부족 — 플라이오메트릭 필요';
+  const interpAsym = asym == null ? '—' : asym <= 5 ? '좌우 균형 매우 좋음' : asym <= 10 ? '좌우 균형 양호' : asym <= 15 ? '좌우 균형 주의' : '좌우 비대칭 큼 — 약한 쪽 강화';
+  const interpPogo = pogoRsi == null ? '—' : pogoRsi >= 2.0 ? '플라이오 폭발력 elite' : pogoRsi >= 1.5 ? '플라이오 양호' : '플라이오 부족';
+  // 클래스
+  const ovCls = cls(overall);
+  // 종합 멘트
+  let summary = '';
+  if(overall != null){
+    if(overall >= 75) summary = `<b>체력 종합 ${overall}점</b> — 매우 우수. 메카닉만 다듬으면 구속 ↑↑.`;
+    else if(overall >= 60) summary = `<b>체력 종합 ${overall}점</b> — 양호. 약한 1-2개 항목 보완하면 elite 진입.`;
+    else if(overall >= 45) summary = `<b>체력 종합 ${overall}점</b> — 평균. 하체 폭발력·최대근력 우선 강화 추천.`;
+    else summary = `<b>체력 종합 ${overall}점</b> — 부족. 메카닉 개선과 동시에 체력 트레이닝 비중 ↑.`;
+  }
+  return `${summary ? `<div class="stat-summary">${summary}</div>` : ''}
+    <div class="stat-grid">
+      ${overall != null ? `<div class="stat-card ${ovCls}"><div class="lbl">종합 점수</div><div class="num">${overall}<span class="u">/100</span></div><div class="interp">5개 영역 평균 (CMJ·IMTP·RSI·Pogo·비대칭)</div></div>` : ''}
+      ${cmjJh != null ? `<div class="stat-card"><div class="lbl">점프 높이 (CMJ)</div><div class="num">${cmjJh.toFixed(1)}<span class="u">cm</span></div><div class="interp">${interpJh}</div></div>` : ''}
+      ${cmjPp != null ? `<div class="stat-card"><div class="lbl">하체 출력 (CMJ Power/체중)</div><div class="num">${cmjPp.toFixed(1)}<span class="u">W/kg</span></div><div class="interp">${interpPp}</div></div>` : ''}
+      ${imtpPf != null ? `<div class="stat-card"><div class="lbl">최대 근력 (IMTP/체중)</div><div class="num">${imtpPf.toFixed(1)}<span class="u">N/kg</span></div><div class="interp">${interpPf}</div></div>` : ''}
+      ${rsiMod != null ? `<div class="stat-card"><div class="lbl">반응 속도 (RSI-Mod)</div><div class="num">${rsiMod.toFixed(2)}</div><div class="interp">${interpRsi}</div></div>` : ''}
+      ${pogoRsi != null ? `<div class="stat-card"><div class="lbl">플라이오 폭발력 (Pogo RSI)</div><div class="num">${pogoRsi.toFixed(2)}</div><div class="interp">${interpPogo}</div></div>` : ''}
+      ${asym != null ? `<div class="stat-card"><div class="lbl">좌우 비대칭</div><div class="num">${asym.toFixed(1)}<span class="u">%</span></div><div class="interp">${interpAsym}</div></div>` : ''}
+    </div>`;
+}
+
+function renderRapsodo(m){
+  const fb = m.rapsodo?.fb;
+  if(!fb) return '<div class="stat-empty">랩소도 측정 데이터 없음 (FB)</div>';
+  const v   = fb.velocity?.avg, vMax = fb.velocity?.max;
+  const spin = fb.spin?.avg, trueSpin = fb.true_spin?.avg, spinEff = fb.spin_eff?.avg;
+  const ivb = fb.ivb?.avg, hb = fb.hb?.avg;
+  const bauer = fb.bauer?.avg;
+  const ext  = fb.release_ext?.avg, relH = fb.release_height?.avg, relHsd = fb.release_height?.sd;
+  const stuff = fb.stuff_score, command = fb.command_score;
+  // 친근 해석
+  const interpV   = v == null ? '—' : v >= 140 ? '구속 elite (140+)' : v >= 130 ? '구속 양호' : v >= 120 ? '구속 평균' : '구속 부족';
+  const interpSp  = spin == null ? '—' : spin >= 2400 ? '회전수 elite' : spin >= 2100 ? '회전수 양호' : spin >= 1800 ? '회전수 평균' : '회전수 부족 — 그립·릴리스 점검';
+  const interpEff = spinEff == null ? '—' : spinEff >= 95 ? 'gyro 거의 없음 — 최고 효율' : spinEff >= 85 ? '회전축 효율 양호' : '회전축 효율 부족 — 손 위치 점검';
+  const interpIvb = ivb == null ? '—' : ivb >= 45 ? '수직 무브 elite (rising effect 강함)' : ivb >= 35 ? '수직 무브 양호' : '수직 무브 부족';
+  const interpExt = ext == null ? '—' : ext >= 1.85 ? '릴리스 연장 매우 길음 (체감 +2 km/h)' : ext >= 1.7 ? '릴리스 연장 양호' : '릴리스 연장 짧음 — 보폭·앞으로 내딛기 강화';
+  const interpStf = stuff == null ? '—' : stuff >= 70 ? '구질 종합 elite — 위력적 패스트볼' : stuff >= 55 ? '구질 양호' : stuff >= 40 ? '구질 평균' : '구질 부족';
+  const interpCmd = command == null ? '—' : command >= 70 ? '제구 elite — 매우 안정적' : command >= 55 ? '제구 양호' : command >= 40 ? '제구 평균' : '제구 부족 — 릴리스 일관성 drill';
+  const cls = (s) => s == null ? '' : s >= 70 ? 'hi' : s >= 50 ? 'mid' : 'lo';
+  // 종합 멘트
+  let summary = '';
+  if(stuff != null && command != null){
+    if(stuff >= 65 && command >= 65)  summary = `<b>구질 ${stuff}점 + 제구 ${command}점</b> — 위력 + 정확성 모두 우수.`;
+    else if(stuff >= 65)              summary = `<b>구질 ${stuff}점은 elite</b>이지만 제구 ${command}점 — 일관성 drill 우선.`;
+    else if(command >= 65)            summary = `<b>제구 ${command}점은 elite</b>이지만 구질 ${stuff}점 — 회전수·구속 ↑ 필요.`;
+    else                              summary = `<b>구질 ${stuff}점 / 제구 ${command}점</b> — 구속과 일관성 모두 보완 필요.`;
+  } else if(v != null){
+    summary = `<b>평균 구속 ${v.toFixed(1)} km/h${vMax ? ` (최고 ${vMax.toFixed(1)})` : ''}</b>`;
+  }
+  return `${summary ? `<div class="stat-summary">${summary}</div>` : ''}
+    <div class="stat-grid">
+      ${v != null ? `<div class="stat-card ${cls(v >= 140 ? 80 : v >= 130 ? 60 : 40)}"><div class="lbl">평균 구속</div><div class="num">${v.toFixed(1)}<span class="u">km/h</span></div><div class="interp">최고 ${vMax ? vMax.toFixed(1) : '—'} km/h · ${interpV}</div></div>` : ''}
+      ${spin != null ? `<div class="stat-card"><div class="lbl">회전수</div><div class="num">${Math.round(spin)}<span class="u">rpm</span></div><div class="interp">${interpSp}</div></div>` : ''}
+      ${spinEff != null ? `<div class="stat-card"><div class="lbl">회전 효율</div><div class="num">${spinEff.toFixed(0)}<span class="u">%</span></div><div class="interp">${interpEff}</div></div>` : ''}
+      ${ivb != null ? `<div class="stat-card"><div class="lbl">수직 무브 (IVB)</div><div class="num">${ivb.toFixed(1)}<span class="u">cm</span></div><div class="interp">${interpIvb}</div></div>` : ''}
+      ${hb != null ? `<div class="stat-card"><div class="lbl">수평 무브 (HB)</div><div class="num">${hb >= 0 ? '+' : ''}${hb.toFixed(1)}<span class="u">cm</span></div><div class="interp">우투 기준 +값 = arm-side 휨</div></div>` : ''}
+      ${ext != null ? `<div class="stat-card"><div class="lbl">릴리스 연장</div><div class="num">${ext.toFixed(2)}<span class="u">m</span></div><div class="interp">${interpExt}</div></div>` : ''}
+      ${stuff != null ? `<div class="stat-card ${cls(stuff)}"><div class="lbl">구질 종합 (Stuff)</div><div class="num">${stuff}<span class="u">/100</span></div><div class="interp">${interpStf}</div></div>` : ''}
+      ${command != null ? `<div class="stat-card ${cls(command)}"><div class="lbl">제구 (Command)</div><div class="num">${command}<span class="u">/100</span></div><div class="interp">${interpCmd}</div></div>` : ''}
+      ${relHsd != null ? `<div class="stat-card"><div class="lbl">릴리스 높이 SD</div><div class="num">${(relHsd*100).toFixed(1)}<span class="u">cm</span></div><div class="interp">투구 간 일관성 — 5cm 이하 = elite</div></div>` : ''}
+      ${bauer != null ? `<div class="stat-card"><div class="lbl">Bauer Units</div><div class="num">${bauer.toFixed(1)}</div><div class="interp">회전수 ÷ 구속(mph) · 26+ = 우수</div></div>` : ''}
+    </div>`;
 }
 
 // v4: 다이나믹 시퀀싱 그래프 — 시간축 위 5분절 peak 가 차례로 firing
