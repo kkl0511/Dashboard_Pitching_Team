@@ -62,8 +62,68 @@
 
     --shadow: none;
   }
+
+  /* v6.x — Dark theme: data-theme="dark" 적용 시 활성화 */
+  [data-theme="dark"]{
+    --bg:         #0a1628;          /* deep navy */
+    --panel:      #14213d;          /* dark navy panel */
+    --panel2:     #1a2a47;          /* slightly lighter */
+    --line:       #2c3e5c;
+    --line-soft:  #1e2a44;
+    --text:       #e5e7eb;
+    --text-soft:  #cbd5e1;
+    --muted:      #94a3b8;
+
+    --accent:     #ff6b6b;          /* slightly brighter red */
+    --accent-soft:#ffa3a3;
+    --accent-bg:  rgba(230,57,70,0.18);
+
+    --header-bg:  #14213d;
+    --header-bg-2:#1a2a47;
+    --header-text:#ffffff;
+
+    --grade-elite: #4ade80;
+    --grade-above: #93c5fd;
+    --grade-avg:   #94a3b8;
+    --grade-below: #fbbf24;
+    --grade-poor:  #f87171;
+
+    --good:    var(--grade-elite); --good-bg:rgba(74,222,128,0.10);
+    --warn:    var(--grade-below); --warn-bg:rgba(251,191,36,0.10);
+    --bad:     var(--grade-poor);  --bad-bg:rgba(248,113,113,0.10);
+  }
+  /* Dark mode 미세 조정 */
+  [data-theme="dark"] .composite-donut .ring{
+    background:conic-gradient(
+      var(--accent) 0deg var(--ring-deg, 263deg),
+      #1a2a47 var(--ring-deg, 263deg) 360deg
+    );
+  }
+  [data-theme="dark"] .bar-row .bar-track{ background:#1a2a47; }
+  [data-theme="dark"] .ete-row .lag-track{ background:#1a2a47; }
+  [data-theme="dark"] header{ border-bottom:1px solid #2c3e5c; }
+
+  /* Theme toggle 버튼 (헤더 우측) */
+  .theme-toggle{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.25);
+    color:var(--header-text);
+    padding:5px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+    font-family:inherit;
+    line-height:1;
+    transition:background 0.15s;
+  }
+  .theme-toggle:hover{ background:rgba(255,255,255,0.12); }
+  .theme-toggle .ico-light{ display:none; }
+  .theme-toggle .ico-dark{ display:inline; }
+  [data-theme="dark"] .theme-toggle .ico-light{ display:inline; }
+  [data-theme="dark"] .theme-toggle .ico-dark{ display:none; }
+
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text)}
+  html,body{margin:0;background:var(--bg);color:var(--text);transition:background 0.2s, color 0.2s}
   body{
     font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
     font-size:14px;
@@ -732,6 +792,10 @@
       </div>
     </div>
     <div class="meta">
+      <!-- v6.x: 모드 전환 — 분석가용 (현재) / 선수·코칭용 (다크 단일 페이지) -->
+      <div style="margin-bottom:6px">
+        <a href="coach.html" style="display:inline-block;padding:6px 12px;background:rgba(255,255,255,0.12);color:var(--header-text);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">선수·코칭용 (다크) ↗</a>
+      </div>
       <div>1차 측정 예정일: <b id="hdr-d1">—</b> (Theia+GRF + ForceDecks + Rapsodo)</div>
       <div style="margin:4px 0">
         <label style="font-size:11px;color:var(--muted)">랩소도 코호트:</label>

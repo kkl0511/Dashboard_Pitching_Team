@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1628">
+<title>선수/코칭용 리포트 — 상동고 투수 대시보드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ════════════════════════════════════════════════════════
+     COACH VIEW — 다크 모바일 전용 (선수·코치 직관적 리포트)
+     ════════════════════════════════════════════════════════ */
+  :root{
+    --bg:         #0a1628;
+    --bg-2:       #0f1d33;
+    --panel:      #14213d;
+    --panel-2:    #1a2a47;
+    --line:       #243046;
+    --line-soft:  #1e2a44;
+    --text:       #f1f5f9;
+    --text-soft:  #cbd5e1;
+    --muted:      #94a3b8;
+    --accent:     #ff6b6b;
+    --accent-2:   #ff9b9b;
+    --accent-bg:  rgba(255,107,107,0.15);
+    --grade-elite: #4ade80;
+    --grade-above: #93c5fd;
+    --grade-avg:   #94a3b8;
+    --grade-below: #fbbf24;
+    --grade-poor:  #f87171;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text)}
+  body{
+    font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+    font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:"ss01","cv11";
+    min-height:100vh;
+  }
+
+  /* ── 헤더 ── */
+  header.coach-h{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg, var(--panel), var(--bg));
+    border-bottom:1px solid var(--line);
+    padding:14px 18px;
+    display:flex;align-items:center;gap:12px;
+  }
+  header.coach-h .title{
+    font-weight:700;font-size:15px;letter-spacing:-0.01em;color:var(--text);
+    margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  header.coach-h .title .sub{
+    color:var(--muted);font-size:11px;font-weight:500;margin-left:6px;
+  }
+  header.coach-h select{
+    background:var(--panel-2);color:var(--text);
+    border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;font-size:14px;font-family:inherit;font-weight:600;
+    cursor:pointer;appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' stroke='%23cbd5e1' stroke-width='1.5' fill='none'/></svg>");
+    background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+    max-width:48vw;
+  }
+  header.coach-h .nav-link{
+    color:var(--text-soft);text-decoration:none;font-size:12px;font-weight:600;
+    padding:7px 11px;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel-2);
+    white-space:nowrap;
+  }
+  header.coach-h .nav-link:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+
+  /* ── 메인 ── */
+  main{padding:20px 18px 60px;max-width:920px;margin:0 auto}
+
+  .meta-card{
+    margin-bottom:18px;padding:12px 16px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    font-size:13.5px;color:var(--text-soft);
+  }
+  .meta-card .name{
+    color:var(--text);font-weight:700;font-size:18px;letter-spacing:-0.02em;
+    margin-right:8px;
+  }
+  .meta-card .pill{
+    display:inline-block;background:var(--panel-2);color:var(--text);
+    padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:4px;
+    border:1px solid var(--line);
+  }
+
+  /* ── KPI row ── */
+  .kpi-row{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;
+  }
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;
+  }
+  .kpi .label{
+    font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;
+    font-weight:600;margin-bottom:8px;
+  }
+  .kpi .value{
+    font-size:30px;font-weight:800;color:var(--text);letter-spacing:-0.03em;
+    font-feature-settings:"tnum";line-height:1;
+  }
+  .kpi .value .unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:6px;font-weight:500}
+  .kpi .delta.up{color:var(--grade-elite)}
+  .kpi .delta.down{color:var(--accent)}
+  .kpi .value.risk-low{color:var(--grade-elite)}
+  .kpi .value.risk-mid{color:var(--grade-below)}
+  .kpi .value.risk-high{color:var(--grade-poor)}
+
+  /* ── 섹션 ── */
+  .section{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:22px 22px;margin-bottom:18px;
+  }
+  .section-title{
+    display:flex;align-items:baseline;gap:10px;margin:0 0 18px;
+    font-size:13px;font-weight:700;color:var(--accent);
+    text-transform:uppercase;letter-spacing:1px;
+  }
+  .section-title .step{
+    background:var(--accent);color:#fff;width:24px;height:24px;
+    border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;letter-spacing:0;
+  }
+  .section-title .h{
+    font-size:18px;color:var(--text);text-transform:none;letter-spacing:-0.01em;font-weight:700;
+  }
+
+  /* ── ① 상태 — Composite + 5축 ── */
+  .composite{
+    display:grid;grid-template-columns:200px 1fr;gap:30px;align-items:center;
+  }
+  .composite-donut{
+    position:relative;width:180px;height:180px;display:grid;place-items:center;margin:0 auto;
+  }
+  .composite-donut .ring{
+    width:180px;height:180px;border-radius:50%;
+    background:conic-gradient(
+      var(--accent) 0deg var(--ring-deg, 0deg),
+      var(--panel-2) var(--ring-deg, 0deg) 360deg
+    );
+    display:grid;place-items:center;
+  }
+  .composite-donut .inner{
+    width:148px;height:148px;border-radius:50%;
+    background:var(--panel);display:grid;place-items:center;text-align:center;
+  }
+  .composite-donut .score-num{
+    font-size:56px;font-weight:800;color:var(--text);
+    font-feature-settings:"tnum";line-height:1;letter-spacing:-0.04em;
+  }
+  .composite-donut .score-label{
+    margin-top:4px;font-size:10px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:1.4px;font-weight:600;
+  }
+  .composite-bars{display:grid;gap:14px}
+  .bar-row{
+    display:grid;grid-template-columns:90px 1fr 80px;gap:14px;align-items:center;font-size:14px;
+  }
+  .bar-row .bar-label{font-weight:600;color:var(--text)}
+  .bar-row .bar-track{
+    height:10px;background:var(--panel-2);border-radius:5px;overflow:hidden;
+  }
+  .bar-row .bar-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+    border-radius:5px;transition:width 500ms ease-out;
+  }
+  .bar-row .bar-value{text-align:right;font-feature-settings:"tnum"}
+  .bar-row .bar-value .num{font-weight:800;font-size:16px;color:var(--text)}
+  .bar-row .bar-value .grade{font-size:10.5px;margin-left:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+  .grade.elite{color:var(--grade-elite)}
+  .grade.above{color:var(--grade-above)}
+  .grade.avg  {color:var(--grade-avg)}
+  .grade.below{color:var(--grade-below)}
+  .grade.poor {color:var(--grade-poor)}
+
+  /* ── Sequence Integrity ── */
+  .seq-grid{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:10px 14px;background:var(--panel-2);border-radius:8px;
+  }
+  .seq-step{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;font-size:13px;font-weight:600;
+  }
+  .seq-step.normal{border-color:var(--grade-elite);color:var(--grade-elite)}
+  .seq-step.warn  {border-color:var(--grade-below);color:var(--grade-below)}
+  .seq-step.poor  {border-color:var(--grade-poor); color:var(--grade-poor)}
+  .seq-arrow{color:var(--muted);font-size:14px}
+  .seq-status{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;
+    margin-left:auto;
+  }
+  .seq-status.ok{background:rgba(74,222,128,0.15);color:var(--grade-elite)}
+  .seq-status.bad{background:rgba(248,113,113,0.15);color:var(--grade-poor)}
+
+  /* ── ② 문제점 / ③ 해결방안 ── */
+  .top3{display:grid;gap:14px}
+  .top3-item{
+    display:grid;grid-template-columns:46px 1fr 100px;gap:16px;align-items:center;
+    padding:16px 18px;background:var(--panel-2);border-radius:10px;
+    border:1px solid var(--line);
+  }
+  .top3-item .rank{
+    width:38px;height:38px;border-radius:50%;
+    background:var(--accent);color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:18px;
+    font-feature-settings:"tnum";
+  }
+  .top3-item .body .name{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .top3-item .body .meta{font-size:12px;color:var(--muted)}
+  .top3-item .impact{text-align:right}
+  .top3-item .impact .gain{
+    font-size:22px;font-weight:800;color:var(--grade-elite);font-feature-settings:"tnum";line-height:1;
+  }
+  .top3-item .impact .gain-unit{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* 해결방안 — 드릴 카드 */
+  .solution-item{
+    padding:16px 18px;background:var(--panel-2);border-radius:10px;
+    border-left:3px solid var(--grade-elite);margin-bottom:10px;
+  }
+  .solution-item .rank{
+    color:var(--grade-elite);font-weight:800;font-size:14px;
+    text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;
+  }
+  .solution-item .drill{font-size:15px;color:var(--text);font-weight:600;line-height:1.5}
+
+  /* ── 차수간 추이 ── */
+  .trend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .trend-cell{
+    background:var(--panel-2);border-radius:8px;padding:12px 14px;text-align:center;
+    border:1px solid var(--line);
+  }
+  .trend-cell .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+  .trend-cell .value{font-size:20px;font-weight:800;font-feature-settings:"tnum";color:var(--text)}
+  .trend-cell .value.empty{color:var(--muted);font-size:14px;font-weight:500}
+
+  /* ── 마네킹 ── */
+  .mannequin-wrap{
+    background:var(--panel-2);border-radius:10px;padding:10px;display:grid;place-items:center;min-height:240px;
+  }
+
+  /* ── Drop zone ── */
+  .upload-zone{
+    margin:18px 0;padding:22px;
+    background:var(--panel);border:2px dashed var(--line);border-radius:12px;
+    text-align:center;cursor:pointer;transition:all 0.15s;
+  }
+  .upload-zone:hover{border-color:var(--accent);background:var(--accent-bg)}
+  .upload-zone.drag{border-color:var(--accent);background:var(--accent-bg)}
+  .upload-zone .ico{font-size:24px;margin-bottom:8px}
+  .upload-zone .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  #upload-result{margin-top:10px;font-size:12px}
+  .pill{display:inline-block;padding:4px 10px;border-radius:5px;font-size:11.5px;font-weight:600;margin:3px 0;display:block}
+  .pill.good{background:rgba(74,222,128,0.15);color:var(--grade-elite)}
+  .pill.warn{background:rgba(251,191,36,0.15);color:var(--grade-below)}
+  .pill.bad {background:rgba(248,113,113,0.15);color:var(--grade-poor)}
+
+  /* ── 빈 상태 ── */
+  .empty-state{
+    text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;
+  }
+  .empty-state .ico{font-size:36px;margin-bottom:14px;opacity:0.5}
+
+  /* ── 모바일 반응형 ── */
+  @media (max-width: 640px){
+    body{font-size:14px}
+    main{padding:16px 14px 50px}
+    header.coach-h{padding:12px 14px;gap:8px}
+    header.coach-h .title{font-size:13px}
+    header.coach-h .title .sub{display:none}
+    header.coach-h select{padding:7px 10px;font-size:13px;padding-right:24px;max-width:42vw}
+    header.coach-h .nav-link{padding:6px 9px;font-size:11px}
+    .kpi-row{grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi{padding:12px 14px}
+    .kpi .label{font-size:10px;margin-bottom:6px}
+    .kpi .value{font-size:24px}
+    .kpi .delta{font-size:10.5px}
+    .meta-card .name{font-size:16px}
+    .section{padding:18px 16px;margin-bottom:14px;border-radius:10px}
+    .section-title{margin-bottom:14px}
+    .section-title .h{font-size:16px}
+    .composite{grid-template-columns:140px 1fr;gap:18px}
+    .composite-donut{width:140px;height:140px}
+    .composite-donut .ring{width:140px;height:140px}
+    .composite-donut .inner{width:114px;height:114px}
+    .composite-donut .score-num{font-size:42px}
+    .bar-row{grid-template-columns:80px 1fr 70px;gap:10px;font-size:13px}
+    .bar-row .bar-value .num{font-size:14px}
+    .top3-item{grid-template-columns:36px 1fr 80px;padding:14px 14px;gap:12px}
+    .top3-item .rank{width:32px;height:32px;font-size:16px}
+    .top3-item .body .name{font-size:14px}
+    .top3-item .impact .gain{font-size:18px}
+    .seq-grid{padding:8px 10px;gap:6px}
+    .seq-step{padding:6px 9px;font-size:12px}
+    .seq-status{font-size:11px;padding:5px 10px}
+    .trend{grid-template-columns:repeat(2,1fr)}
+    .trend-cell .value{font-size:17px}
+  }
+  @media (max-width: 380px){
+    .composite{grid-template-columns:1fr;gap:14px}
+    .composite-donut{margin:0 auto}
+  }
+  /* iframe 숨김 */
+  #data-iframe{position:absolute;top:-9999px;left:-9999px;width:1200px;height:800px;visibility:hidden;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header class="coach-h">
+  <select id="player-select" disabled><option>로딩 중...</option></select>
+  <div class="title" id="player-title">선수/코칭용 리포트</div>
+  <a href="dashboard.html" class="nav-link">분석가용 ↗</a>
+</header>
+
+<main>
+  <div id="content">
+    <div class="empty-state">
+      <div class="ico">⏳</div>
+      <div>데이터 로딩 중…</div>
+      <div style="font-size:12px;margin-top:8px;color:var(--muted)">분석가용 페이지의 분석 모듈을 로드하고 있습니다.</div>
+    </div>
+  </div>
+
+  <!-- 데이터 인입 -->
+  <div class="upload-zone" id="upload-zone">
+    <div class="ico">📥</div>
+    <div><b>c3d.txt 또는 JSON 파일을 끌어놓거나 클릭</b></div>
+    <div class="hint">현장에서 측정한 파일을 즉시 분석. 여러 trial 동시 가능.</div>
+    <input type="file" id="upload-input" accept=".c3d.txt,.json,.txt" multiple style="display:none">
+    <div id="upload-result"></div>
+  </div>
+</main>
+
+<!-- dashboard.html을 hidden iframe 으로 로드 → 분석 함수·데이터 공유 -->
+<iframe id="data-iframe" src="dashboard.html?embed=coach" aria-hidden="true"></iframe>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  COACH VIEW — JavaScript
+//  분석 함수는 hidden iframe (dashboard.html) 의 window 에서 가져와 재사용
+// ════════════════════════════════════════════════════════
+
+const iframe = document.getElementById('data-iframe');
+let WIN = null;          // iframe.contentWindow (분석 함수·데이터 host)
+let CURRENT_PID = null;  // 현재 선택된 선수 PID
+
+function $(id){ return document.getElementById(id); }
+
+iframe.addEventListener('load', () => {
+  WIN = iframe.contentWindow;
+  // 데이터 로드 후 약간 기다림 (init 완료 대기)
+  setTimeout(initCoach, 200);
+});
+
+function initCoach(){
+  if(!WIN || !WIN.PLAYERS){
+    $('content').innerHTML = '<div class="empty-state"><div class="ico">⚠</div><div>분석 모듈 로드 실패</div></div>';
+    return;
+  }
+  // 선수 선택 dropdown 채우기
+  const sel = $('player-select');
+  sel.disabled = false;
+  sel.innerHTML = WIN.PLAYERS.map(p => `<option value="${p.id}">${p.name} (${p.id} · ${p.arm==='L'?'좌':'우'}투${p.height?`, ${p.height}cm`:''})</option>`).join('');
+  sel.addEventListener('change', () => renderForPlayer(sel.value));
+
+  // 첫 번째 선수 또는 실측 데이터가 있는 첫 선수
+  let firstPid = WIN.PLAYERS[0].id;
+  if(WIN.REAL_DATA_KEYS && WIN.REAL_DATA_KEYS.size > 0){
+    for(const key of WIN.REAL_DATA_KEYS){
+      const [pid, sid] = key.split(':');
+      if(sid === '1'){ firstPid = pid; break; }
+    }
+  }
+  sel.value = firstPid;
+  renderForPlayer(firstPid);
+}
+
+// ── 선수 한 명 렌더 ──
+function renderForPlayer(pid){
+  CURRENT_PID = pid;
+  const p = WIN.PLAYERS.find(x => x.id === pid);
+  const m = WIN.DATA?.[pid]?.[1];   // 1차 측정
+  if(!p || !m){
+    $('content').innerHTML = '<div class="empty-state"><div class="ico">📊</div><div>이 선수 1차 측정 데이터가 없음</div></div>';
+    return;
+  }
+
+  // 헤더 타이틀
+  $('player-title').innerHTML = `<b>${p.name}</b><span class="sub">${p.arm==='L'?'좌':'우'}투 · ${p.height}cm · ${p.weight}kg</span>`;
+
+  // dvl5 산출 (Driveline 5 모델 진단)
+  const dvl5 = computeDvl5(p, m);
+
+  // 본문 렌더
+  $('content').innerHTML = renderMain(p, m, dvl5);
+  // 도넛 ring 적용 (innerHTML 으로 setProperty 못 함)
+  if(dvl5){
+    const ring = $('comp-ring');
+    if(ring){
+      const composite = compositeScore(dvl5);
+      const ringDeg = Math.min(360, Math.max(0, composite/150 * 360));
+      ring.style.setProperty('--ring-deg', `${ringDeg}deg`);
+    }
+  }
+}
+
+// ── Driveline 5 모델 진단 (iframe 함수 사용) ──
+function computeDvl5(p, m){
+  const A = WIN.ANALYTICS;
+  if(!A || !A.drivelineFiveModelDiagnosis) return null;
+  return A.drivelineFiveModelDiagnosis({
+    shoulder_er_max_deg: m.faults?.shoulder_er_max_deg,
+    peak_shoulder_v: m.sequence?.peak_shoulder_v,
+    peak_elbow_v:    m.sequence?.peak_elbow_v ?? m.sequence?.elbow_dps,
+    arm_dps:         m.sequence?.arm_dps,
+    shoulder_abd_fp_deg:    m.faults?.shoulder_abd_fp_deg,
+    scap_load_fp_deg:       m.faults?.scap_load_fp_deg,
+    elbow_flex_fp_deg:      m.faults?.elbow_flex_fp_deg,
+    x_factor:               m.faults?.x_factor_deg,
+    trunk_forward_tilt:     m.faults?.trunk_tilt_at_fc_deg,
+    trunk_lateral_tilt:     m.faults?.trunk_lat_tilt_deg,
+    torso_counter_rot_deg:  m.faults?.torso_counter_rot_deg,
+    torso_rot_fp_deg:       m.faults?.torso_rot_fp_deg,
+    torso_rot_br_deg:       m.faults?.torso_rot_br_deg,
+    trunk_dps:  m.sequence?.trunk_dps,
+    pelvis_dps: m.sequence?.pelvis_dps,
+    lead_knee_change:   m.faults?.lead_knee_change,
+    stride_length:      m.faults?.stride_length_m,
+    lead_knee_ext_velo: m.faults?.lead_knee_ext_velo,
+    cog_decel:    m.cog?.decel,
+    cog_decel_ae: m.cog?.decel_ae,
+    max_cog_velo: m.cog?.max_velo
+  });
+}
+
+function compositeScore(dvl5){
+  if(!dvl5) return 0;
+  const scores = ['arm_action','posture','rotation','block','cog']
+    .map(k => dvl5[k]?.score).filter(s => s != null);
+  return scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+}
+
+function gradeOf(s){
+  return s >= 110 ? {cls:'elite', lbl:'Elite+'} :
+         s >= 90  ? {cls:'elite', lbl:'Elite'}  :
+         s >= 70  ? {cls:'above', lbl:'Above'}  :
+         s >= 50  ? {cls:'avg',   lbl:'Avg'}    :
+         s >= 30  ? {cls:'below', lbl:'Below'}  :
+                    {cls:'poor',  lbl:'Poor'};
+}
+
+// ── 메인 본문 HTML ──
+function renderMain(p, m, dvl5){
+  const composite = compositeScore(dvl5);
+  // 부상 위험
+  const risk = m.faults?.injury_risk || 'low';
+  const riskLbl = risk === 'high' ? '높음' : risk === 'mid' ? '중' : '낮음';
+  const riskCls = `risk-${risk}`;
+  // 잠재 구속
+  const measured = m.velocity?.measured_kmh;
+  let potential = m.velocity?.potential_kmh ?? m.velocity?.predicted_kmh;
+  // 종합 점수 = composite (5 모델 평균)
+
+  return `
+    <!-- 메타 -->
+    <div class="meta-card">
+      <span class="name">${p.name}</span>
+      <span class="pill">${p.id}</span>
+      <span class="pill">${p.arm==='L'?'좌투':'우투'}</span>
+      <span class="pill">${p.height} cm</span>
+      <span class="pill">${p.weight} kg</span>
+      <span class="pill">측정일 ${m.date || '—'}</span>
+    </div>
+
+    <!-- KPI 4 -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">측정 구속</div>
+        <div class="value">${measured != null ? measured : '—'}<span class="unit">km/h</span></div>
+        <div class="delta">최고 ${measured ? (measured + 1.5).toFixed(1) : '—'} km/h</div>
+      </div>
+      <div class="kpi">
+        <div class="label">잠재 구속</div>
+        <div class="value">${potential != null ? potential : '—'}<span class="unit">km/h</span></div>
+        <div class="delta up">+${measured && potential ? (potential - measured).toFixed(1) : '—'} km/h 향상 여지</div>
+      </div>
+      <div class="kpi">
+        <div class="label">종합 점수</div>
+        <div class="value">${composite}<span class="unit">/100</span></div>
+        <div class="delta">5 모델 평균</div>
+      </div>
+      <div class="kpi">
+        <div class="label">부상 위험</div>
+        <div class="value ${riskCls}">${riskLbl}</div>
+        <div class="delta">결함 ${m.faults?.fault_count ?? '—'}개</div>
+      </div>
+    </div>
+
+    <!-- ① 상태 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">1</span><span>STATE</span><span class="h">상태 — Composite Mechanics</span></h2>
+      ${renderComposite(dvl5, composite)}
+    </section>
+
+    <!-- 분절 시퀀스 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">·</span><span>SEQUENCE</span><span class="h">분절 시퀀스 정합성</span></h2>
+      ${renderSequence(m)}
+    </section>
+
+    <!-- ② 문제점 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">2</span><span>PROBLEMS</span><span class="h">문제점 — 구속 손실 큰 순 Top 3</span></h2>
+      ${renderProblems(dvl5, m)}
+    </section>
+
+    <!-- ③ 해결방안 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">3</span><span>SOLUTIONS</span><span class="h">해결방안 — 우선순위 처방</span></h2>
+      ${renderSolutions(dvl5, m)}
+    </section>
+
+    <!-- 차수간 추이 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">·</span><span>TREND</span><span class="h">차수간 측정 추이</span></h2>
+      ${renderTrend(p)}
+    </section>
+
+    <!-- 마네킹 -->
+    <section class="section">
+      <h2 class="section-title"><span class="step">·</span><span>POSTURE</span><span class="h">투구 자세 시각화</span></h2>
+      <div class="mannequin-wrap">${renderMannequin(p, m, dvl5)}</div>
+    </section>
+  `;
+}
+
+// ── ① 상태 ──
+function renderComposite(dvl5, composite){
+  if(!dvl5) return '<div class="empty-state">데이터 부족</div>';
+  const models = [
+    {k:'arm_action', l:'팔동작'},
+    {k:'posture',    l:'자세'},
+    {k:'rotation',   l:'회전 속도'},
+    {k:'block',      l:'앞다리 제동'},
+    {k:'cog',        l:'체중이동'},
+  ];
+  const bars = models.map(m => {
+    const s = dvl5[m.k]?.score;
+    if(s == null) return `<div class="bar-row"><div class="bar-label">${m.l}</div><div class="bar-track"></div><div class="bar-value"><span class="num" style="color:var(--muted)">—</span></div></div>`;
+    const g = gradeOf(s);
+    const pct = Math.min(100, Math.max(0, s/150 * 100));
+    return `<div class="bar-row">
+      <div class="bar-label">${m.l}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-value"><span class="num">${Math.round(s)}</span><span class="grade ${g.cls}">${g.lbl}</span></div>
+    </div>`;
+  }).join('');
+  return `<div class="composite">
+    <div class="composite-donut">
+      <div class="ring" id="comp-ring" style="--ring-deg:0deg">
+        <div class="inner">
+          <div>
+            <div class="score-num">${composite}</div>
+            <div class="score-label">Composite</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="composite-bars">${bars}</div>
+  </div>`;
+}
+
+// ── 분절 시퀀스 정합성 ──
+function renderSequence(m){
+  const seq = m.sequence;
+  const trf = m.energy?.transfer;
+  const segments = [
+    {name:'골반',   v: seq?.pelvis_dps, t:0},
+    {name:'몸통',   v: seq?.trunk_dps,  t:trf?.pelvis_to_trunk_lag_ms ?? null},
+    {name:'위팔',   v: seq?.arm_dps,    t:(trf?.pelvis_to_trunk_lag_ms||0) + (trf?.trunk_to_humerus_lag_ms ?? trf?.trunk_to_arm_lag_ms ?? 0)},
+    {name:'아래팔', v: trf?.peak_forearm_v, t:null},
+    {name:'손',     v: seq?.peak_hand_v ?? trf?.peak_forearm_v, t:null},
+  ];
+  // 정상: 다음 분절이 이전보다 늦게 또는 더 빠름. 역전: t 가 작아짐
+  let allFwd = true;
+  for(let i = 1; i < segments.length; i++){
+    if(segments[i].t != null && segments[i-1].t != null && segments[i].t < segments[i-1].t) allFwd = false;
+  }
+  const stepsHtml = segments.map((s, i) => {
+    let cls = 'normal';
+    if(s.v == null) cls = '';
+    else if(i > 0 && segments[i].t != null && segments[i-1].t != null && segments[i].t < segments[i-1].t) cls = 'poor';
+    const tStr = s.t != null ? `+${Math.round(s.t)}ms` : '';
+    const vStr = s.v != null ? `${Math.round(s.v)} °/s` : '—';
+    return `<span class="seq-step ${cls}">${s.name} ${tStr ? '<span style="opacity:0.7;font-size:11px;margin-left:2px">'+tStr+'</span>' : ''}</span>` +
+           (i < segments.length - 1 ? '<span class="seq-arrow">→</span>' : '') ;
+  }).join('');
+  const okBadge = allFwd
+    ? '<span class="seq-status ok">✓ 정상 (proximal → distal)</span>'
+    : '<span class="seq-status bad">⚠ 역전 발생</span>';
+  return `<div class="seq-grid">${stepsHtml}${okBadge}</div>`;
+}
+
+// ── ② 문제점 ──
+function renderProblems(dvl5, m){
+  const top3 = computeTop3(dvl5, m);
+  if(top3.length === 0){
+    return '<div style="padding:18px;background:rgba(74,222,128,0.10);border-radius:8px;color:var(--grade-elite);text-align:center;font-weight:600">✅ 큰 문제 영역 없음 — 모든 모델이 elite 수준</div>';
+  }
+  return `<div class="top3">${top3.map((c, i) => `
+    <div class="top3-item">
+      <div class="rank">${i+1}</div>
+      <div class="body">
+        <div class="name">${c.var_lbl}</div>
+        <div class="meta">${c.model_lbl || ''} · 현재 <b style="color:var(--text)">${formatVal(c.value, c.unit)}</b> ${c.elite ? '· Elite ' + formatVal(c.elite, c.unit) : ''}</div>
+      </div>
+      <div class="impact">
+        <div class="gain">+${c.loss.toFixed(1)}</div>
+        <div class="gain-unit">km/h 잠재</div>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function formatVal(v, unit){
+  if(v == null) return '—';
+  if(unit === 'm/s') return v.toFixed(2);
+  return Math.round(v) + (unit ? ' ' + unit : '');
+}
+
+// ── ③ 해결방안 ──
+function renderSolutions(dvl5, m){
+  const top3 = computeTop3(dvl5, m);
+  if(top3.length === 0) return '<div style="color:var(--muted);text-align:center;padding:14px">처방 필요 영역 없음</div>';
+  return top3.map((c, i) => {
+    const drill = drillFor(c);
+    return `<div class="solution-item">
+      <div class="rank">처방 ${i+1}</div>
+      <div class="drill">${drill}</div>
+    </div>`;
+  }).join('');
+}
+
+const RX_MAP = {
+  'Layback (어깨 최대 외회전)':'어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill',
+  'Shoulder Abduction at FP':'어깨 셋업 단계에서 외전 90° 유지 · scap retraction throw',
+  'Scap Load at FP':'광배·후면삼각근 강화 · scap retraction throw drill',
+  'Shoulder Rotation Velo':'Layback 후 explosive 외→내회전 plyo throw · ball weight 진행',
+  'Peak Hip-Shoulder Sep at FP (X-factor)':'골반-몸통 분리 강조 throw · medball rotational throw',
+  'Peak Torso Counter Rot':'와인드업 시 몸통 반대 회전 강조 · stride 시 어깨 잔류 cueing',
+  'Torso Forward Tilt at FP':'FP 시점 trunk forward tilt 만들기 — front leg block + 코어 stability drill',
+  'Torso Rotation at FP':'FP closed posture 유지 → release 직전 폭발적 회전',
+  'Torso Rotation at BR':'follow-through trunk 회전 끝까지 (홈쪽 110°+)',
+  'Torso Side Bend at MER':'release 직전 contralateral side bend drill',
+  'Torso Rotation Velo':'medball rotational throw (heavy → light) · 코어 power',
+  'Pelvis Rotation Velo':'골반 가속 drill (markerless 보정 caveat)',
+  'Lead Knee Extension':'앞발 착지 후 knee 신전 강조 · RDL · lateral squat',
+  'Stride Length':'Stride 거리 점진 증가 (체중 90%+ 권장) · towel drill',
+  'CoG Decel AE':'앞발 block + 골반 braking 통합 drill',
+  'Peak Lead Knee Ext Velo':'single leg jumping · 앞발 explosive block',
+  'CoG Decel':'Lead leg AP impulse 18-28 %BW·s 목표 · 앞발 block + 골반 braking 통합',
+  'Max CoG Velo':'explosive stride drill, KB swing',
+};
+const ETE_RX = {
+  'pelvis_to_trunk':'골반→몸통 lag 보정 — 골반 단독 회전 후 몸통 따라가기 drill',
+  'trunk_to_humerus':'몸통→위팔 lag 보정 — Layback 유지 → 폭발적 내회전 plyo',
+  'humerus_to_forearm':'위팔→아래팔 — 너무 이른 elbow 신전 방지 (valgus stress ↑)',
+  'forearm_to_hand':'아래팔→손 — release 시점 손 가속 cueing (towel drill)'
+};
+function drillFor(c){
+  if(c.type === 'ete') return ETE_RX[c.model||''] || '해당 분절 transition 강화';
+  return RX_MAP[c.var_lbl] || c.var_lbl + ' 강화 drill';
+}
+
+// ── Top 3 산출 (5 모델 high-importance 음의 차이 + ETE bottleneck) ──
+function computeTop3(dvl5, m){
+  if(!dvl5) return [];
+  const A = WIN.ANALYTICS;
+  const candidates = [];
+  ['arm_action','posture','rotation','block','cog'].forEach(mk => {
+    const md = dvl5[mk]; if(!md || !md.metrics) return;
+    Object.values(md.metrics).forEach(mt => {
+      if(mt.value == null || mt.median_elite == null || !mt.per_1mph) return;
+      const diff_kmh = (mt.value - mt.median_elite) / mt.per_1mph * 1.609;
+      if(diff_kmh < 0 && mt.importance === 'high'){
+        candidates.push({type:'driveline', model_lbl:modelLbl(mk), var_lbl:mt.label, value:mt.value, elite:mt.median_elite, unit:mt.unit||'', loss:Math.abs(diff_kmh)});
+      }
+    });
+  });
+  // ETE
+  if(WIN.segmentTransitionETE){
+    const trans = WIN.segmentTransitionETE({
+      peak_pelvis_v: m.sequence?.pelvis_dps,
+      peak_trunk_v:  m.sequence?.trunk_dps,
+      peak_humerus_v:m.sequence?.arm_dps,
+      peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+      peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+      pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+      trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+      humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+      forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms,
+    });
+    if(trans){
+      ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'].forEach(k => {
+        const t = trans[k]; if(!t || t.score == null || t.score >= 95) return;
+        const loss = (100 - t.score) * 0.06;
+        candidates.push({type:'ete', model:k, model_lbl:'분절간 흐름', var_lbl:t.label_kr || k, value:t.score, elite:100, unit:'점', loss});
+      });
+    }
+  }
+  candidates.sort((a,b) => b.loss - a.loss);
+  return candidates.slice(0, 3);
+}
+function modelLbl(k){
+  return ({arm_action:'팔동작', posture:'자세', rotation:'회전 속도', block:'앞다리 제동', cog:'체중이동'})[k] || k;
+}
+
+// ── 차수간 추이 ──
+function renderTrend(p){
+  const sessions = WIN.SESSIONS || [];
+  const data = WIN.DATA?.[p.id] || {};
+  const cells = sessions.map(s => {
+    const m = data[s.id];
+    const v = m?.velocity?.measured_kmh;
+    return `<div class="trend-cell">
+      <div class="label">${s.label} · ${s.protocol}</div>
+      <div class="value ${v ? '' : 'empty'}">${v ? v + ' km/h' : '—'}</div>
+    </div>`;
+  }).join('');
+  return `<div class="trend">${cells}</div>`;
+}
+
+// ── 마네킹 SVG (단순화) ──
+function renderMannequin(p, m, dvl5){
+  // 점수 기반 색깔: composite 80+ green, 60-80 blue, <60 yellow, <40 red
+  const composite = compositeScore(dvl5);
+  let bodyColor = '#4ade80';
+  if(composite < 80) bodyColor = '#93c5fd';
+  if(composite < 60) bodyColor = '#fbbf24';
+  if(composite < 40) bodyColor = '#f87171';
+  // 단순화 SVG: 측면 투구 자세 silhouette
+  return `<svg viewBox="0 0 400 240" style="width:100%;max-width:380px;height:auto" xmlns="http://www.w3.org/2000/svg">
+    <!-- 마운드 -->
+    <line x1="20" y1="220" x2="380" y2="220" stroke="#243046" stroke-width="2"/>
+    <ellipse cx="320" cy="218" rx="60" ry="6" fill="#1a2a47"/>
+    <!-- 몸통 -->
+    <ellipse cx="220" cy="115" rx="22" ry="38" fill="${bodyColor}" opacity="0.9"/>
+    <!-- 머리 -->
+    <circle cx="218" cy="62" r="16" fill="${bodyColor}" opacity="0.9"/>
+    <!-- 투구 팔 (오른쪽 위로) -->
+    <line x1="225" y1="92" x2="270" y2="55" stroke="${bodyColor}" stroke-width="9" stroke-linecap="round" opacity="0.85"/>
+    <line x1="270" y1="55" x2="295" y2="85" stroke="${bodyColor}" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="295" cy="88" r="5" fill="${bodyColor}"/>  <!-- 손 -->
+    <!-- 글러브 팔 (왼쪽으로) -->
+    <line x1="215" y1="100" x2="180" y2="140" stroke="${bodyColor}" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+    <!-- 뒷다리 (drive) -->
+    <line x1="218" y1="150" x2="245" y2="218" stroke="${bodyColor}" stroke-width="11" stroke-linecap="round" opacity="0.85"/>
+    <!-- 앞다리 (lead) -->
+    <line x1="218" y1="150" x2="170" y2="218" stroke="${bodyColor}" stroke-width="11" stroke-linecap="round" opacity="0.85"/>
+    <!-- 에너지 화살 (down→up→arm) -->
+    <path d="M 170 215 Q 200 190 215 150 Q 230 100 270 60" stroke="${bodyColor}" stroke-width="2" fill="none" stroke-dasharray="3,3" opacity="0.6"/>
+    <!-- Composite 점수 표시 -->
+    <text x="50" y="40" font-size="14" font-weight="700" fill="#cbd5e1" font-family="Inter">Composite</text>
+    <text x="50" y="76" font-size="36" font-weight="800" fill="${bodyColor}" font-family="Inter">${composite}</text>
+    <text x="50" y="98" font-size="11" fill="#94a3b8" font-family="Inter">/100 (5 모델 평균)</text>
+  </svg>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  Drop zone — c3d.txt 인입
+// ════════════════════════════════════════════════════════
+const dz = $('upload-zone');
+const dzInput = $('upload-input');
+const dzResult = $('upload-result');
+
+dz.addEventListener('click', () => dzInput.click());
+dzInput.addEventListener('change', e => { if(e.target.files.length) handleFiles([...e.target.files]); });
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', e => { if(e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
+
+async function handleFiles(files){
+  if(!WIN || !WIN.handleC3DTxtFiles && !WIN.handleJsonFiles){
+    dzResult.innerHTML = '<div class="pill bad">분석 모듈 미준비 — 잠시 후 재시도</div>';
+    return;
+  }
+  dzResult.innerHTML = '<div class="pill warn">처리 중...</div>';
+  // c3d.txt 와 JSON 분리 후 각각 dashboard.html 의 핸들러로 전달
+  const c3d = files.filter(f => /\.c3d\.txt$/i.test(f.name));
+  const json = files.filter(f => /\.json$/i.test(f.name));
+  let messages = [];
+  try {
+    if(c3d.length && WIN.handleC3DTxtFiles){
+      const r = await WIN.handleC3DTxtFiles(c3d);
+      messages.push(...(r.messages||[]));
+    }
+    if(json.length && WIN.handleJsonFiles){
+      // handleJsonFiles 는 dashboard.html UI 에 결과를 그리므로, 여기선 파싱 후 직접 처리
+      for(const f of json){
+        const text = await f.text();
+        const obj = JSON.parse(text);
+        const recs = WIN.parseTheiaJson?.(obj);
+        if(recs?.length){
+          recs.forEach(rec => WIN.applyTheiaRecord?.(rec));
+          messages.push(`✓ ${f.name}: ${recs.length}개 레코드 적용`);
+        } else {
+          messages.push(`⚠ ${f.name}: 인식 가능한 레코드 없음`);
+        }
+      }
+    }
+  } catch(e){
+    messages.push(`✗ 처리 실패: ${e.message}`);
+  }
+  dzResult.innerHTML = messages.map(msg => {
+    const cls = msg.startsWith('✓') ? 'good' : msg.startsWith('⚠') ? 'warn' : msg.startsWith('  ') ? '' : 'bad';
+    return cls ? `<div class="pill ${cls}">${msg}</div>` : `<div style="color:var(--muted);font-size:11px;margin:2px 0 2px 8px">${msg}</div>`;
+  }).join('');
+  // 선수 dropdown + 현재 선수 재렌더 (DATA 가 업데이트됐을 수 있음)
+  initCoach();
+  if(CURRENT_PID) {
+    $('player-select').value = CURRENT_PID;
+    renderForPlayer(CURRENT_PID);
+  }
+}
+</script>
+
+</body>
+</html>
