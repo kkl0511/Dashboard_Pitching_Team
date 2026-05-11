@@ -6091,12 +6091,15 @@ function renderProSequence(m){
   const barsEl = document.getElementById('p-pro-ete-bars');
   const svgEl  = document.getElementById('p-pro-seq-svg');
   if(!barsEl || !svgEl) return;
-  const A = (typeof ANALYTICS !== 'undefined') ? ANALYTICS : null;
-  if(!A?.segmentTransitionETE){
-    barsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">ANALYTICS 미로드</div>';
+  // segmentTransitionETE 는 top-level function (ANALYTICS 객체엔 미노출)
+  const fn = (typeof segmentTransitionETE === 'function') ? segmentTransitionETE
+           : (typeof ANALYTICS !== 'undefined' && ANALYTICS.segmentTransitionETE) ? ANALYTICS.segmentTransitionETE
+           : null;
+  if(!fn){
+    barsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">segmentTransitionETE 함수 미발견</div>';
     return;
   }
-  const trans = A.segmentTransitionETE({
+  const trans = fn({
     peak_pelvis_v:  m.sequence?.pelvis_dps,
     peak_trunk_v:   m.sequence?.trunk_dps,
     peak_humerus_v: m.sequence?.arm_dps,
