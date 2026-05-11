@@ -138,10 +138,10 @@
 
   .panel{
     background:var(--panel);border:1px solid var(--line);border-radius:8px;
-    padding:24px 28px;margin-bottom:20px;box-shadow:var(--shadow);
+    padding:28px 32px;margin-bottom:24px;box-shadow:var(--shadow);
   }
   .panel h2{
-    margin:0 0 16px;font-size:16px;font-weight:700;letter-spacing:-0.01em;
+    margin:0 0 18px;font-size:18px;font-weight:700;letter-spacing:-0.01em;
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
   .panel h2 .badge{
@@ -754,7 +754,7 @@
   <button class="tab-btn active" data-tab="m1">1차 측정 결과 <span class="num">팀</span></button>
   <button class="tab-btn" data-tab="player">선수별 1차 리포트</button>
   <button class="tab-btn" data-tab="data">데이터 관리</button>
-  <button class="tab-btn" data-tab="report">📋 리포트 출력 <span class="num">PDF</span></button>
+  <button class="tab-btn" data-tab="report">리포트 출력 <span class="num">PDF</span></button>
   <button class="tab-btn" data-tab="long">장기 추적 <span class="num" style="background:#f6f8fa;color:var(--muted)">상·하반기</span></button>
 </nav>
 
@@ -767,7 +767,7 @@
 
   <!-- v6.x Phase 3: Pro 스타일 section-head + kpi-row -->
   <div class="section-head">
-    <h2>📊 1차 측정 팀 종합</h2>
+    <h2>1차 측정 팀 종합</h2>
     <div class="desc">측정 진행 · 평균 구속 · 종합 점수 · 집중 관리 대상</div>
   </div>
 
@@ -912,7 +912,7 @@
 
     <!-- v6.x Phase 2: Pro 스타일 section-head + kpi-row -->
     <div class="section-head">
-      <h2>📍 현재 상태</h2>
+      <h2>현재 상태</h2>
       <div class="desc">측정 구속 + 향상 시나리오 3종 (체력 / 메카닉 / 통합)</div>
     </div>
 
@@ -951,20 +951,20 @@
 
   <!-- v6.x Phase 2: 체력 section-head -->
   <div id="section-fitness-anchor" class="section-head">
-    <h2>💪 체력 (ForceDecks 19변인)</h2>
+    <h2>체력 (ForceDecks 19변인)</h2>
     <div class="desc">CMJ · SJ · Pogo · IMTP · PP — 6축 진단</div>
   </div>
   <div id="section-fitness-cards"></div>
 
   <!-- v6.x Phase 2: 메카닉 section-head -->
   <div class="section-head">
-    <h2>⚙️ 메카닉 (Driveline 5 모델 + ETE + GRF)</h2>
+    <h2>메카닉 (Driveline 5 모델 + ETE + GRF)</h2>
     <div class="desc">5축 라디아 · 키네틱 시퀀스 · 분절간 ETE · GRF · 에너지 손실 Top 3</div>
   </div>
 
   <!-- v6.x Phase 5: Composite Mechanics — Pro 도넛 + 5축 progress bar -->
   <div class="panel" id="p-composite-panel">
-    <h2>📊 Composite Mechanics <span class="badge">5 모델 종합</span></h2>
+    <h2>Composite Mechanics <span class="badge">5 모델 종합</span></h2>
     <div class="composite">
       <div class="composite-donut">
         <div class="ring" id="p-comp-ring" style="--ring-deg:0deg">
@@ -1221,7 +1221,7 @@
 
   <!-- v6.x Phase 5: ETE — 분절 Peak Timing SVG (Pro 스타일) -->
   <div class="panel">
-    <h2>🔗 Energy Transfer (ETE) <span class="badge">분절간 lag + Peak timing</span></h2>
+    <h2>Energy Transfer (ETE) <span class="badge">분절간 lag + Peak timing</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">
       Proximal-to-distal sequence — 골반 → 몸통 → 위팔 → 아래팔 → 손 순서로 peak ω 도달 timing
     </div>
@@ -1236,7 +1236,7 @@
 
   <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (Pro 스타일 .weakness-list) -->
   <div class="panel">
-    <h2>🎯 약점 Top 3 + 처방 <span class="badge">5 모델 + ETE 결합</span></h2>
+    <h2>약점 Top 3 + 처방 <span class="badge">5 모델 + ETE 결합</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
       <b>5 모델 중요도 높음 변인의 음의 차이 (km/h)</b> + <b>분절간 ETE 100점 미만 transition</b> 결합 → 구속 손실 큰 순 Top 3.
       <b>훈련 처방 1순위</b>.
@@ -1264,7 +1264,7 @@
 
   <!-- v6.x: Pro section-head 통일 -->
   <div class="section-head">
-    <h2>🎯 결과 (부상위험 · 제구 일관성)</h2>
+    <h2>결과 (부상위험 · 제구 일관성)</h2>
     <div class="desc">메카닉 결과로 본 부상 위험도 + 릴리스 일관성 점수</div>
   </div>
 
@@ -1272,7 +1272,7 @@
 
   <!-- 부상위험 · 제구일관성 카드만 유지 (제구는 별도 framework) -->
   <div class="panel">
-    <h2>🩺 부상위험 · 제구 일관성</h2>
+    <h2>부상위험 · 제구 일관성</h2>
     <div class="grid grid-1">
       <div class="scard">
         <h3>부상위험 · 제구일관성</h3>
@@ -1301,7 +1301,7 @@
 
   <!-- 🎯 랩소도 패스트볼 분석 (Rapsodo 2.0) -->
   <div class="panel print-break">
-    <h2>🎯 랩소도 패스트볼 분석 <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo 2.0</span>
+    <h2>랩소도 패스트볼 분석 <span class="protocol-tag" style="background:#e6f7e9;color:#0a7d23;border-color:#a3e0b1">Rapsodo 2.0</span>
         <span class="badge" id="rap-cohort-badge">코호트: KBO 기준</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
       릴리스 → 플레이트까지의 변화, 회전 효율·축, IVB/HB 무브먼트, 진입각, 릴리스 일관성을 코호트 평균과 함께 평가.
@@ -1315,11 +1315,11 @@
 
   <!-- v6.x: Pro section-head 통일 -->
   <div class="section-head">
-    <h2>📋 종합 권장 — Action Plan</h2>
+    <h2>종합 권장 — Action Plan</h2>
     <div class="desc">Bigger Lever 진단 + 우선순위 훈련 매핑</div>
   </div>
   <div class="panel" style="border-left:4px solid #cf222e">
-    <h2>📋 종합 권장 — Bigger Lever 진단 + 우선순위 훈련</h2>
+    <h2>종합 권장 — Bigger Lever 진단 + 우선순위 훈련</h2>
     <div id="p-summary-action" style="font-size:12.5px;line-height:1.7"></div>
   </div>
 
@@ -1329,7 +1329,7 @@
 <section style="display:none" id="hidden-fitness-source">
   <!-- 체력 종합 — Driveline HP Assessment 6축 (v5.25) -->
   <div class="panel" id="card-hp-assessment">
-    <h2>💪 체력 종합 — HP Composite 6축 <span class="badge">Driveline HP Assessment 표준</span></h2>
+    <h2>체력 종합 — HP Composite 6축 <span class="badge">Driveline HP Assessment 표준</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
       Driveline HP Assessment 6축 (Strength · Relative Strength · Power · Relative Power · Reactive Strength · Upper Body Power).
       <b>100 = HS group 평균</b>, 본인 위치 + 90+ mph cohort 목표 동시 비교.
@@ -1403,7 +1403,7 @@
 
   <!-- 체력 (ForceDecks) 4 카드 — raw 측정값 (분석가용) -->
   <div class="panel" id="card-fitness-raw">
-    <h2>📊 ForceDecks Raw 측정값 <span class="badge">분석가용</span></h2>
+    <h2>ForceDecks Raw 측정값 <span class="badge">분석가용</span></h2>
     <details>
       <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
         펼쳐서 CMJ · SJ · Pogo · IMTP 4 테스트의 raw 측정값 + 한국·College·MLB cohort 비교 보기
@@ -1421,7 +1421,7 @@
 
   <!-- v4.2 leftover: HP Assessment ridge plot — 별도 details 폴더로 보존 -->
   <div class="panel" id="card-hp-ridge" style="display:none">
-    <h2 style="font-size:13px">💪 HP Assessment Ridge Plot <span class="badge">분석가용</span></h2>
+    <h2 style="font-size:13px">HP Assessment Ridge Plot <span class="badge">분석가용</span></h2>
     <details>
       <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
         Velo Group 분포 ridge plot (각 변수의 그룹별 분포 + 본인 위치)
@@ -1459,7 +1459,7 @@
       <div id="theia-json-result" style="margin-top:10px;font-size:12px"></div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" id="dl-theia-template-single">📄 단일 템플릿 다운로드</button>
-        <button class="btn" id="dl-theia-template-batch">📦 배치 템플릿 다운로드</button>
+        <button class="btn" id="dl-theia-template-batch">배치 템플릿 다운로드</button>
         <button class="btn ghost" id="reset-data" style="margin-left:auto">샘플 데이터로 복원</button>
       </div>
       <div class="footnote" style="margin-top:12px">
@@ -1639,7 +1639,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 <section id="tab-report" class="hidden">
 
   <div class="panel">
-    <h2>📋 리포트 출력 메뉴</h2>
+    <h2>리포트 출력 메뉴</h2>
     <div style="font-size:13px;color:var(--text-soft);line-height:1.7">
       두 종류의 리포트를 PDF로 생성합니다 — <b>① 선수별 개별 리포트</b>(선수에게 배포)와
       <b>② 코치 종합 리포트</b>(코치·감독 미팅 자료).<br>
@@ -1650,7 +1650,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
   <div class="grid grid-2">
     <!-- ① 선수별 개별 리포트 -->
     <div class="panel">
-      <h2>👤 선수별 개별 리포트</h2>
+      <h2>선수별 개별 리포트</h2>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
         각 선수당 1페이지. 선택한 선수만 일괄 PDF로 출력 → 한 번에 인쇄·저장 후 코치/선수에게 배포.
       </div>
@@ -1680,7 +1680,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 
     <!-- ② 코치 종합 리포트 -->
     <div class="panel">
-      <h2>📊 코치 종합 리포트</h2>
+      <h2>코치 종합 리포트</h2>
       <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
         팀 전체 결과를 코치 시각으로 정리 — 우선순위 행동, 부상위험 알림, 결함 패턴, 그룹 훈련 추천까지.
       </div>
@@ -1701,7 +1701,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
 
   <!-- 코치 리포트 미리보기 -->
   <div class="panel">
-    <h2>👀 코치 리포트 미리보기 <span class="badge">실시간 데이터 기반 자동 생성</span></h2>
+    <h2>코치 리포트 미리보기 <span class="badge">실시간 데이터 기반 자동 생성</span></h2>
     <div id="coach-report-preview" style="background:#fff;padding:0;border:none"></div>
   </div>
 
@@ -10698,7 +10698,7 @@ function coachReport(sid){
       대상: 투수 ${total}명 · 발행일: ${new Date().toISOString().slice(0,10)} · 발행: 국민대학교 바이오메카닉스 연구실
     </div>
 
-    <h2>📊 팀 평균 (헤드라인)</h2>
+    <h2>팀 평균 (헤드라인)</h2>
     <div class="grid4">
       <div class="gr-kpi"><div class="lbl">평균 측정 구속</div><div class="val">${fmt(team.velo,1)} <span style="font-size:11px">km/h</span></div><div class="sub">${fmt(team.veloMin,1)}~${fmt(team.veloMax,1)} 범위</div></div>
       <div class="gr-kpi"><div class="lbl">팀 평균 메카닉 (5 모델)</div><div class="val" style="color:${scoreColor(team.mech)}">${fmt(team.mech,1)}</div><div class="sub">팔동작·자세·회전·앞다리·체중이동 평균</div></div>
@@ -10706,7 +10706,7 @@ function coachReport(sid){
       <div class="gr-kpi"><div class="lbl">부상위험 알림</div><div class="val" style="color:${(high.length+mid.length)>5?'#cf222e':(high.length+mid.length)>2?'#bf8700':'#1a7f37'}">${high.length + mid.length}명</div><div class="sub">High ${high.length} · Mid ${mid.length}</div></div>
     </div>
 
-    <h2>🏆 선수 그룹 분포</h2>
+    <h2>선수 그룹 분포</h2>
     ${grouped.map(g=>`
       <div class="group-row" style="border-left-color:${g.color}">
         <span class="name" style="color:${g.color}">${g.name}</span>
@@ -10743,7 +10743,7 @@ function coachReport(sid){
       <br><span style="color:#666;font-size:11px">→ 다음 ${SESSIONS.find(s=>s.id>sid)?.label || '회차'} 측정 전 1:1 면담 + 훈련 처방 권고.</span>
     </div>` : ''}
 
-    <h2>📋 부록 — 선수별 핵심 지표 (종합점수 내림차순)</h2>
+    <h2>부록 — 선수별 핵심 지표 (종합점수 내림차순)</h2>
     <table>
       <thead><tr>
         <th>선수</th><th>투구</th><th>구속</th><th>잠재</th><th>종합</th>
