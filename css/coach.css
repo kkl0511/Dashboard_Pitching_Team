@@ -1,0 +1,456 @@
+/* ════════════════════════════════════════════════════════
+   COACH VIEW v2 — 코치/선수용 1차 리포트 스타일
+   라이트 모드 (분석가 dashboard 와 동일 palette).
+   ════════════════════════════════════════════════════════ */
+:root{
+  /* 라이트 mode palette */
+  --bg:         #ffffff;
+  --bg-2:       #fafafa;
+  --panel:      #ffffff;
+  --panel-2:    #fafafa;
+  --line:       #e5e5e5;
+  --line-soft:  #f0f0f0;
+  --text:       #14213d;
+  --text-soft:  #2c3e5c;
+  --muted:      #6c757d;
+  --accent:     #e63946;
+  --accent-2:   #ff6b6b;
+  --accent-bg:  #fef2f2;
+  --grade-elite: #00854a;
+  --grade-above: #0969da;
+  --grade-avg:   #6c757d;
+  --grade-below: #ca8a04;
+  --grade-poor:  #e63946;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{
+  font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv11";
+  min-height:100vh;
+}
+
+/* ── 헤더 ── */
+header.coach-h{
+  position:sticky;top:0;z-index:60;
+  background:#ffffff;
+  border-bottom:1px solid var(--line);
+  padding:12px 18px;
+  display:flex;align-items:center;gap:12px;
+}
+header.coach-h .brand{
+  font-weight:700;font-size:14px;letter-spacing:-0.01em;color:var(--text);
+  margin-right:auto;
+}
+header.coach-h .brand .sub{color:var(--muted);font-size:11px;font-weight:500;margin-left:6px}
+header.coach-h .nav-link{
+  color:var(--text-soft);text-decoration:none;font-size:12px;font-weight:600;
+  padding:7px 11px;border:1px solid var(--line);border-radius:8px;
+  background:var(--panel-2);white-space:nowrap;
+}
+header.coach-h .nav-link:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+
+/* ── Tab 네비 ── */
+nav.tabs{
+  display:flex;gap:0;
+  background:var(--panel);
+  border-bottom:1px solid var(--line);
+  padding:0 14px;
+  position:sticky;top:50px;z-index:50;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+nav.tabs button{
+  background:transparent;border:none;color:var(--muted);
+  padding:13px 18px;font-size:14px;cursor:pointer;
+  border-bottom:2px solid transparent;font-weight:600;font-family:inherit;
+  white-space:nowrap;letter-spacing:-0.01em;
+}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+nav.tabs button .badge{
+  background:var(--accent-bg);color:var(--accent);
+  font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;margin-left:6px;
+}
+
+main{padding:18px 16px 60px;max-width:920px;margin:0 auto}
+section.tab-pane{display:none}
+section.tab-pane.active{display:block}
+
+/* ── 공용 카드/섹션 ── */
+.meta-card{
+  margin-bottom:18px;padding:12px 16px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  font-size:13.5px;color:var(--text-soft);
+}
+.meta-card .name{
+  color:var(--text);font-weight:700;font-size:18px;letter-spacing:-0.02em;margin-right:8px;
+}
+.meta-card .pill{
+  display:inline-block;background:var(--panel-2);color:var(--text);
+  padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:4px;
+  border:1px solid var(--line);
+}
+
+.kpi-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;
+}
+.kpi{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+}
+.kpi .label{
+  font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;
+  font-weight:600;margin-bottom:8px;
+}
+.kpi .value{
+  font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.03em;
+  font-feature-settings:"tnum";line-height:1;
+}
+.kpi .value .unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+.kpi .delta{font-size:11.5px;color:var(--muted);margin-top:6px;font-weight:500}
+.kpi .delta.up{color:var(--grade-elite)}
+.kpi .delta.down{color:var(--accent)}
+.kpi .value.risk-low{color:var(--grade-elite)}
+.kpi .value.risk-mid{color:var(--grade-below)}
+.kpi .value.risk-high{color:var(--grade-poor)}
+
+.section{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:22px 22px;margin-bottom:18px;
+}
+.section-title{
+  display:flex;align-items:baseline;gap:10px;margin:0 0 18px;
+  font-size:13px;font-weight:700;color:var(--accent);
+  text-transform:uppercase;letter-spacing:1px;
+}
+.section-title .step{
+  background:var(--accent);color:#fff;width:24px;height:24px;
+  border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;letter-spacing:0;
+}
+.section-title .h{
+  font-size:18px;color:var(--text);text-transform:none;letter-spacing:-0.01em;font-weight:700;
+}
+
+/* ── 오늘의 폼 — Composite 도넛 + 5축 bar ── */
+.composite{display:grid;grid-template-columns:200px 1fr;gap:30px;align-items:center}
+.composite-donut{
+  position:relative;width:180px;height:180px;display:grid;place-items:center;margin:0 auto;
+}
+.composite-donut .ring{
+  width:180px;height:180px;border-radius:50%;
+  background:conic-gradient(
+    var(--accent) 0deg var(--ring-deg, 0deg),
+    var(--panel-2) var(--ring-deg, 0deg) 360deg
+  );
+  display:grid;place-items:center;
+}
+.composite-donut .inner{
+  width:148px;height:148px;border-radius:50%;
+  background:var(--panel);display:grid;place-items:center;text-align:center;
+}
+.composite-donut .score-num{
+  font-size:56px;font-weight:800;color:var(--text);
+  font-feature-settings:"tnum";line-height:1;letter-spacing:-0.04em;
+}
+.composite-donut .score-label{
+  margin-top:4px;font-size:10px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1.4px;font-weight:600;
+}
+.composite-bars{display:grid;gap:18px}
+.bar-row{
+  display:grid;grid-template-columns:90px 1fr 80px;gap:14px;align-items:center;font-size:14px;
+}
+.bar-row .bar-label{font-weight:600;color:var(--text)}
+.bar-row .bar-track{height:10px;background:var(--panel-2);border-radius:5px;overflow:hidden}
+.bar-row .bar-fill{
+  height:100%;
+  background:linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-radius:5px;transition:width 500ms ease-out;
+}
+.bar-row .bar-value{text-align:right;font-feature-settings:"tnum"}
+.bar-row .bar-value .num{font-weight:800;font-size:16px;color:var(--text)}
+.bar-row .bar-value .grade{font-size:10.5px;margin-left:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+.bar-row .bar-interp{
+  grid-column:2/4;font-size:11.5px;color:var(--muted);margin-top:-4px;line-height:1.5;
+}
+.grade.elite{color:var(--grade-elite)}
+.grade.above{color:var(--grade-above)}
+.grade.avg  {color:var(--grade-avg)}
+.grade.below{color:var(--grade-below)}
+.grade.poor {color:var(--grade-poor)}
+
+/* ── 다이나믹 시퀀싱 차트 — PROBLEMS 안에 ── */
+.seq-chart-wrap{
+  background:#fff;border-radius:10px;padding:14px 14px 8px;margin-bottom:14px;
+}
+.seq-chart-title{
+  font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px;
+}
+.seq-chart-sub{
+  font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.5;
+}
+.seq-chart-diag{
+  font-size:13px;line-height:1.6;padding:10px 14px;border-radius:8px;margin-top:10px;
+}
+.seq-chart-diag.ok  {background:rgba(16,185,129,0.10);color:#065f46;border-left:3px solid #10b981}
+.seq-chart-diag.warn{background:rgba(245,158,11,0.10);color:#7c2d12;border-left:3px solid #f59e0b}
+.seq-chart-diag.bad {background:rgba(239,68,68,0.10);color:#7f1d1d;border-left:3px solid #ef4444}
+
+/* ── Top 3 (문제점) ── */
+.top3{display:grid;gap:14px}
+.top3-item{
+  display:grid;grid-template-columns:46px 1fr 100px;gap:16px;align-items:center;
+  padding:16px 18px;background:var(--panel-2);border-radius:10px;border:1px solid var(--line);
+}
+.top3-item .rank{
+  width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:18px;font-feature-settings:"tnum";
+}
+.top3-item .body .name{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.top3-item .body .meta{font-size:12px;color:var(--muted)}
+.top3-item .body .info{
+  display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--text-soft);line-height:1.55;
+}
+.top3-item .body .info .lbl{
+  color:var(--accent);font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+  text-transform:uppercase;margin-right:6px;
+}
+.top3-item .impact{text-align:right}
+.top3-item .impact .gain{
+  font-size:22px;font-weight:800;color:var(--grade-elite);font-feature-settings:"tnum";line-height:1;
+}
+.top3-item .impact .gain-unit{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── 해결방안 ── */
+.solution-item{
+  padding:16px 18px;background:var(--panel-2);border-radius:10px;
+  border-left:3px solid var(--grade-elite);margin-bottom:10px;
+}
+.solution-item .rank{
+  color:var(--grade-elite);font-weight:800;font-size:14px;
+  text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;
+}
+.solution-item .drill{font-size:15px;color:var(--text);font-weight:600;line-height:1.5}
+.solution-item .cue{
+  margin-top:10px;padding:10px 12px;background:var(--panel);border-radius:8px;
+  border-left:3px solid var(--accent);font-size:13.5px;color:var(--text);line-height:1.6;
+}
+.solution-item .cue .lbl{
+  color:var(--accent);font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+  text-transform:uppercase;display:block;margin-bottom:4px;
+}
+.solution-item .observe{
+  margin-top:8px;padding:10px 12px;background:rgba(56,189,248,0.08);border-radius:8px;
+  font-size:12.5px;color:var(--text-soft);line-height:1.55;
+}
+.solution-item .observe .lbl{
+  color:#7dd3fc;font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+  text-transform:uppercase;display:block;margin-bottom:4px;
+}
+
+/* ── TALKING POINTS (선수 설명용 자동 스크립트) ── */
+.talking-points{
+  background:linear-gradient(180deg, #fef2f2, #ffffff);
+  border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:10px;padding:18px 20px;
+}
+.talking-points h3{
+  margin:0 0 12px;font-size:14px;color:var(--accent);font-weight:700;
+  text-transform:uppercase;letter-spacing:0.6px;
+}
+.talking-points .tp-block{
+  margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--line);
+}
+.talking-points .tp-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.talking-points .tp-step{
+  color:var(--accent);font-weight:700;font-size:11.5px;letter-spacing:0.4px;
+  text-transform:uppercase;margin-bottom:6px;
+}
+.talking-points .tp-script{
+  font-size:14px;color:var(--text);line-height:1.7;
+}
+.talking-points .tp-script q{
+  quotes:'\201C' '\201D';color:var(--text);font-style:italic;
+}
+.talking-points .tp-note{
+  font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5;
+}
+
+/* ── 마네킹 (라이트 모드) ── */
+.mannequin-wrap{
+  background:transparent;border-radius:0;padding:0;display:block;min-height:240px;
+}
+
+/* ── 체력 + 랩소도 카드 ── */
+.stat-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;
+}
+.stat-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;
+}
+.stat-card .lbl{
+  font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;
+  margin-bottom:6px;
+}
+.stat-card .num{
+  font-size:24px;font-weight:800;color:var(--text);font-feature-settings:"tnum";letter-spacing:-0.02em;
+  line-height:1.1;
+}
+.stat-card .num .u{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px}
+.stat-card .interp{
+  font-size:11.5px;color:var(--text-soft);margin-top:8px;line-height:1.5;
+}
+.stat-card.hi  {border-left:3px solid var(--grade-elite)}
+.stat-card.mid {border-left:3px solid var(--grade-below)}
+.stat-card.lo  {border-left:3px solid var(--grade-poor)}
+.stat-summary{
+  background:var(--accent-bg);border-left:3px solid var(--accent);
+  border-radius:8px;padding:12px 14px;margin-bottom:14px;
+  font-size:13px;color:var(--text);line-height:1.6;
+}
+.stat-summary b{color:var(--accent)}
+.stat-empty{
+  padding:18px;background:var(--panel-2);border-radius:8px;
+  color:var(--muted);text-align:center;font-size:13px;
+}
+
+/* ── 선수 dropdown ── */
+.player-select-wrap{margin-bottom:18px}
+.player-select{
+  width:100%;
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:10px;
+  padding:14px 18px;font-size:15px;font-family:inherit;font-weight:600;
+  cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 5l3 3 3-3' stroke='%23cbd5e1' stroke-width='1.5' fill='none'/></svg>");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ▶ Tab 1: 팀 현황
+   ════════════════════════════════════════════════════════ */
+.player-card{
+  display:grid;grid-template-columns:34px 1fr auto auto;gap:14px;align-items:center;
+  padding:12px 16px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;
+}
+.player-card:hover{border-color:var(--accent);background:var(--panel)}
+.player-card .rank-num{
+  font-weight:800;font-size:16px;color:var(--muted);text-align:center;font-feature-settings:"tnum";
+}
+.player-card .info .name{font-weight:700;font-size:15px;color:var(--text)}
+.player-card .info .meta{font-size:11.5px;color:var(--muted);margin-top:1px}
+.player-card .velo{
+  font-weight:700;font-size:14px;color:var(--text-soft);font-feature-settings:"tnum";
+  text-align:right;
+}
+.player-card .velo .unit{font-size:10px;color:var(--muted);margin-left:2px}
+.player-card .composite{
+  font-weight:800;font-size:18px;font-feature-settings:"tnum";text-align:center;
+  min-width:42px;
+}
+.player-card .composite.elite{color:var(--grade-elite)}
+.player-card .composite.above{color:var(--grade-above)}
+.player-card .composite.avg  {color:var(--grade-avg)}
+.player-card .composite.below{color:var(--grade-below)}
+.player-card .composite.poor {color:var(--grade-poor)}
+
+.legend-row{
+  display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);
+  margin-top:14px;padding:10px 12px;background:var(--panel-2);border-radius:8px;
+}
+.legend-row span{display:inline-flex;align-items:center;gap:4px}
+.legend-row .dot{width:8px;height:8px;border-radius:50%}
+
+/* ════════════════════════════════════════════════════════
+   ▶ Tab 3: 장기 추적
+   ════════════════════════════════════════════════════════ */
+.trend-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;
+}
+.trend-cell{
+  background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+  padding:14px 14px;text-align:center;
+}
+.trend-cell .session-label{
+  font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;
+}
+.trend-cell .protocol{font-size:10px;color:var(--muted);margin-bottom:8px}
+.trend-cell .value{
+  font-size:24px;font-weight:800;font-feature-settings:"tnum";color:var(--text);letter-spacing:-0.02em;
+}
+.trend-cell .value.empty{color:var(--muted);font-size:16px;font-weight:500}
+.trend-cell .delta{font-size:11px;margin-top:4px;font-weight:600}
+.trend-cell .delta.up{color:var(--grade-elite)}
+.trend-cell .delta.down{color:var(--accent)}
+
+.model-trend{display:grid;gap:10px}
+.model-trend-row{
+  display:grid;grid-template-columns:90px repeat(4, 1fr);gap:8px;align-items:center;
+  padding:8px 10px;background:var(--panel-2);border-radius:8px;font-size:13px;
+}
+.model-trend-row .ml{font-weight:600;color:var(--text)}
+.model-trend-row .session-val{
+  text-align:center;font-feature-settings:"tnum";font-weight:700;font-size:13px;color:var(--text);
+}
+.model-trend-row .session-val.empty{color:var(--muted);font-weight:500}
+
+/* ── 공용 pill ── */
+.pill{display:block;padding:4px 10px;border-radius:5px;font-size:11.5px;font-weight:600;margin:3px 0}
+.pill.good{background:rgba(74,222,128,0.15);color:var(--grade-elite)}
+.pill.warn{background:rgba(251,191,36,0.15);color:var(--grade-below)}
+.pill.bad {background:rgba(248,113,113,0.15);color:var(--grade-poor)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+.empty-state .ico{font-size:36px;margin-bottom:14px;opacity:0.5}
+
+/* ── 모바일 반응형 ── */
+@media (max-width:640px){
+  body{font-size:14px}
+  main{padding:14px 12px 40px}
+  header.coach-h{padding:10px 14px;gap:8px}
+  header.coach-h .brand{font-size:13px}
+  header.coach-h .brand .sub{display:none}
+  header.coach-h .nav-link{padding:6px 9px;font-size:11px}
+  nav.tabs{padding:0 6px;top:42px}
+  nav.tabs button{padding:11px 14px;font-size:13px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi{padding:12px 14px}
+  .kpi .label{font-size:10px;margin-bottom:6px}
+  .kpi .value{font-size:22px}
+  .meta-card .name{font-size:16px}
+  .section{padding:18px 16px;margin-bottom:14px;border-radius:10px}
+  .section-title{margin-bottom:14px}
+  .section-title .h{font-size:16px}
+  .composite{grid-template-columns:140px 1fr;gap:18px}
+  .composite-donut{width:140px;height:140px}
+  .composite-donut .ring{width:140px;height:140px}
+  .composite-donut .inner{width:114px;height:114px}
+  .composite-donut .score-num{font-size:42px}
+  .bar-row{grid-template-columns:80px 1fr 70px;gap:10px;font-size:13px}
+  .bar-row .bar-value .num{font-size:14px}
+  .top3-item{grid-template-columns:36px 1fr 80px;padding:14px 14px;gap:12px}
+  .top3-item .rank{width:32px;height:32px;font-size:16px}
+  .top3-item .body .name{font-size:14px}
+  .top3-item .impact .gain{font-size:18px}
+  .player-card{grid-template-columns:28px 1fr auto auto;padding:10px 12px;gap:10px}
+  .player-card .rank-num{font-size:14px}
+  .player-card .info .name{font-size:14px}
+  .player-card .composite{font-size:16px;min-width:36px}
+  .player-card .velo{font-size:12px}
+  .trend-grid{grid-template-columns:repeat(2,1fr)}
+  .trend-cell .value{font-size:18px}
+  .model-trend-row{grid-template-columns:70px repeat(4,1fr);font-size:12px}
+}
+@media (max-width:380px){
+  .composite{grid-template-columns:1fr;gap:14px}
+  .composite-donut{margin:0 auto}
+}
+/* iframe 숨김 */
+#data-iframe{position:absolute;top:-9999px;left:-9999px;width:1200px;height:800px;visibility:hidden;pointer-events:none}
+</content>
+</invoke>

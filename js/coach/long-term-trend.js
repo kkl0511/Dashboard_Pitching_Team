@@ -1,0 +1,123 @@
+// ════════════════════════════════════════════════════════
+//  long-term-trend.js — Tab 3: 장기 추적
+//
+//  1·2·3·4차 측정 비교 (구속·종합점수·5 모델 추이)
+//
+//  의존: helpers.js, variable-info.js (computeDvl5, compositeScore)
+// ════════════════════════════════════════════════════════
+
+function renderTrendForPlayer(pid){
+  const p = WIN.PLAYERS.find(x => x.id === pid);
+  if(!p){ $('trend-content').innerHTML = '<div class="empty-state">선수 미선택</div>'; return; }
+  const data = WIN.DATA?.[pid] || {};
+  const sessions = WIN.SESSIONS || [];
+
+  // 차수별 measured_v + composite
+  const sessionData = sessions.map(s => {
+    const m = data[s.id];
+    if(!m) return {s, m:null, v:null, comp:0, dvl5:null};
+    const dvl5 = computeDvl5(p, m);
+    return {s, m, v: m.velocity?.measured_kmh ?? null, comp: compositeScore(dvl5), dvl5};
+  });
+
+  // 차수간 delta (구속)
+  const cells = sessionData.map((sd, i) => {
+    const prev = i > 0 ? sessionData[i-1].v : null;
+    let deltaHtml = '';
+    if(sd.v != null && prev != null){
+      const d = Math.round((sd.v - prev) * 10) / 10;
+      if(d > 0) deltaHtml = `<div class="delta up">+${d} km/h</div>`;
+      else if(d < 0) deltaHtml = `<div class="delta down">${d} km/h</div>`;
+      else deltaHtml = `<div class="delta">±0</div>`;
+    }
+    return `<div class="trend-cell">
+      <div class="session-label">${sd.s.label}</div>
+      <div class="protocol">${sd.s.protocol} · ${sd.s.half}</div>
+      <div class="value ${sd.v ? '' : 'empty'}">${sd.v != null ? sd.v + ' km/h' : '—'}</div>
+      ${deltaHtml}
+    </div>`;
+  }).join('');
+
+  // 5 모델 차수별 진행
+  const modelKeys = [
+    {k:'arm_action', l:'팔동작'},
+    {k:'posture', l:'자세'},
+    {k:'rotation', l:'회전 속도'},
+    {k:'block', l:'앞다리 제동'},
+    {k:'cog', l:'체중이동'},
+  ];
+  const modelRows = modelKeys.map(mk => {
+    const cellsHtml = sessionData.map(sd => {
+      const sc = sd.dvl5?.[mk.k]?.score;
+      if(sc == null) return `<div class="session-val empty">—</div>`;
+      const g = gradeOf(sc);
+      return `<div class="session-val grade ${g.cls}" style="color:var(--grade-${g.cls === 'elite' ? 'elite' : g.cls === 'above' ? 'above' : g.cls === 'avg' ? 'avg' : g.cls === 'below' ? 'below' : 'poor'})">${Math.round(sc)}</div>`;
+    }).join('');
+    return `<div class="model-trend-row"><div class="ml">${mk.l}</div>${cellsHtml}</div>`;
+  }).join('');
+
+  // composite 차수별
+  const compRow = (() => {
+    const cellsHtml = sessionData.map(sd => {
+      if(!sd.comp) return `<div class="session-val empty">—</div>`;
+      const g = gradeOf(sd.comp);
+      return `<div class="session-val grade ${g.cls}" style="color:var(--grade-${g.cls === 'elite' ? 'elite' : g.cls === 'above' ? 'above' : g.cls === 'avg' ? 'avg' : g.cls === 'below' ? 'below' : 'poor'})">${sd.comp}</div>`;
+    }).join('');
+    return `<div class="model-trend-row" style="border:1px solid var(--accent);background:var(--accent-bg)"><div class="ml" style="color:var(--accent)">Composite</div>${cellsHtml}</div>`;
+  })();
+
+  // 향상/하락 highlights (1차→마지막 측정 차수 비교)
+  let highlights = '';
+  const valid = sessionData.filter(sd => sd.dvl5 != null);
+  if(valid.length >= 2){
+    const first = valid[0]; const last = valid[valid.length-1];
+    const improvements = []; const regressions = [];
+    modelKeys.forEach(mk => {
+      const f = first.dvl5?.[mk.k]?.score; const l = last.dvl5?.[mk.k]?.score;
+      if(f == null || l == null) return;
+      const diff = l - f;
+      if(diff >= 5) improvements.push({lbl:mk.l, diff, last:l});
+      else if(diff <= -5) regressions.push({lbl:mk.l, diff, last:l});
+    });
+    improvements.sort((a,b) => b.diff - a.diff);
+    regressions.sort((a,b) => a.diff - b.diff);
+    highlights = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px">
+        <div>
+          <div style="font-size:12px;color:var(--grade-elite);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">▲ 향상</div>
+          ${improvements.length === 0 ? '<div style="color:var(--muted);font-size:13px">변화 없음</div>' :
+            improvements.map(i => `<div style="padding:8px 10px;background:rgba(74,222,128,0.10);border-radius:6px;margin-bottom:6px;font-size:13px"><b>${i.lbl}</b> <span style="color:var(--grade-elite);font-weight:700">+${i.diff}</span></div>`).join('')}
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">▼ 하락</div>
+          ${regressions.length === 0 ? '<div style="color:var(--muted);font-size:13px">변화 없음</div>' :
+            regressions.map(r => `<div style="padding:8px 10px;background:rgba(248,113,113,0.10);border-radius:6px;margin-bottom:6px;font-size:13px"><b>${r.lbl}</b> <span style="color:var(--accent);font-weight:700">${r.diff}</span></div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  $('trend-content').innerHTML = `
+    <div class="meta-card">
+      <span class="name">${p.name}</span>
+      <span class="pill">${p.id}</span>
+      <span class="pill">${p.arm==='L'?'좌투':'우투'}</span>
+      <span style="color:var(--muted);font-size:12px;margin-left:8px">상·하반기 4회 측정 추이</span>
+    </div>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">1</span><span>VELOCITY</span><span class="h">측정 구속 추이</span></h2>
+      <div class="trend-grid">${cells}</div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">2</span><span>MODEL SCORE</span><span class="h">5 모델 점수 추이</span></h2>
+      <div class="model-trend">
+        ${compRow}
+        ${modelRows}
+      </div>
+      ${highlights}
+    </section>
+  `;
+}
+
+// v3: drop zone 제거 — 코칭용에는 데이터 입력 없음. 데이터는 분석가가 dashboard.html 에서 입력.

@@ -1,0 +1,131 @@
+function renderFitness(m){
+  const f = m.fitness;
+  if(!f) return '<div class="stat-empty">체력 측정 데이터 없음 (ForceDecks)</div>';
+  // ANALYTICS.drivelineHPDiagnosis 호출 (iframe WIN 경유)
+  const dx = WIN?.ANALYTICS?.drivelineHPDiagnosis ? WIN.ANALYTICS.drivelineHPDiagnosis({
+    imtp_npf:        f.imtp?.peak_force_n,
+    imtp_pf_bm:      f.imtp?.peak_force_bm_n_kg,
+    sj_pp_bm:        f.sj?.peak_power_bm_w_kg,
+    cmj_pp_bm:       f.cmj?.peak_power_bm_w_kg,
+    pogo_rsi:        f.pogo?.rsi_ms,
+    plyo_push_up_pf: f.pp?.peak_takeoff_force_n
+  }) : null;
+  if(!dx) return '<div class="stat-empty">체력 분석 모듈 로딩 대기 — 잠시 후 다시 시도</div>';
+
+  // 6축 순서 (Driveline HP 표준)
+  const axisOrder = ['strength','rel_strength','power','rel_power','reactive','upper_power'];
+  const axes = axisOrder.map(k => {
+    const a = dx[k] || {};
+    const refs = a.velo_group_refs || {};
+    const hsAvg = a.hs_avg || 100;
+    const eliteTarget = refs['90+'] ? Math.round((refs['90+']/hsAvg) * 100) : 130;
+    return {
+      key: k,
+      label_kr: a.label_kr || k,
+      sub: a.sub || '',
+      score: a.not_measured ? null : (a.score ?? null),
+      value: a.value, unit: a.unit, hs_avg: hsAvg,
+      elite_score: eliteTarget,
+      velo_group: a.velo_group
+    };
+  });
+
+  // SVG geometry
+  const W = 380, H = 380;
+  const cx = W/2, cy = H/2 + 8;
+  const rMax = 130;            // 200점 위치
+  const scoreCap = 200;        // y축 최대 점수
+  // 6축 각도 (top=0°/strength, clockwise)
+  const angleDeg = i => -90 + i*60;
+  const rad = d => d * Math.PI/180;
+  const ptAt = (i, score) => {
+    const r = (Math.max(0, Math.min(scoreCap, score||0)) / scoreCap) * rMax;
+    const a = rad(angleDeg(i));
+    return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+  };
+
+  // 그리드 (4개 동심 hexagon — 50/100/150/200)
+  const gridRings = [50, 100, 150, 200].map(level => {
+    const pts = axisOrder.map((_, i) => ptAt(i, level).map(v=>v.toFixed(1)).join(',')).join(' ');
+    const stroke = level === 100 ? '#bc4c00' : '#eaeef2';
+    const strokeW = level === 100 ? 1.4 : 1;
+    const dash = level === 100 ? '3,3' : '0';
+    return `<polygon points="${pts}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="${level===100?0.7:1}"/>`;
+  }).join('');
+  // 축 라인
+  const axisLines = axisOrder.map((_, i) => {
+    const [ex, ey] = ptAt(i, scoreCap);
+    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="#eaeef2" stroke-width="1"/>`;
+  }).join('');
+  // 라벨 (축 끝 바깥)
+  const axisLabels = axes.map((a, i) => {
+    const [lx, ly] = ptAt(i, scoreCap * 1.18);
+    const anchor = (i===0 || i===3) ? 'middle' : (lx > cx ? 'start' : 'end');
+    return `<text x="${lx}" y="${ly+4}" font-size="12" font-weight="700" fill="#14213d" text-anchor="${anchor}">${a.label_kr}</text>
+<text x="${lx}" y="${ly+17}" font-size="10" fill="#6c757d" text-anchor="${anchor}">${a.score != null ? a.score : '—'}점</text>`;
+  }).join('');
+  // ─── 데이터 layer ───
+  // 90+ mph cohort 목표 (dashed blue)
+  const elitePts = axes.map((a, i) => ptAt(i, a.elite_score || 130).map(v=>v.toFixed(1)).join(',')).join(' ');
+  // HS 평균은 위 grid 의 100 ring 이 그 역할
+  // 본인 score polygon
+  const myPts = axes.map((a, i) => ptAt(i, a.score || 0).map(v=>v.toFixed(1)).join(',')).join(' ');
+  // 본인 vertex circles
+  const myVertices = axes.map((a, i) => {
+    if(a.score == null) return '';
+    const [px, py] = ptAt(i, a.score);
+    return `<circle cx="${px}" cy="${py}" r="4.5" fill="#bc4c00" stroke="#fff" stroke-width="1.5"/>`;
+  }).join('');
+  // ─── 종합 점수 + 강약점 ───
+  const overall = dx.overall_score ?? f.score;
+  const measured = axes.filter(a => a.score != null);
+  const sorted = measured.slice().sort((a,b) => b.score - a.score);
+  const top = sorted[0], bottom = sorted[sorted.length-1];
+  // 친근 종합 멘트
+  let summary = '';
+  if(overall != null){
+    let tier;
+    if(overall >= 130)      tier = '90+ mph cohort 수준 — elite';
+    else if(overall >= 110) tier = 'HS 평균 이상 — 양호';
+    else if(overall >= 90)  tier = 'HS 평균 근처 — 평균';
+    else                    tier = 'HS 평균 미만 — 개선 여지 큼';
+    summary = `<b>체력 종합 ${overall}점</b> · ${tier}`;
+    if(top && bottom && top !== bottom){
+      summary += `<br><span style="font-size:12.5px">강점: <b>${top.label_kr}</b> (${top.score}점) · 약점: <b>${bottom.label_kr}</b> (${bottom.score}점)</span>`;
+    }
+  }
+  // ─── SVG 조립 (다이나믹 grow 애니메이션) ───
+  return `<div class="stat-summary">${summary}</div>
+<div style="display:grid;grid-template-columns:1fr;gap:14px;align-items:center">
+  <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;place-items:center">
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto" xmlns="http://www.w3.org/2000/svg">
+      ${axisLines}
+      ${gridRings}
+      <!-- 90+ mph 목표 (점선 파랑) -->
+      <polygon points="${elitePts}" fill="rgba(9,105,218,0.04)" stroke="#0969da" stroke-width="1.5" stroke-dasharray="6,4" opacity="0">
+        <animate attributeName="opacity" from="0" to="1" dur="0.9s" begin="0.4s" fill="freeze"/>
+      </polygon>
+      <!-- 본인 polygon (filled) -->
+      <g style="transform-origin:${cx}px ${cy}px">
+        <polygon points="${myPts}" fill="rgba(188,76,0,0.22)" stroke="#bc4c00" stroke-width="2.5" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="0.7s" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="0.1" to="1" dur="0.9s" begin="0.7s" fill="freeze" additive="replace"/>
+        </polygon>
+        <g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.4s" fill="freeze"/>${myVertices}</g>
+      </g>
+      <!-- 축 라벨 (맨 위, 클리핑 안되게) -->
+      ${axisLabels}
+      <!-- 가운데 종합 점수 -->
+      <circle cx="${cx}" cy="${cy}" r="28" fill="#fff" stroke="#bc4c00" stroke-width="2"/>
+      <text x="${cx}" y="${cy-2}" font-size="20" font-weight="800" fill="#bc4c00" text-anchor="middle">${overall ?? '—'}</text>
+      <text x="${cx}" y="${cy+12}" font-size="9" font-weight="600" fill="#6c757d" text-anchor="middle">HP 종합</text>
+    </svg>
+    <div style="display:flex;gap:18px;margin-top:10px;font-size:11.5px;color:#6c757d">
+      <span><span style="display:inline-block;width:14px;height:3px;background:#bc4c00;vertical-align:middle"></span> 본인</span>
+      <span><span style="display:inline-block;width:14px;height:3px;background:repeating-linear-gradient(to right,#bc4c00 0 3px,transparent 3px 6px);vertical-align:middle"></span> HS 평균 (100점)</span>
+      <span><span style="display:inline-block;width:14px;height:3px;background:repeating-linear-gradient(to right,#0969da 0 4px,transparent 4px 8px);vertical-align:middle"></span> 90+ mph cohort</span>
+    </div>
+  </div>
+</div>`;
+}
+

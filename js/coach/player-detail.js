@@ -1,0 +1,297 @@
+// ════════════════════════════════════════════════════════
+//  player-detail.js — Tab 2: 선수별 1차 리포트
+//
+//  renderForPlayer (메인 진입점)
+//  → renderPlayerMain (7 섹션 조합)
+//   ├ 오늘의 폼  (renderComposite + compositeBarInterp)
+//   ├ 공의 질    (renderRapsodo)
+//   ├ 체력       (renderFitness)
+//   ├ 힘 흐름    (renderMannequin)
+//   ├ 고칠 곳    (renderSequenceChart + renderProblems)
+//   ├ 훈련 처방  (renderSolutions)
+//   └ 설명 가이드 (renderTalkingPoints)
+//
+//  의존: 위 모든 모듈
+// ════════════════════════════════════════════════════════
+
+function renderForPlayer(pid){
+  const p = WIN.PLAYERS.find(x => x.id === pid);
+  const m = WIN.DATA?.[pid]?.[1];
+  if(!p || !m){
+    $('player-content').innerHTML = '<div class="empty-state"><div class="ico">📊</div><div>이 선수 1차 측정 데이터가 없음</div></div>';
+    return;
+  }
+  const dvl5 = computeDvl5(p, m);
+  $('player-content').innerHTML = renderPlayerMain(p, m, dvl5);
+  if(dvl5){
+    const ring = $('comp-ring');
+    if(ring){
+      const composite = compositeScore(dvl5);
+      const ringDeg = Math.min(360, Math.max(0, composite/150 * 360));
+      ring.style.setProperty('--ring-deg', `${ringDeg}deg`);
+    }
+  }
+}
+
+function renderPlayerMain(p, m, dvl5){
+  const composite = compositeScore(dvl5);
+  const risk = m.faults?.injury_risk || 'low';
+  const riskLbl = risk === 'high' ? '높음' : risk === 'mid' ? '중' : '낮음';
+  const riskCls = `risk-${risk}`;
+  const measured = m.velocity?.measured_kmh;
+  let potential = m.velocity?.potential_kmh ?? m.velocity?.predicted_kmh;
+
+  return `
+    <div class="meta-card">
+      <span class="name">${p.name}</span>
+      <span class="pill">${p.id}</span>
+      <span class="pill">${p.arm==='L'?'좌투':'우투'}</span>
+      <span class="pill">${p.height} cm</span>
+      <span class="pill">${p.weight} kg</span>
+      <span class="pill">측정일 ${m.date || '—'}</span>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">오늘 구속</div>
+        <div class="value">${measured != null ? measured : '—'}<span class="unit">km/h</span></div>
+        <div class="delta">최고 ${measured ? (measured + 1.5).toFixed(1) : '—'} km/h</div>
+      </div>
+      <div class="kpi">
+        <div class="label">목표 구속</div>
+        <div class="value">${potential != null ? potential : '—'}<span class="unit">km/h</span></div>
+        <div class="delta up">+${measured && potential ? (potential - measured).toFixed(1) : '—'} km/h 더 나올 수 있음</div>
+      </div>
+      <div class="kpi">
+        <div class="label">전체 점수</div>
+        <div class="value">${composite}<span class="unit">/100</span></div>
+        <div class="delta">5개 영역 평균</div>
+      </div>
+      <div class="kpi">
+        <div class="label">부상 위험</div>
+        <div class="value ${riskCls}">${riskLbl}</div>
+        <div class="delta">주의 항목 ${m.faults?.fault_count ?? '—'}개</div>
+      </div>
+    </div>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">1</span><span>오늘의 폼</span><span class="h">5가지 영역 점수 한눈에</span></h2>
+      ${renderComposite(dvl5, composite)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">2</span><span>공의 질</span><span class="h">랩소도 — 구속 · 회전 · 무브 · Stuff · 제구</span></h2>
+      ${renderRapsodo(m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">3</span><span>체력</span><span class="h">ForceDecks — 점프 · 근력 · 반응속도 · 비대칭</span></h2>
+      ${renderFitness(m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">4</span><span>힘 흐름</span><span class="h">투구 자세 — 힘이 어디서 새는가</span></h2>
+      <div class="mannequin-wrap">${renderMannequin(p, m, dvl5)}</div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">5</span><span>고칠 곳</span><span class="h">회전 순서 + 가장 시급한 3가지</span></h2>
+      ${renderSequenceChart(m)}
+      ${renderProblems(dvl5, m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">6</span><span>훈련 처방</span><span class="h">drill + 선수에게 말할 cue + 관찰 포인트</span></h2>
+      ${renderSolutions(dvl5, m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">7</span><span>설명 가이드</span><span class="h">선수에게 이렇게 말하세요 — 자동 생성 스크립트</span></h2>
+      ${renderTalkingPoints(p, m, dvl5)}
+    </section>
+  `;
+}
+
+function compositeBarInterp(modelKey, score){
+  if(score == null) return '데이터 없음';
+  const elite = score >= 130, above = score >= 110, avg = score >= 90;
+  const M = {
+    arm_action: {
+      elite:'어깨 젖힘과 채찍 동작 모두 최고 수준. 부상만 조심.',
+      above:'팔동작 좋음. 어깨 젖힘이나 견갑 모음을 조금만 더.',
+      avg:  '팔동작 평균. 어깨 젖힘이나 채찍 속도 둘 중 하나가 부족.',
+      below:'팔동작 약함. 어깨 젖힘·외전·채찍 속도 중 1개 이상 부족.'
+    },
+    posture: {
+      elite:'골반-어깨 분리와 몸통 자세가 매우 안정적.',
+      above:'자세 좋음. 앞으로 기울임이나 옆으로 기울임 미세 조정.',
+      avg:  '자세 평균. 골반-어깨 분리각 또는 몸통 회전이 약함.',
+      below:'자세 약함. 어깨가 너무 일찍 열리거나 분리 부족 — 폼 재정비 필요.'
+    },
+    rotation: {
+      elite:'엉덩이·몸통 회전 속도 모두 최고. 끌어주기 흐름 좋음.',
+      above:'회전 속도 양호. 몸통이 엉덩이의 1.6배 정도면 정상.',
+      avg:  '회전 속도 평균. 엉덩이 또는 몸통 가속 부족.',
+      below:'회전 속도 약함. 코어 파워 강화 + 골반 단독 회전 drill 필요.'
+    },
+    block: {
+      elite:'앞다리 받쳐주기 최고. 추진력→회전 변환 효율 우수.',
+      above:'앞다리 받쳐주기 양호. 보폭이나 무릎 펴기 추가 다듬기.',
+      avg:  '앞다리 평균. 무릎 무너지거나 보폭 부족 가능성.',
+      below:'앞다리 약함. 앞다리 강화 + 착지 시 무릎 펴기 강조.'
+    },
+    cog: {
+      elite:'체중 이동 흐름 최고. 앞으로 가속과 멈춤 모두 효율적.',
+      above:'체중 이동 양호. 앞으로 가속 속도 또는 멈춤 미세 조정.',
+      avg:  '체중 이동 평균. 뒷발 차주기 또는 앞발 멈춤 1개가 약함.',
+      below:'체중 이동 약함. 폭발적 stride drill + 앞다리 받쳐주기 통합.'
+    }
+  };
+  const m = M[modelKey] || {};
+  if(elite) return m.elite || '';
+  if(above) return m.above || '';
+  if(avg)   return m.avg   || '';
+  return m.below || '';
+}
+function renderComposite(dvl5, composite){
+  if(!dvl5) return '<div class="empty-state">데이터 부족</div>';
+  const models = [
+    {k:'arm_action', l:'팔동작'}, {k:'posture',l:'자세'},
+    {k:'rotation',l:'회전 속도'}, {k:'block',l:'앞다리 제동'}, {k:'cog',l:'체중이동'},
+  ];
+  const bars = models.map(m => {
+    const s = dvl5[m.k]?.score;
+    if(s == null) return `<div class="bar-row"><div class="bar-label">${m.l}</div><div class="bar-track"></div><div class="bar-value"><span class="num" style="color:var(--muted)">—</span></div></div>`;
+    const g = gradeOf(s);
+    const pct = Math.min(100, Math.max(0, s/150 * 100));
+    const interp = compositeBarInterp(m.k, s);
+    return `<div class="bar-row">
+      <div class="bar-label">${m.l}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-value"><span class="num">${Math.round(s)}</span><span class="grade ${g.cls}">${g.lbl}</span></div>
+      <div class="bar-interp">${interp}</div>
+    </div>`;
+  }).join('');
+  return `<div class="composite">
+    <div class="composite-donut">
+      <div class="ring" id="comp-ring" style="--ring-deg:0deg">
+        <div class="inner"><div>
+          <div class="score-num">${composite}</div>
+          <div class="score-label">Composite</div>
+        </div></div>
+      </div>
+    </div>
+    <div class="composite-bars">${bars}</div>
+  </div>`;
+}
+
+// infoFor / diagnosisFor / drillFor / computeTop3 는 variable-info.js 에서 제공
+function renderProblems(dvl5, m){
+  const top3 = computeTop3(dvl5, m);
+  if(top3.length === 0){
+    return '<div style="padding:18px;background:rgba(74,222,128,0.10);border-radius:8px;color:var(--grade-elite);text-align:center;font-weight:600">✅ 큰 문제 없음 — 5개 영역 모두 잘 던지는 선수 수준</div>';
+  }
+  return `<div class="top3">${top3.map((c, i) => {
+    const info = infoFor(c);
+    const diag = diagnosisFor(c);
+    return `
+    <div class="top3-item">
+      <div class="rank">${i+1}</div>
+      <div class="body">
+        <div class="name">${c.var_lbl}</div>
+        <div class="meta">${c.model_lbl || ''} · 현재 <b style="color:var(--text)">${formatVal(c.value, c.unit)}</b> ${c.elite ? '· Elite ' + formatVal(c.elite, c.unit) : ''}</div>
+        ${info || diag ? `<div class="info">
+          ${info?.def ? `<div><span class="lbl">이게 뭐냐면</span>${info.def}</div>` : ''}
+          ${info?.why ? `<div><span class="lbl">왜 중요해</span>${info.why}</div>` : ''}
+          ${diag ? `<div><span class="lbl">지금 상태</span>${diag}</div>` : ''}
+        </div>` : ''}
+      </div>
+      <div class="impact">
+        <div class="gain">+${c.loss.toFixed(1)}</div>
+        <div class="gain-unit">km/h 잠재</div>
+      </div>
+    </div>
+  `;}).join('')}</div>`;
+}
+
+function renderSolutions(dvl5, m){
+  const top3 = computeTop3(dvl5, m);
+  if(top3.length === 0) return '<div style="color:var(--muted);text-align:center;padding:14px">처방 필요 영역 없음</div>';
+  return top3.map((c, i) => {
+    const drill = drillFor(c);
+    const info = infoFor(c);
+    return `<div class="solution-item">
+      <div class="rank">처방 ${i+1} · ${c.var_lbl}</div>
+      <div class="drill">${drill}</div>
+      ${info?.cue ? `<div class="cue"><span class="lbl">선수에게 이렇게 말하세요</span>${info.cue}</div>` : ''}
+      ${info?.observe ? `<div class="observe"><span class="lbl">영상에서 이걸 보세요</span>${info.observe}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ▶ TALKING POINTS — 분석가가 선수에게 피드백할 때 쓸 자동 생성 스크립트
+function renderTalkingPoints(p, m, dvl5){
+  if(!dvl5) return '';
+  const composite = compositeScore(dvl5);
+  const top3 = computeTop3(dvl5, m);
+  const measured = m.velocity?.measured_kmh;
+  let potential = m.velocity?.potential_kmh ?? m.velocity?.predicted_kmh;
+  const upside = (measured && potential) ? (potential - measured).toFixed(1) : null;
+  const grade = composite >= 130 ? 'elite' : composite >= 110 ? 'above-avg' : composite >= 90 ? 'average' : 'below-avg';
+  const gradeMsg = {
+    'elite':'전체적으로 elite 수준이다. 이 폼을 유지하면서 미세 조정만 하면 된다.',
+    'above-avg':'전체적으로 평균 이상이다. 몇 가지만 다듬으면 더 올라갈 여지가 크다.',
+    'average':'평균 수준이다. 우선순위 1-2개만 집중하면 빠르게 개선 가능하다.',
+    'below-avg':'개선 여지가 많다. 욕심 부리지 말고 가장 큰 약점 1개에만 집중하자.'
+  }[grade];
+
+  const intro = `${p.name} 선수, 오늘 측정 결과를 같이 볼게요. 종합 점수는 <b>${composite}점</b>으로 ${gradeMsg}`;
+
+  let body = '';
+  if(top3.length > 0){
+    const top1 = top3[0];
+    const info = infoFor(top1);
+    body += `<div class="tp-block">
+      <div class="tp-step">1단계 · 가장 큰 약점 짚기</div>
+      <div class="tp-script">지금 가장 큰 손실은 <b>${top1.var_lbl}</b>이에요. ${info?.def || ''} 측정값 <b>${formatVal(top1.value, top1.unit)}</b>인데 잘 던지는 선수들은 <b>${formatVal(top1.elite, top1.unit)}</b> 정도 — 이것만 채우면 <b>+${top1.loss.toFixed(1)} km/h</b> 더 나올 수 있어요.</div>
+      <div class="tp-note">왜 중요한지: ${info?.why || '—'}</div>
+    </div>`;
+    if(info?.cue){
+      body += `<div class="tp-block">
+        <div class="tp-step">2단계 · 선수에게 이 한 마디 (그대로 말해주세요)</div>
+        <div class="tp-script"><q>${info.cue}</q></div>
+        ${info.observe ? `<div class="tp-note">영상에서 이걸 보세요: ${info.observe}</div>` : ''}
+      </div>`;
+    }
+    if(top3.length >= 2){
+      const c2 = top3[1];
+      const i2 = infoFor(c2);
+      body += `<div class="tp-block">
+        <div class="tp-step">3단계 · 두 번째로 시급한 것</div>
+        <div class="tp-script">그 다음은 <b>${c2.var_lbl}</b> (+${c2.loss.toFixed(1)} km/h 잠재). ${i2?.cue ? `<q>${i2.cue}</q>` : (i2?.why || '')}</div>
+      </div>`;
+    }
+  }
+  if(upside){
+    body += `<div class="tp-block">
+      <div class="tp-step">마무리 — 동기 부여</div>
+      <div class="tp-script">현재 <b>${measured} km/h</b>이지만 메카닉 잠재력은 <b>${potential} km/h</b>이에요. <b>+${upside} km/h</b> 향상 여지가 있다는 뜻 — 충분히 가능합니다.</div>
+    </div>`;
+  }
+  // 부상 위험 경고
+  const risk = m.faults?.injury_risk;
+  if(risk === 'high' || risk === 'mid'){
+    body += `<div class="tp-block" style="background:rgba(248,113,113,0.06);padding:10px 12px;border-radius:8px">
+      <div class="tp-step" style="color:#fca5a5">⚠ 안전 멘트</div>
+      <div class="tp-script">부상 위험 ${risk==='high'?'높음':'중간'} — 구속 욕심보다 폼 안정이 먼저예요. ${m.faults?.fault_count}개 결함 잡고 가요.</div>
+    </div>`;
+  }
+
+  return `<div class="talking-points">
+    <h3>오늘 피드백 — 선수에게 이렇게 설명하세요</h3>
+    <div class="tp-block"><div class="tp-step">시작 멘트</div><div class="tp-script">${intro}</div></div>
+    ${body}
+  </div>`;
+}
+
+// v3: 변인별 상세 정보 — 분석가가 코치/선수에게 설명할 때 쓸 reference.
