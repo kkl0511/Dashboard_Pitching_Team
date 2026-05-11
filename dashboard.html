@@ -1044,14 +1044,14 @@
     </div>
   </div>
 
-  <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
-  <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
+  <!-- v6.x: 좌우 1:1 균등 (분석가용 — 데이터 위주, 좌우 시각 밸런스) -->
+  <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start">
     <div class="panel">
-      <h2>3-1. 메카닉 5 모델 — 라디아 (분석가용) <span class="badge">Driveline 표준</span></h2>
+      <h2>3-1. 메카닉 5 모델 — 라디아 <span class="badge">Driveline 표준</span></h2>
       <div class="chart-wrap" style="height:300px"><canvas id="p-radar"></canvas></div>
       <!-- v5.36: Driveline 변인 Per 1km/h 표 (분석가용 details 폴더) -->
       <details style="margin-top:12px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
-        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 5 모델 변인 상세 + Per 1km/h (분석가용)</summary>
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 5 모델 변인 상세 + Per 1km/h</summary>
         <table style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
           <thead>
             <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
@@ -1086,34 +1086,26 @@
     </div>
     <div class="panel">
       <h2>3-2. 시간축 분석 — 키네틱 시퀀스</h2>
-      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;align-items:center">
-        <div>
-          <img src="assets/kinetic_chain.gif" alt="Kinetic Chain Animation"
-               style="width:100%;max-width:300px;border-radius:6px;border:1px solid var(--line-soft)">
-          <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:center">
-            골반 → 몸통 → 팔 차례로 가속 (proper sequence)
-          </div>
-        </div>
-        <div class="chart-wrap" style="height:300px"><canvas id="p-sequence"></canvas></div>
-      </div>
+      <!-- v6.x: 다이나믹 GIF 제거 (분석가용은 데이터 위주). 차트만 풀폭으로 -->
+      <div class="chart-wrap" style="height:320px"><canvas id="p-sequence"></canvas></div>
       <!-- v5.25: 시퀀스 품질 색깔 설명 -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:11px">
         <div style="background:#f0fdf4;padding:8px 12px;border-radius:4px;border-left:3px solid var(--grade-elite)">
-          <b style="color:#1a7f37">✅ 좋은 시퀀스</b><br>
+          <b style="color:var(--grade-elite)">좋은 시퀀스</b><br>
           <span style="color:var(--muted)">두 lag 모두 정상 범위 (30-60ms / 25-45ms) — 분절 에너지 효율 전달</span>
         </div>
         <div style="background:#fefce8;padding:8px 12px;border-radius:4px;border-left:3px solid var(--grade-below)">
-          <b style="color:#bc4c00">⚠️ 보통 시퀀스</b><br>
+          <b style="color:var(--grade-below)">보통 시퀀스</b><br>
           <span style="color:var(--muted)">한 lag만 정상 — 일부 단계 너무 짧거나 긺</span>
         </div>
         <div style="background:#fef2f2;padding:8px 12px;border-radius:4px;border-left:3px solid var(--grade-poor)">
-          <b style="color:#cf222e">❌ 시퀀스 이상</b><br>
+          <b style="color:var(--grade-poor)">시퀀스 이상</b><br>
           <span style="color:var(--muted)">두 lag 모두 비정상 — 동시 발화 또는 단절형, 구속 손실 위험</span>
         </div>
       </div>
       <!-- 분석가용 details: 분절별 상세 metric 표 -->
       <details style="margin-top:10px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
-        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 분절별 상세 변인 (Peak ω · KE_rot · Lag) · 분석가용</summary>
+        <summary style="cursor:pointer;font-weight:600;font-size:12px;color:var(--text)">📋 분절별 상세 변인 (Peak ω · KE_rot · Lag)</summary>
         <table id="p-segment-table" style="width:100%;font-size:11px;margin-top:8px;border-collapse:collapse">
           <thead>
             <tr style="background:#f6f8fa;border-bottom:1px solid var(--line)">
@@ -1403,9 +1395,9 @@
       <div id="p-fitness-summary" style="font-size:12.5px;line-height:1.7"></div>
     </div>
     <!-- v5.25: 좌우 균형 (Asymmetry) 별도 카드 — Driveline 패턴 -->
-    <div id="p-asymmetry-card" style="margin-top:14px;background:#fff8c5;border:1px solid #d4a72c;border-radius:6px;padding:10px 14px">
+    <div id="p-asymmetry-card" style="margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px 18px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div style="font-weight:600;font-size:13px;color:#7d4e00">⚖ 좌우 힘 균형 (Asymmetry) <span style="color:var(--muted);font-weight:400;font-size:11px">— Driveline 표준 ±15% 임계</span></div>
+        <div style="font-weight:600;font-size:13px;color:var(--text)">좌우 힘 균형 (Asymmetry) <span style="color:var(--muted);font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;margin-left:6px">Driveline ±15% 임계</span></div>
         <div id="p-asym-badge" style="font-size:11.5px;font-weight:600"></div>
       </div>
       <div id="p-asym-bars" style="font-size:11px;line-height:1.7"></div>
@@ -1415,7 +1407,7 @@
     </div>
     <!-- v5.25: Velo Group cohort 비교 (분석가용 details) -->
     <details style="margin-top:14px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 Velo Group cohort 비교표 (Driveline HP, 분석가용)</summary>
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 Velo Group cohort 비교표 — Driveline HP cohort</summary>
       <div style="margin-top:10px">
         <table style="width:100%;font-size:11.5px;border-collapse:collapse">
           <thead>
@@ -1441,7 +1433,7 @@
     </details>
     <!-- v5.16 17 변인 전체 표 (분석가용 깊이 있는 details) -->
     <details style="margin-top:8px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 17 변인 전체 표 + 학술 reference (분석가용)</summary>
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">📋 17 변인 전체 표 + 학술 reference</summary>
       <div style="margin-top:10px">
         <table style="width:100%;font-size:11.5px;border-collapse:collapse">
           <thead>
@@ -1465,9 +1457,9 @@
     </details>
   </div>
 
-  <!-- 체력 (ForceDecks) 4 카드 — raw 측정값 (분석가용) -->
+  <!-- 체력 (ForceDecks) 4 카드 — raw 측정값 -->
   <div class="panel" id="card-fitness-raw">
-    <h2>ForceDecks Raw 측정값 <span class="badge">분석가용</span></h2>
+    <h2>ForceDecks Raw 측정값</h2>
     <details>
       <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
         펼쳐서 CMJ · SJ · Pogo · IMTP 4 테스트의 raw 측정값 + 한국·College·MLB cohort 비교 보기
@@ -1485,7 +1477,7 @@
 
   <!-- v4.2 leftover: HP Assessment ridge plot — 별도 details 폴더로 보존 -->
   <div class="panel" id="card-hp-ridge" style="display:none">
-    <h2 style="font-size:13px">HP Assessment Ridge Plot <span class="badge">분석가용</span></h2>
+    <h2>HP Assessment Ridge Plot</h2>
     <details>
       <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:6px 0">
         Velo Group 분포 ridge plot (각 변수의 그룹별 분포 + 본인 위치)
@@ -6566,13 +6558,12 @@ function renderPlayerView(pid){
     else if(okCount === 1) { quality = 'normal'; qColor = '#bc4c00'; qLabel = '⚠️ 보통 시퀀스'; qBg = '#fff8c5'; }
     else                   { quality = 'bad';    qColor = '#cf222e'; qLabel = '❌ 시퀀스 이상'; qBg = '#ffebe9'; }
 
-    // 분절 색상 — 품질에 따라 채도 조절 (좋음=선명, 나쁨=회색조)
-    const segColors = quality === 'good'
-      ? { pelvis: 'var(--accent)', trunk: '#1a7f37', arm: '#bc4c00' }
-      : quality === 'normal'
-        ? { pelvis: 'var(--accent)', trunk: '#1a7f37', arm: '#bc4c00' }
-        : { pelvis: '#8b949e', trunk: '#8b949e', arm: '#cf222e' };
-    const fillAlpha = quality === 'good' ? 0.20 : quality === 'normal' ? 0.15 : 0.10;
+    // 분절 색상 — Canvas 는 var(--*) 못 받음, 실제 hex 사용. Pro 톤으로 깔끔하게.
+    const segColors = quality === 'bad'
+      ? { pelvis: '#94a3b8', trunk: '#94a3b8', arm: '#e63946' }   // bad 시퀀스: 회색 + 빨강 강조
+      : { pelvis: '#475569', trunk: '#0ea5e9', arm: '#e63946' };  // good/normal: slate · sky · red
+    // 음영 alpha 낮춤 — 검정 음영 최악 → 옅게
+    const fillAlpha = 0.10;
     const hex2rgba = (h, a) => {
       const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
       return `rgba(${r},${g},${b},${a})`;
