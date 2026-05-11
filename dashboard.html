@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>상동고 투구 리포트 통합 대시보드 (v1.1 · 상반기 1차 측정)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- v6.x Phase 1: Pro 디자인 시스템 적용 — Pretendard + Inter 폰트 -->
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-    /* v5.42 — Linear 풍 디자인 토큰 (회색 9단계 + accent B + score Y + shadow 제거) */
-    /* 회색 스케일 (Tailwind neutral 풍, 모든 무채색 단일 출처) */
+    /* v6.x — KBO Pro Edition 디자인 시스템 (dashboard_pro.html 통일) */
+    /* 회색 9단계 (Tailwind neutral) */
     --gray-50: #fafafa;
     --gray-100:#f5f5f5;
     --gray-200:#e5e5e5;
@@ -20,80 +23,167 @@
     --gray-800:#262626;
     --gray-900:#171717;
 
-    /* 기본 (회색 스케일 alias) */
-    --bg:        var(--gray-50);
-    --panel:     #ffffff;
-    --panel2:    var(--gray-100);
-    --line:      var(--gray-200);
-    --line-soft: #f0f0f0;
-    --text:      var(--gray-900);
-    --text-soft: var(--gray-700);
-    --muted:     var(--gray-500);
-    --neutral:   var(--gray-500);
+    /* Premium Baseball Brand (Pro 통일) */
+    --bg:         #ffffff;
+    --panel:      #ffffff;
+    --panel2:     #fafafa;
+    --line:       #e5e5e5;
+    --line-soft:  #f0f0f0;
 
-    /* Accent — 옵션 B (학술 친화 파랑 유지) */
-    --accent:    #0969da;
-    --accent-bg: #ddf4ff;
-    /* --accent2 삭제 권장이나 호환을 위해 회색 alias 로 유지 */
-    --accent2:   var(--gray-700);
+    --text:       #14213d;        /* 진한 네이비 — 본문 */
+    --text-soft:  #2c3e5c;
+    --muted:      #6c757d;
+    --neutral:    var(--gray-500);
 
-    /* 상태 — 옵션 Y (채도 낮춘 traffic-light) */
-    --good:    #166534; --good-bg:#f0fdf4;
-    --warn:    #ca8a04; --warn-bg:#fefce8;
-    --bad:     #991b1b; --bad-bg:#fef2f2;
+    --accent:     #e63946;        /* 강조 빨강 (team color) */
+    --accent-soft:#ff6b6b;
+    --accent-bg:  #fef2f2;
+    --accent2:    var(--gray-700);
 
-    /* 프로토콜 (Theia=accent, Uplift=차분한 보라) */
+    --header-bg:  #14213d;        /* 헤더 다크 네이비 */
+    --header-bg-2:#1a2a47;
+    --header-text:#ffffff;
+
+    /* 등급 (텍스트 컬러 위주) */
+    --grade-elite: #00854a;
+    --grade-above: #14213d;
+    --grade-avg:   #6c757d;
+    --grade-below: #ca8a04;
+    --grade-poor:  #e63946;
+
+    /* 상태 (등급과 매핑) */
+    --good:    var(--grade-elite); --good-bg:#f0fdf4;
+    --warn:    var(--grade-below); --warn-bg:#fefce8;
+    --bad:     var(--grade-poor);  --bad-bg:#fef2f2;
+
+    /* 프로토콜 */
     --theia:  var(--accent);
     --uplift: #8b5cf6;
 
-    /* Shadow 제거 — 1px border로 panel 구분 (Linear 풍) */
     --shadow: none;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text)}
-  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo",
-       "Pretendard","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
-  header{background:#fff;border-bottom:1px solid var(--line);padding:18px 28px}
-  header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
-  header h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px;font-weight:600}
-  header .ver{color:var(--muted);font-size:13px;font-weight:400;margin-left:6px}
-  header .sub{color:var(--muted);font-size:12.5px}
-  header .meta{font-size:12px;color:var(--muted);text-align:right}
-  header .meta b{color:var(--text);font-weight:600}
+  body{
+    font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    font-size:14px;
+    line-height:1.55;
+    font-feature-settings:"ss01","cv11";
+    -webkit-font-smoothing:antialiased;
+  }
 
-  nav.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);
-           background:#fff;padding:0 28px;position:sticky;top:0;z-index:10}
-  nav.tabs button{background:transparent;border:none;color:var(--muted);
-                  padding:13px 18px;font-size:13.5px;cursor:pointer;
-                  border-bottom:2px solid transparent;font-weight:500;font-family:inherit;
-                  display:flex;gap:6px;align-items:center}
+  /* ────────────────── HEADER (Pro 다크 네이비) ────────────────── */
+  header{
+    background:var(--header-bg);
+    color:var(--header-text);
+    padding:24px 32px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::before{
+    /* 좌측 빨강 accent bar */
+    content:'';
+    position:absolute;
+    top:0; left:0; bottom:0;
+    width:4px;
+    background:var(--accent);
+    z-index:1;
+  }
+  header::after{
+    /* 우측 미세 그라데이션 — 시각 깊이 */
+    content:'';
+    position:absolute;
+    top:0; right:0; bottom:0; width:40%;
+    background:linear-gradient(90deg, transparent, var(--header-bg-2));
+    pointer-events:none;
+  }
+  header .top{
+    position:relative; z-index:1;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+  }
+  header h1{
+    margin:0 0 6px;
+    font-size:24px;letter-spacing:-0.02em;font-weight:700;
+    color:var(--header-text);
+  }
+  header .ver{color:rgba(255,255,255,0.65);font-size:13px;font-weight:500;margin-left:8px}
+  header .sub{color:rgba(255,255,255,0.75);font-size:13px;font-weight:500}
+  header .sub b{color:var(--header-text);font-weight:600}
+  header .meta{font-size:12px;color:rgba(255,255,255,0.75);text-align:right;line-height:1.7}
+  header .meta b{color:var(--header-text);font-weight:600}
+
+  nav.tabs{
+    display:flex;gap:0;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+    padding:0 32px;
+    position:sticky;top:0;z-index:10;
+  }
+  nav.tabs button{
+    background:transparent;border:none;color:var(--muted);
+    padding:14px 20px;font-size:13.5px;cursor:pointer;
+    border-bottom:2px solid transparent;font-weight:600;font-family:inherit;
+    display:flex;gap:6px;align-items:center;
+    letter-spacing:-0.01em;
+  }
   nav.tabs button:hover{color:var(--text)}
-  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-  nav.tabs button .num{background:var(--accent-bg);color:var(--accent);font-size:11px;
-                       padding:1px 6px;border-radius:10px;font-weight:600}
-  main{padding:22px 28px;max-width:1500px;margin:0 auto}
+  nav.tabs button.active{
+    color:var(--accent);border-bottom-color:var(--accent);font-weight:700;
+  }
+  nav.tabs button .num{
+    background:var(--accent-bg);color:var(--accent);
+    font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;
+  }
+  main{padding:28px 32px;max-width:1500px;margin:0 auto}
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;
-         padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
-  .panel h2{margin:0 0 14px;font-size:15px;font-weight:600;
-            display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .panel h2 .badge{font-size:10.5px;background:var(--panel2);color:var(--muted);
-                   padding:3px 8px;border-radius:4px;font-weight:500;
-                   border:1px solid var(--line)}
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:24px 28px;margin-bottom:20px;box-shadow:var(--shadow);
+  }
+  .panel h2{
+    margin:0 0 16px;font-size:16px;font-weight:700;letter-spacing:-0.01em;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .panel h2 .badge{
+    font-size:10.5px;background:var(--panel2);color:var(--muted);
+    padding:3px 8px;border-radius:4px;font-weight:500;
+    border:1px solid var(--line);text-transform:uppercase;letter-spacing:0.5px;
+  }
   .panel h3{margin:0 0 10px;font-size:13.5px;font-weight:600;color:var(--text-soft)}
-  .grid{display:grid;gap:14px}
+  .grid{display:grid;gap:16px}
   .grid-4{grid-template-columns:repeat(4,1fr)}
   .grid-3{grid-template-columns:repeat(3,1fr)}
   .grid-2{grid-template-columns:repeat(2,1fr)}
 
-  .kpi{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
-       padding:14px 16px}
-  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;
-              letter-spacing:.5px;margin-bottom:6px;font-weight:600}
-  .kpi .value{font-size:24px;font-weight:600;color:var(--text)}
-  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:4px}
-  .kpi .delta.up{color:var(--good)}
-  .kpi .delta.down{color:var(--bad)}
+  /* KPI — Pro 스타일 (border 없는 텍스트 블록 + 큰 숫자 + uppercase 라벨) */
+  .kpi{
+    background:transparent;border:none;border-radius:0;
+    padding:0;
+  }
+  .kpi .label{
+    color:var(--muted);font-size:11px;text-transform:uppercase;
+    letter-spacing:0.8px;margin-bottom:8px;font-weight:600;
+  }
+  .kpi .value{
+    font-size:32px;font-weight:700;color:var(--text);
+    letter-spacing:-0.02em;
+    font-feature-settings:"tnum";line-height:1.1;
+  }
+  .kpi .value .unit{
+    font-size:14px;color:var(--muted);font-weight:500;margin-left:4px;
+  }
+  .kpi .delta{
+    font-size:12px;color:var(--muted);margin-top:6px;font-weight:500;
+  }
+  .kpi .delta.up   { color:var(--grade-elite); }
+  .kpi .delta.down { color:var(--accent); }
+  /* KPI grid 안에서 세로 separator (Pro 스타일) */
+  .grid-4 .kpi + .kpi,
+  .grid-3 .kpi + .kpi,
+  .grid-2 .kpi + .kpi{
+    border-left:1px solid var(--line);
+    padding-left:24px;
+  }
 
   .protocol-tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:3px;
                 font-weight:600;letter-spacing:.2px;border:1px solid}
