@@ -185,6 +185,216 @@
     padding-left:24px;
   }
 
+  /* ────────────────── v6.x Phase 2: Pro 컴포넌트 클래스 ────────────────── */
+  /* Section head (밑줄 있는 섹션 제목) */
+  .section-head{
+    margin:24px 0 16px;
+    padding-bottom:12px;
+    border-bottom:1px solid var(--line);
+  }
+  .section-head h2{
+    margin:0;
+    font-size:18px;font-weight:700;
+    letter-spacing:-0.01em;
+    color:var(--text);
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .section-head .desc{
+    margin-top:6px;
+    font-size:13px;color:var(--muted);
+  }
+
+  /* KPI row (Pro 스타일 — 카드 X, 텍스트 블록만) */
+  .kpi-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:24px;
+    margin:8px 0 20px;
+  }
+  .kpi-row .kpi + .kpi{
+    border-left:1px solid var(--line);
+    padding-left:24px;
+  }
+  .kpi-row.cols-3{ grid-template-columns:repeat(3, 1fr); }
+  .kpi-row.cols-2{ grid-template-columns:repeat(2, 1fr); }
+
+  /* Composite (도넛 + 5축 progress bar) */
+  .composite{
+    display:grid;
+    grid-template-columns:240px 1fr;
+    gap:48px;
+    align-items:center;
+  }
+  .composite-donut{
+    position:relative;
+    width:200px; height:200px;
+    display:grid; place-items:center;
+    margin:0 auto;
+  }
+  .composite-donut .ring{
+    width:200px; height:200px;
+    border-radius:50%;
+    background:conic-gradient(
+      var(--accent) 0deg var(--ring-deg, 263deg),
+      var(--gray-100) var(--ring-deg, 263deg) 360deg
+    );
+    display:grid; place-items:center;
+  }
+  .composite-donut .inner{
+    width:164px; height:164px;
+    border-radius:50%;
+    background:var(--panel);
+    display:grid; place-items:center;
+    text-align:center;
+  }
+  .composite-donut .score-num{
+    font-size:54px;font-weight:800;color:var(--text);
+    font-feature-settings:"tnum";line-height:1;letter-spacing:-0.04em;
+  }
+  .composite-donut .score-label{
+    margin-top:6px;
+    font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:1.2px;font-weight:600;
+  }
+  .composite-bars{ display:grid; gap:14px; }
+  .bar-row{
+    display:grid;
+    grid-template-columns:90px 1fr 90px;
+    gap:16px;align-items:center;font-size:13px;
+  }
+  .bar-row .bar-label{ font-weight:600;color:var(--text); }
+  .bar-row .bar-track{
+    height:10px;background:var(--gray-100);
+    border-radius:5px;overflow:hidden;position:relative;
+  }
+  .bar-row .bar-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+    border-radius:5px;transition:width 400ms ease-out;
+  }
+  .bar-row .bar-value{ text-align:right;font-feature-settings:"tnum";font-size:13px;color:var(--text); }
+  .bar-row .bar-value .num{ font-weight:700;font-size:15px; }
+  .bar-row .bar-value .grade{ font-size:11px;margin-left:4px;font-weight:600; }
+  .bar-row .bar-value .grade.elite { color:var(--grade-elite); }
+  .bar-row .bar-value .grade.above { color:var(--grade-above); }
+  .bar-row .bar-value .grade.avg   { color:var(--grade-avg); }
+  .bar-row .bar-value .grade.below { color:var(--grade-below); }
+  .bar-row .bar-value .grade.poor  { color:var(--grade-poor); }
+
+  /* ETE (4 transition lag bar + segment timeline) */
+  .ete-grid{
+    display:grid;
+    grid-template-columns:1fr 280px;
+    gap:32px;align-items:start;
+  }
+  .ete-bars{ display:grid; gap:14px; }
+  .ete-row{
+    display:grid;
+    grid-template-columns:140px 1fr 110px;
+    gap:16px;align-items:center;font-size:13px;
+  }
+  .ete-row .label{ font-weight:600;color:var(--text); }
+  .ete-row .label .num{ display:inline-block;width:18px;color:var(--muted);font-weight:500;font-size:12px; }
+  .ete-row .lag-track{
+    position:relative;height:24px;
+    background:var(--gray-100);border-radius:4px;overflow:hidden;
+  }
+  .ete-row .lag-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--accent-soft) 100%);
+    border-radius:4px;
+    display:flex;align-items:center;justify-content:flex-end;
+    padding:0 10px;color:#fff;font-size:11px;font-weight:700;
+    font-feature-settings:"tnum";min-width:48px;
+  }
+  .ete-row .lag-fill.below{ background:linear-gradient(90deg, var(--grade-below) 0%, #fbbf24 100%); }
+  .ete-row .lag-fill.poor{ background:linear-gradient(90deg, var(--grade-poor) 0%, var(--accent-soft) 100%); }
+  .ete-row .ete-value{ text-align:right;font-feature-settings:"tnum"; }
+  .ete-row .ete-value .score{ font-weight:700;font-size:15px;color:var(--text); }
+  .ete-row .ete-value .grade{ font-size:11px;margin-left:4px;font-weight:600; }
+  .ete-row .ete-value .grade.elite{ color:var(--grade-elite); }
+  .ete-row .ete-value .grade.above{ color:var(--grade-above); }
+  .ete-row .ete-value .grade.below{ color:var(--grade-below); }
+  .ete-row .ete-value .grade.poor{ color:var(--grade-poor); }
+  .sequence-diagram{
+    background:var(--panel2);border-radius:6px;padding:20px 16px;
+  }
+  .sequence-diagram .title{
+    font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.8px;
+    font-weight:600;margin-bottom:14px;
+  }
+  .seq-svg{ width:100%;height:auto;display:block; }
+
+  /* GRF panel (좌측 마네킹/차트 + 우측 카드) */
+  .grf-grid{
+    display:grid;
+    grid-template-columns:1fr 380px;
+    gap:32px;align-items:stretch;
+  }
+  .grf-panel{ display:grid;gap:14px;align-content:start; }
+  .grf-card{
+    background:var(--panel2);
+    border-radius:6px;padding:18px 22px;
+    border-left:3px solid var(--accent);
+  }
+  .grf-card.drive{ border-left-color:var(--text); }
+  .grf-card .label{
+    font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.8px;
+    font-weight:700;margin-bottom:10px;
+  }
+  .grf-card .row{
+    display:grid;grid-template-columns:1fr auto;gap:8px;padding:6px 0;font-size:13px;
+  }
+  .grf-card .row + .row{ border-top:1px solid var(--line); }
+  .grf-card .row .name{ color:var(--text-soft); }
+  .grf-card .row .val{ font-weight:700;color:var(--text);font-feature-settings:"tnum"; }
+  .grf-card .row .val .unit{ color:var(--muted);font-weight:500;font-size:12px;margin-left:2px; }
+
+  /* 약점 Top 3 */
+  .weakness-list{ display:grid;gap:0; }
+  .weakness-item{
+    display:grid;
+    grid-template-columns:48px 1fr 140px;
+    gap:20px;padding:18px 0;
+    border-bottom:1px solid var(--line);
+    align-items:start;
+  }
+  .weakness-item:first-child{ padding-top:0; }
+  .weakness-item:last-child{ border-bottom:none;padding-bottom:0; }
+  .weakness-rank{
+    font-size:32px;font-weight:800;color:var(--accent);
+    font-feature-settings:"tnum";letter-spacing:-0.02em;line-height:1;
+  }
+  .weakness-body .category{
+    font-size:12px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:4px;
+  }
+  .weakness-body .name{
+    font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;
+  }
+  .weakness-body .prescription{
+    font-size:13px;color:var(--text-soft);line-height:1.55;
+  }
+  .weakness-body .current-vs-target{
+    margin-top:8px;font-size:12px;color:var(--muted);font-feature-settings:"tnum";
+  }
+  .weakness-body .current-vs-target b{ color:var(--text);font-weight:700; }
+  .weakness-impact{ text-align:right; }
+  .weakness-impact .gain{
+    font-size:24px;font-weight:800;color:var(--grade-elite);
+    font-feature-settings:"tnum";letter-spacing:-0.02em;line-height:1;
+  }
+  .weakness-impact .gain-unit{
+    font-size:13px;color:var(--muted);font-weight:500;margin-top:2px;
+  }
+  .weakness-impact .gain-label{
+    font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;
+  }
+
+  /* ────────────────── v6.x Phase 2 끝 ────────────────── */
+
   .protocol-tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:3px;
                 font-weight:600;letter-spacing:.2px;border:1px solid}
   .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#aacaf0}
@@ -694,57 +904,56 @@
     </div>
     <div id="player-meta-line" class="player-meta"></div>
 
-    <!-- v5.14 흐름 ── ① 현재 상태 ── -->
-    <div style="margin:14px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#0969da10,transparent);border-left:4px solid #0969da;border-radius:4px">
-      <div style="font-size:14px;font-weight:600;color:#0969da">📍 1. 현재 상태</div>
+    <!-- v6.x Phase 2: Pro 스타일 section-head + kpi-row -->
+    <div class="section-head">
+      <h2>📍 현재 상태</h2>
+      <div class="desc">측정 구속 + 향상 시나리오 3종 (체력 / 메카닉 / 통합)</div>
     </div>
 
-    <!-- v5.13: 4 KPI (측정 구속 + 향상 시나리오 3종) -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px">
-      <div class="kpi" style="border-left:3px solid #0969da">
-        <div class="label">📍 현재 측정 구속</div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">현재 측정 구속</div>
         <div class="value" id="p-velo">—</div>
         <div class="delta">최고 <b id="p-velo-max">—</b> · <span id="p-velo-group">—</span></div>
       </div>
-      <div class="kpi" style="border-left:3px solid #bc4c00;background:#fff8f0"
-           title="체력 변수(CMJ, IMTP, Hop RSI, Grip)를 elite 수준으로 끌어올렸을 때 기대 구속">
-        <div class="label">💪 체력 향상 기대 구속</div>
+      <div class="kpi" title="체력 변수(CMJ, IMTP, Hop RSI, Grip)를 elite 수준으로 끌어올렸을 때 기대 구속">
+        <div class="label">💪 체력 향상 기대</div>
         <div class="value" id="p-fitness-velo">—</div>
-        <div class="delta" id="p-fitness-detail">실측 — · 향상 +— km/h</div>
+        <div class="delta up" id="p-fitness-detail">실측 — · 향상 +— km/h</div>
       </div>
-      <div class="kpi" style="border-left:3px solid #1a7f37;background:#f0f9f4"
-           title="Driveline Mechanical Ceiling — 메카닉 5 모델이 모두 ceiling(150점) 도달 시 기대 구속">
-        <div class="label">⚙️ 메카닉 향상 기대 구속</div>
+      <div class="kpi" title="Driveline Mechanical Ceiling — 메카닉 5 모델 ceiling 도달 시 기대 구속">
+        <div class="label">⚙️ 메카닉 향상 기대</div>
         <div class="value" id="p-mech-velo">—</div>
-        <div class="delta" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
+        <div class="delta up" id="p-mech-detail">현재 — · 잠재 +— km/h</div>
       </div>
-      <div class="kpi" style="border-left:3px solid #8250df;background:#f5f0ff"
-           title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속 (가법 합산)">
-        <div class="label">🎯 체력+메카닉 향상 기대 구속</div>
+      <div class="kpi" title="체력 + 메카닉 모두 elite 수준 도달 시 통합 잠재 구속">
+        <div class="label">🎯 체력 + 메카닉 통합 기대</div>
         <div class="value" id="p-total-velo">—</div>
-        <div class="delta" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
+        <div class="delta up" id="p-total-detail">체력 +— · 메카닉 +— km/h</div>
       </div>
     </div>
-    <!-- 보조 정보: 부상위험 배지 + 메카닉 효율 (AE) 인라인 -->
-    <div style="display:flex;gap:14px;align-items:center;margin-top:8px;padding:6px 10px;background:#f6f8fa;border-radius:6px;font-size:12px">
+    <!-- 보조 정보: 부상위험 + 메카닉 효율 (AE) 인라인 -->
+    <div style="display:flex;gap:18px;align-items:center;margin-top:14px;padding:10px 14px;background:var(--panel2);border-radius:6px;font-size:12.5px;border:1px solid var(--line-soft)">
       <span><b>부상 위험:</b> <span id="p-risk">—</span> <span id="p-risk-detail" style="color:var(--muted);font-size:11px">—</span></span>
-      <span style="color:#d0d7de">|</span>
+      <span style="color:var(--line)">|</span>
       <span><b>메카닉 효율 (AE):</b> <span id="p-ae-label">—</span> <span id="p-ae-desc" style="color:var(--muted);font-size:11px">—</span></span>
-      <span style="color:#d0d7de">|</span>
-      <span style="font-size:11px;color:var(--muted)" id="p-score-delta">종합 — / 메카닉 — · 체력 — · GRF —</span>
+      <span style="color:var(--line)">|</span>
+      <span style="font-size:11.5px;color:var(--muted)" id="p-score-delta">종합 — / 메카닉 — · 체력 — · GRF —</span>
       <span id="p-score" style="display:none">—</span>
     </div>
   </div>
 
-  <!-- v5.14 흐름 ── ② 체력 ── -->
-  <div id="section-fitness-anchor" style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#bc4c0010,transparent);border-left:4px solid #bc4c00;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#bc4c00">💪 2. 체력</div>
+  <!-- v6.x Phase 2: 체력 section-head -->
+  <div id="section-fitness-anchor" class="section-head">
+    <h2>💪 체력 (ForceDecks 19변인)</h2>
+    <div class="desc">CMJ · SJ · Pogo · IMTP · PP — 6축 진단</div>
   </div>
   <div id="section-fitness-cards"></div>
 
-  <!-- v5.14 흐름 ── ③ 메카닉 ── -->
-  <div style="margin:18px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#1a7f3710,transparent);border-left:4px solid #1a7f37;border-radius:4px">
-    <div style="font-size:14px;font-weight:600;color:#1a7f37">⚙️ 3. 메카닉</div>
+  <!-- v6.x Phase 2: 메카닉 section-head -->
+  <div class="section-head">
+    <h2>⚙️ 메카닉 (Driveline 5 모델 + ETE + GRF)</h2>
+    <div class="desc">5축 라디아 · 키네틱 시퀀스 · 분절간 ETE · GRF · 에너지 손실 Top 3</div>
   </div>
 
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
