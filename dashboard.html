@@ -5278,6 +5278,14 @@ const PLAYERS = [
   {id:'P20', name:'선수20', arm:'L', grade:3, height:184, weight:82, dob:'2008-01-19'},
 ];
 
+// v6.x: const 선언 직후 즉시 globalThis(window) 노출 — coach.html 등 외부 페이지가
+//   hidden iframe 으로 본 페이지를 로드해 데이터·함수를 직접 사용. const 는 자동
+//   매핑 안 되므로 명시 노출. init 시퀀스 throw 와 무관하게 작동하도록 가장 빠른 시점에.
+if(typeof window !== 'undefined'){
+  window.PLAYERS  = PLAYERS;
+  window.SESSIONS = SESSIONS;
+}
+
 function seedRand(seed){let s=seed;return ()=>{s=(s*9301+49297)%233280;return s/233280}}
 function r1(x){return Math.round(x*10)/10}
 function r2(x){return Math.round(x*100)/100}
@@ -5623,6 +5631,8 @@ function genMeasurements(){
 }
 
 const DATA = genMeasurements();
+// v6.x: 즉시 globalThis 노출 (coach.html iframe 접근용)
+if(typeof window !== 'undefined') window.DATA = DATA;
 
 /* ╔══════════════════════════════════════════════════════════╗
    ║  2. 헬퍼                                                    ║
@@ -8898,6 +8908,8 @@ function genMeasurementsFor(arr){
 
 // 어떤 (선수, 세션) 셀이 실측 데이터인지 추적 — 헤더 상태 + 향후 시각 구분에 사용
 const REAL_DATA_KEYS = new Set();   // "P01:1" 형식
+// v6.x: 즉시 globalThis 노출 (coach.html iframe 접근용)
+if(typeof window !== 'undefined') window.REAL_DATA_KEYS = REAL_DATA_KEYS;
 
 function parseTheiaJson(obj){
   // 단일 형식 또는 배치 형식 모두 → 표준 [{pid, sid, body}, ...]로 정규화
@@ -10930,24 +10942,6 @@ if(__loaded && REAL_DATA_KEYS.size > 0){
   const el = document.getElementById('data-status');
   el.innerHTML = `실측 ${realCount}/${total} 셀 + 샘플 ${total-realCount}`;
   el.style.color = 'var(--good)';
-}
-
-// v6.x: coach.html (다크 모바일 리포트) 가 hidden iframe 으로 본 페이지를 로드해
-//   window.PLAYERS, window.DATA 등을 직접 사용하므로 const → window 명시적 노출.
-//   const 로 선언된 top-level 변수는 globalThis 에 자동 매핑되지 않기 때문.
-if(typeof window !== 'undefined'){
-  window.PLAYERS = PLAYERS;
-  window.SESSIONS = SESSIONS;
-  window.DATA = DATA;
-  window.REAL_DATA_KEYS = REAL_DATA_KEYS;
-  window.parseC3DTxtTrial = parseC3DTxtTrial;
-  window.parseTheiaJson = parseTheiaJson;
-  window.applyTheiaRecord = applyTheiaRecord;
-  window.handleC3DTxtFiles = handleC3DTxtFiles;
-  window.handleJsonFiles = handleJsonFiles;
-  window.synthesizeRecordFromTrials = synthesizeRecordFromTrials;
-  window.segmentTransitionETE = segmentTransitionETE;
-  window.drivelineFiveModelDiagnosis = drivelineFiveModelDiagnosis;
 }
 
 // JSON 인입 와이어업
