@@ -8977,6 +8977,16 @@ function parseC3DTxtTrial(text){
 
   const fp1z = safeMaxAbs(colByNameWindow('FP1_Z'));
   const fp2z = safeMaxAbs(colByNameWindow('FP2_Z'));
+  // v6.x: Y 컴포넌트 signed peak (앞발=음수 block / 뒷발=양수 push) — sanity check + AP 변인
+  const fp1yArr = colByNameWindow('FP1_Y');
+  const fp2yArr = colByNameWindow('FP2_Y');
+  const signedPeak = arr => {
+    let m = null;
+    for(const x of arr){ if(x !== null){ if(m === null || Math.abs(x) > Math.abs(m)) m = x; } }
+    return m;
+  };
+  const fp1y = signedPeak(fp1yArr);
+  const fp2y = signedPeak(fp2yArr);
   const humZ = safeMaxAbs(colByNameWindow('Pitching_Humerus_Ang_Vel_Z'));
 
   return {
@@ -8994,6 +9004,9 @@ function parseC3DTxtTrial(text){
     max_x_factor:    safeMaxAbs(colByNameWindow('Trunk_wrt_Pelvis_Angle_Z')),
     fp1_z_peak:      fp1z,
     fp2_z_peak:      fp2z,
+    // v6.x: Y signed peak (sanity check + AP propulsive/braking 산출용)
+    fp1_y_peak:      fp1y,
+    fp2_y_peak:      fp2y,
     // v5.10: STRIDE_LENGTH는 single-value sparse (event-like) → window 무관 전체 frame
     stride_length:   safeMaxAbs(colByName('STRIDE_LENGTH_X')),
     stride_pct:      safeMaxAbs(colByName('STRIDE_LENGTH_MEAN_PERCENT_X')),
@@ -9047,8 +9060,18 @@ function synthesizeRecordFromTrials(pid, trials, sid){
   const peakTrunk  = median(trials.map(t => t.peak_trunk_v),   600, 1300, 900);
   const peakArm    = median(trials.map(t => t.peak_arm_v),    2500, 7000, 4500);
   const xFactor    = median(trials.map(t => t.max_x_factor),  30, 180, 50);
-  const fp1Peak    = median(trials.map(t => t.fp1_z_peak),    500, 2000, 1100);
-  const fp2Peak    = median(trials.map(t => t.fp2_z_peak),    500, 1500, 750);
+  // ─── v6.x 패치: 실제 측정 매핑 — FP1 = 앞발 (lead, block), FP2 = 뒷발 (drive, push) ──
+  // V3D Manual §2.4 의 "FP1=뒷발, FP2=앞발" 은 outdated. AMTI 케이블이 매뉴얼과 반대로 연결됨.
+  const rawFp1z   = median(trials.map(t => t.fp1_z_peak),    500, 2500, 1500);
+  const rawFp2z   = median(trials.map(t => t.fp2_z_peak),    500, 1800, 900);
+  const fp1ySum   = trials.map(t => t.fp1_y_peak).filter(v => v != null).reduce((a,b)=>a+b, 0);
+  const fp2ySum   = trials.map(t => t.fp2_y_peak).filter(v => v != null).reduce((a,b)=>a+b, 0);
+  // 정상: fp1ySum < 0 (앞발 block), fp2ySum > 0 (뒷발 push). 반대로 나오면 swap.
+  const fpSwapped = (fp1ySum > 50 && fp2ySum < -50);
+  const leadPeak  = fpSwapped ? rawFp2z : rawFp1z;
+  const drivePeak = fpSwapped ? rawFp1z : rawFp2z;
+  const fp1Peak = leadPeak;
+  const fp2Peak = drivePeak;
 
   // v5.6: Joint Power Scalar 8개 + Mechanical Energy 3개 — 실측 c3d.txt에서
   const powRSho = median(trials.map(t => t.pow_r_shoulder),  50,  5000, 800);
@@ -9200,11 +9223,14 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       }
     },
     grf: {
+      // v6.x 패치: lhei = lead 70% + drive 30% baseline (lead 200%BW, drive 110%BW)
       lhei: Math.min(98, Math.round(zones[2][3]*0.3 + zones[5][3]*0.2
-              + norm(fp1Peak/weight*100, 80, 0.5)*0.25
-              + norm(fp2Peak/weight*100, 110, 0.4)*0.25)),
-      rear_force_pct: Math.round(fp1Peak / (weight * 9.81) * 100 * 100) / 100,
-      lead_force_pct: Math.round(fp2Peak / (weight * 9.81) * 100 * 100) / 100,
+              + norm(leadPeak /weight*100, 200, 0.3)*0.30
+              + norm(drivePeak/weight*100, 110, 0.4)*0.20)),
+      // v6.x 패치: rear_force = 뒷발 (drive), lead_force = 앞발 (lead) — FP1/FP2 swap 적용
+      rear_force_pct: Math.round(drivePeak / (weight * 9.81) * 100 * 100) / 100,
+      lead_force_pct: Math.round(leadPeak  / (weight * 9.81) * 100 * 100) / 100,
+      _fp_auto_swapped: fpSwapped,
       type: '균형형'
     },
     faults: {
@@ -9215,11 +9241,12 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       shoulder_er_max_deg:    rnd(layback),
       shoulder_abd_fp_deg:    rnd(shoulderAbdFp),
       elbow_flex_fp_deg:      rnd(elbowFlexFp),
-      torso_counter_rot_deg:  rnd(torsoCounterRot),
+      // v6.x 좌표계 변환: V3D lab frame → Driveline (driveline = 90 − v3d)
+      torso_counter_rot_deg:  torsoCounterRot != null ? rnd(90 - torsoCounterRot) : null,
       trunk_tilt_at_fc_deg:   rnd(torsoFwdTiltFp),
-      torso_rot_fp_deg:       rnd(torsoRotFp),
+      torso_rot_fp_deg:       torsoRotFp != null ? rnd(90 - torsoRotFp) : null,
       trunk_lat_tilt_deg:     rnd(torsoSideBendMer),
-      torso_rot_br_deg:       rnd(torsoRotBr),
+      torso_rot_br_deg:       torsoRotBr != null ? rnd(90 - torsoRotBr) : null,
       stride_length_m:        strideLengthM != null ? Math.round(strideLengthM * 100) / 100 : null,
       // scap_load_fp_deg / lead_knee_ext_velo: 표준 c3d.txt export에 없음 (별도 V3D pipeline 필요)
       release_height_sd_cm: 4.0,
