@@ -1,19 +1,4 @@
-.DS_Store
-*.swp
+*.tmp
 *.bak
-.vscode/
-__pycache__/
-*.pyc
+.DS_Store
 node_modules/
-
-# Theia 원본 c3d (크기 큼)
-*.c3d
-sample_data/2026-05-15_1차측정/01_theia/*/*.c3d.txt
-
-# PDF/이미지 변환물 (sandbox 한글 폰트 없어 깨짐)
-docs/preview-*.jpg
-docs/*.pdf
-TestPlayer_static_report.html
-
-# Personal Access Token (workspace 옆에 보관, repo 안엔 절대 commit 금지)
-.gh-token
