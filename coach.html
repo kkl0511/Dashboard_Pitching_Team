@@ -1067,118 +1067,143 @@ function renderRapsodo(m){
     </div>`;
 }
 
-// v4: 다이나믹 시퀀싱 그래프 — 시간축 위 5분절 peak 가 차례로 firing
-//     코칭 친근 언어 (분절·proximal-distal 안 씀)
+// v6: 키네매틱 시퀀스 (Driveline 표준) — 골반·몸통·팔 3개 종 모양 곡선
+//     dashboard.html p-sequence Chart.js 차트를 SVG 로 포팅 + clipPath sweep 다이나믹
 function renderSequenceChart(m){
   const seq = m.sequence || {};
   const trf = m.energy?.transfer || {};
-  // 절대 ms timing
-  const ptl = trf.pelvis_to_trunk_lag_ms;
-  const thl = trf.trunk_to_humerus_lag_ms ?? trf.trunk_to_arm_lag_ms;
-  const hfl = trf.humerus_to_forearm_lag_ms;
-  const fhl = trf.forearm_to_hand_lag_ms;
-  const t0 = 0;
-  const t1 = (ptl != null) ? Math.max(0, ptl) : 30;
-  const t2 = t1 + (thl != null ? Math.max(0, thl) : 80);
-  const t3 = t2 + (hfl != null ? Math.max(0, hfl) : 12);
-  const t4 = t3 + (fhl != null ? Math.max(0, fhl) : 10);
-  const totalMs = Math.max(260, Math.ceil((t4 + 40)/20)*20);
-  // peak velocity
-  const v0 = seq.pelvis_dps ?? 0;
-  const v1 = seq.trunk_dps ?? 0;
-  const v2 = seq.arm_dps ?? 0;
-  const v3 = trf.peak_forearm_v ?? 0;
-  const v4 = seq.peak_hand_v ?? trf.peak_forearm_v ?? 0;
-  const segs = [
-    {t:t0, v:v0, name:'엉덩이', color:'#3b82f6', desc:'골반'},
-    {t:t1, v:v1, name:'몸통',   color:'#10b981', desc:'가슴'},
-    {t:t2, v:v2, name:'위팔',   color:'#f59e0b', desc:'어깨~팔꿈치'},
-    {t:t3, v:v3, name:'아래팔', color:'#f97316', desc:'팔꿈치~손목'},
-    {t:t4, v:v4, name:'손',     color:'#ef4444', desc:'손목~공'},
-  ];
-  const maxV = Math.max(...segs.map(s=>s.v), 5000);
-  // ─── 진단 (코치 친근 언어) ───
-  const allFwd = segs.every((s,i)=> i===0 || s.t > segs[i-1].t);
-  const ptOK = ptl != null && ptl >= 5 && ptl <= 25;
-  const thOK = thl != null && thl >= 50 && thl <= 110;
-  let diag, cls, headline;
-  if(!allFwd){
-    headline = '⚠ 회전 순서가 뒤바뀜';
-    diag = '정상은 엉덩이 먼저 → 그 다음 몸통 → 마지막에 팔. 지금은 팔이 너무 일찍 가속되어 채찍 효과가 사라짐. 하체부터 회전 시작하는 drill 필요.';
-    cls = 'bad';
-  } else if(!ptOK || !thOK){
-    headline = '주의 — 타이밍이 어긋남';
+  const ptLag = trf.pelvis_to_trunk_lag_ms ?? 50;
+  const taLag = trf.trunk_to_arm_lag_ms ?? trf.trunk_to_humerus_lag_ms ?? 80;
+  // 피크 시각 (BR=0 기준, ms): 팔이 BR 직전(-30ms), 그 앞으로 trunk·pelvis lag
+  const tArm    = -30;
+  const tTrunk  = tArm  - taLag;
+  const tPelvis = tTrunk - ptLag;
+  const pkPelvis = seq.pelvis_dps;
+  const pkTrunk  = seq.trunk_dps;
+  const pkArm    = seq.arm_dps;
+  if(pkPelvis == null || pkTrunk == null || pkArm == null){
+    return '<div class="stat-empty">키네매틱 시퀀스 측정 데이터 없음 (회전속도)</div>';
+  }
+  // 분절별 종모양 폭 σ
+  const sigmas = {pelvis: 70, trunk: 55, arm: 42};
+  const gauss = (t, t0, peak, s) => peak * Math.exp(-Math.pow(t - t0, 2) / (2*s*s));
+  // 시퀀스 품질 — markerless KR cohort 분포 (dashboard.html v5.36)
+  const inRange = (v, lo, hi) => v >= lo && v <= hi;
+  const ptOK = inRange(ptLag, 0, 80);
+  const taOK = inRange(taLag, 40, 130);
+  const okCount = (ptOK ? 1 : 0) + (taOK ? 1 : 0);
+  let qLabel, qBg, qColor, cls, headline, diagBody;
+  if(okCount === 2){
+    qLabel = '✓ 좋은 흐름'; qBg = '#dafbe1'; qColor = '#1a7f37'; cls='ok';
+    headline = '회전 순서가 자연스러움';
+    diagBody = `골반(${Math.round(ptLag)}ms 뒤 몸통 합류) → 몸통(${Math.round(taLag)}ms 뒤 팔 합류) → 팔이 채찍처럼 가속. 이 순서 유지하며 각 분절 속도 ↑ 가 다음 목표.`;
+  } else if(okCount === 1){
+    qLabel = '⚠ 보통 흐름'; qBg = '#fff8c5'; qColor = '#bc4c00'; cls='warn';
+    headline = '타이밍이 어긋남';
     const issues = [];
     if(!ptOK){
-      if(ptl != null && ptl < 5) issues.push('엉덩이와 몸통이 거의 동시에 회전');
-      else if(ptl != null && ptl > 25) issues.push('엉덩이 회전 후 몸통이 너무 늦게 따라옴');
-      else issues.push('엉덩이→몸통 타이밍 측정 어려움');
+      if(ptLag < 0)       issues.push(`골반보다 몸통이 먼저 회전`);
+      else if(ptLag > 80) issues.push(`골반→몸통 너무 늦음 (${Math.round(ptLag)}ms)`);
     }
-    if(!thOK){
-      if(thl != null && thl < 50) issues.push('몸통과 팔이 동시에 가속 (Layback 부족)');
-      else if(thl != null && thl > 110) issues.push('팔이 너무 늦게 따라옴 (어깨 유연성 점검)');
-      else issues.push('몸통→팔 타이밍 측정 어려움');
+    if(!taOK){
+      if(taLag < 40)       issues.push(`몸통과 팔이 거의 동시 (${Math.round(taLag)}ms · Layback 부족)`);
+      else if(taLag > 130) issues.push(`팔이 너무 늦게 따라옴 (${Math.round(taLag)}ms · 어깨 유연성)`);
     }
-    diag = issues.join(' / ') + '.';
-    cls = 'warn';
+    diagBody = issues.join(' / ') + '.';
   } else {
-    headline = '✓ 회전 순서가 자연스러움';
-    diag = `엉덩이가 먼저 회전(${Math.round(ptl)}ms 뒤 몸통 합류) → 몸통이 그 다음(${Math.round(thl)}ms 뒤 팔 합류) → 팔이 마지막에 채찍처럼 가속됨. 이 순서를 유지하면서 각 분절의 속도를 올리는 것이 다음 단계.`;
-    cls = 'ok';
+    qLabel = '✗ 흐름 깨짐'; qBg = '#ffebe9'; qColor = '#cf222e'; cls='bad';
+    headline = '회전 순서가 깨짐';
+    diagBody = '골반·몸통·팔 차례로 가속되어야 채찍 효과가 나옴. 지금은 분절 동시 발화 또는 역순 — 하체부터 회전 시작 drill 필요.';
   }
-  // ─── SVG ───
-  const W = 640, H = 200;
-  const padL = 40, padR = 25, padT = 26, padB = 56;
+  // 분절 색상 (dashboard.html 와 동일 — bad 시퀀스: 회색+빨강 강조)
+  const segColors = okCount === 0
+    ? { pelvis: '#94a3b8', trunk: '#94a3b8', arm: '#e63946' }
+    : { pelvis: '#475569', trunk: '#0ea5e9', arm: '#e63946' };
+  // ─── SVG (640 x 320) — Driveline 스타일 ───
+  const W = 640, H = 320;
+  const padL = 50, padR = 24, padT = 32, padB = 50;
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
-  const xOf = t => padL + (t/totalMs) * chartW;
-  const yOf = v => padT + chartH - (v/maxV) * chartH;
-  const cycleS = 1.8;  // 1.8초 loop
-  const bars = segs.map((s,i) => {
-    const x = xOf(s.t);
-    const y = yOf(s.v);
-    const barH = (padT + chartH) - y;
-    const beginAt = `${(s.t/totalMs * cycleS).toFixed(2)}s`;
-    return `<g>
-<rect x="${x-14}" y="${y}" width="28" height="${barH}" rx="4" fill="${s.color}" opacity="0.25"/>
-<rect x="${x-14}" y="${y}" width="28" height="${barH}" rx="4" fill="${s.color}">
-  <animate attributeName="opacity" values="0.3;1;0.4" dur="0.45s" begin="${beginAt}" repeatCount="indefinite"/>
-</rect>
-<circle cx="${x}" cy="${y}" r="6" fill="${s.color}">
-  <animate attributeName="r" values="6;14;6" dur="0.5s" begin="${beginAt}" repeatCount="indefinite"/>
-  <animate attributeName="opacity" values="0.7;1;0.7" dur="0.5s" begin="${beginAt}" repeatCount="indefinite"/>
-</circle>
-<text x="${x}" y="${padT+chartH+18}" font-size="11" font-weight="700" fill="#0f172a" text-anchor="middle">${s.name}</text>
-<text x="${x}" y="${padT+chartH+33}" font-size="10" fill="#64748b" text-anchor="middle">${Math.round(s.v)} °/s</text>
-<text x="${x}" y="${padT+chartH+47}" font-size="9" fill="#94a3b8" text-anchor="middle">${Math.round(s.t)}ms</text>
+  const xMin = -300, xMax = 50;
+  const xOf = t => padL + (t - xMin) / (xMax - xMin) * chartW;
+  const maxV = Math.max(pkPelvis, pkTrunk, pkArm) * 1.1;
+  const yMax = Math.max(200, Math.ceil(maxV / 200) * 200);
+  const yOf = v => padT + chartH - (v / yMax) * chartH;
+  // path 생성
+  const xs = []; for(let t = xMin; t <= xMax; t += 5) xs.push(t);
+  const linePath = (t0, peak, s) => 'M ' + xs.map(t => `${xOf(t).toFixed(1)},${yOf(gauss(t, t0, peak, s)).toFixed(1)}`).join(' L ');
+  const areaPath = (t0, peak, s) => `M ${xOf(xMin).toFixed(1)},${yOf(0).toFixed(1)} L ` + xs.map(t => `${xOf(t).toFixed(1)},${yOf(gauss(t, t0, peak, s)).toFixed(1)}`).join(' L ') + ` L ${xOf(xMax).toFixed(1)},${yOf(0).toFixed(1)} Z`;
+  const uid = 'seq' + Math.random().toString(36).slice(2,7);
+  // Y축 그리드 + 라벨 (4 단계)
+  const yTicks = [0, yMax*0.25, yMax*0.5, yMax*0.75, yMax].map(v => `
+<line x1="${padL}" y1="${yOf(v)}" x2="${padL+chartW}" y2="${yOf(v)}" stroke="#eaeef2" stroke-width="1"/>
+<text x="${padL-8}" y="${yOf(v)+3.5}" font-size="10" fill="#656d76" text-anchor="end">${Math.round(v).toLocaleString()}</text>`).join('');
+  // X축 라벨
+  const xTicks = [-300,-250,-200,-150,-100,-50,0,50].map(t => `
+<text x="${xOf(t)}" y="${padT+chartH+18}" font-size="10" fill="#656d76" text-anchor="middle">${t} ms</text>`).join('');
+  // 다이나믹 sweep clipPath — 좌→우 reveal (3초 cycle, 2.4초 sweep + 0.6초 hold)
+  const cycleS = 3.0;
+  // 범례 (top center)
+  const legendX = W/2 - 110;
+  const legend = `
+<g transform="translate(${legendX}, 8)">
+  <circle cx="6" cy="10" r="6" fill="none" stroke="${segColors.pelvis}" stroke-width="2.4"/>
+  <text x="18" y="14" font-size="12" font-weight="600" fill="#1f2328">골반</text>
+  <circle cx="76" cy="10" r="6" fill="none" stroke="${segColors.trunk}" stroke-width="2.4"/>
+  <text x="88" y="14" font-size="12" font-weight="600" fill="#1f2328">몸통</text>
+  <circle cx="146" cy="10" r="6" fill="none" stroke="${segColors.arm}" stroke-width="2.4"/>
+  <text x="158" y="14" font-size="12" font-weight="600" fill="#1f2328">팔</text>
 </g>`;
-  }).join('');
-  // 연결선 (분절을 잇는 dashed line)
-  const connect = segs.slice(1).map((s,i) => {
-    const px = xOf(segs[i].t), py = yOf(segs[i].v);
-    const cx = xOf(s.t), cy = yOf(s.v);
-    return `<line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.6"/>`;
-  }).join('');
-  // playhead 시간 sweep (노란 line)
-  const playhead = `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#fbbf24" stroke-width="2.5" opacity="0.85" filter="drop-shadow(0 0 4px #fbbf24)">
-<animate attributeName="x1" values="${padL};${padL+chartW}" dur="${cycleS}s" repeatCount="indefinite"/>
-<animate attributeName="x2" values="${padL};${padL+chartW}" dur="${cycleS}s" repeatCount="indefinite"/>
+  // BR 점선 + 라벨
+  const brLine = `<line x1="${xOf(0)}" y1="${padT}" x2="${xOf(0)}" y2="${padT+chartH}" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4,4"/>
+<text x="${xOf(0)+5}" y="${padT+12}" font-size="11" font-weight="600" fill="#cf222e">BR</text>`;
+  // 품질 배지
+  const qBadge = `<g>
+  <rect x="${padL+8}" y="${padT+8}" width="100" height="22" rx="5" fill="${qBg}"/>
+  <text x="${padL+58}" y="${padT+23}" font-size="11.5" font-weight="600" fill="${qColor}" text-anchor="middle">${qLabel}</text>
+</g>`;
+  // 다이나믹 reveal: <clipPath rect> 가 0 → chartW 까지 sweep
+  // 3개 곡선 모두 같은 clip 사용 → 각 peak 가 자기 시간에 자연스럽게 등장
+  const sweep = `<defs>
+  <clipPath id="sweep-${uid}">
+    <rect x="${padL}" y="${padT}" width="0" height="${chartH}">
+      <animate attributeName="width" values="0;${chartW};${chartW}" keyTimes="0;0.8;1" dur="${cycleS}s" repeatCount="indefinite"/>
+    </rect>
+  </clipPath>
+</defs>`;
+  // sweep playhead (현재 시간 표시)
+  const playhead = `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#fbbf24" stroke-width="1.8" opacity="0">
+  <animate attributeName="x1" values="${padL};${padL+chartW};${padL+chartW}" keyTimes="0;0.8;1" dur="${cycleS}s" repeatCount="indefinite"/>
+  <animate attributeName="x2" values="${padL};${padL+chartW};${padL+chartW}" keyTimes="0;0.8;1" dur="${cycleS}s" repeatCount="indefinite"/>
+  <animate attributeName="opacity" values="0.7;0.7;0" keyTimes="0;0.79;0.85" dur="${cycleS}s" repeatCount="indefinite"/>
 </line>`;
-  // 가로 그리드
-  const grid = `<line x1="${padL}" y1="${padT+chartH}" x2="${padL+chartW}" y2="${padT+chartH}" stroke="#94a3b8" stroke-width="1.2"/>
-<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="#cbd5e1" stroke-width="1"/>`;
+  // 3 곡선 (areaFill + line) — clipPath 적용
+  const hex2rgba = (h, a) => `rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`;
+  const drawSeg = (t0, peak, s, color) => `
+<path d="${areaPath(t0, peak, s)}" fill="${hex2rgba(color, 0.10)}" clip-path="url(#sweep-${uid})"/>
+<path d="${linePath(t0, peak, s)}" fill="none" stroke="${color}" stroke-width="2.4" clip-path="url(#sweep-${uid})"/>
+<circle cx="${xOf(t0)}" cy="${yOf(peak)}" r="4" fill="${color}" clip-path="url(#sweep-${uid})"/>`;
+  const segPelvis = drawSeg(tPelvis, pkPelvis, sigmas.pelvis, segColors.pelvis);
+  const segTrunk  = drawSeg(tTrunk,  pkTrunk,  sigmas.trunk,  segColors.trunk);
+  const segArm    = drawSeg(tArm,    pkArm,    sigmas.arm,    segColors.arm);
   return `<div class="seq-chart-wrap">
-  <div class="seq-chart-title">회전 흐름 — 누가 먼저 빨라지는가</div>
-  <div class="seq-chart-sub">노란 빛이 시간축을 sweep — 점이 커질 때가 각 부위가 가장 빨리 회전하는 순간. 정상은 엉덩이 → 몸통 → 위팔 → 아래팔 → 손 순서로 차례로 firing.</div>
+  <div class="seq-chart-title">키네매틱 시퀀스 — 골반·몸통·팔 회전 타이밍</div>
+  <div class="seq-chart-sub">정상은 골반(파랑/회색) → 몸통(하늘) → 팔(빨강) 순서로 봉우리가 차례로 나타남. 그래프가 좌→우로 그려지는 동안 어느 봉우리가 먼저 솟는지 관찰.</div>
   <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">
-    ${grid}
-    <text x="${padL}" y="${padT-8}" font-size="10" fill="#64748b">회전 빠르기 (deg/s)</text>
-    <text x="${padL+chartW}" y="${padT+chartH+47}" font-size="10" fill="#64748b" text-anchor="end">시간 (총 ≈ ${totalMs}ms)</text>
-    ${connect}
-    ${bars}
+    ${sweep}
+    ${yTicks}
+    ${xTicks}
+    <text x="${padL-38}" y="${padT+chartH/2}" font-size="10" fill="#656d76" transform="rotate(-90 ${padL-38} ${padT+chartH/2})" text-anchor="middle">각속도 (°/s)</text>
+    <text x="${padL+chartW/2}" y="${padT+chartH+38}" font-size="10" fill="#656d76" text-anchor="middle">시간 (ms · 릴리스=0)</text>
+    ${segPelvis}
+    ${segTrunk}
+    ${segArm}
+    ${brLine}
     ${playhead}
+    ${legend}
+    ${qBadge}
   </svg>
-  <div class="seq-chart-diag ${cls}"><b>${headline}</b><br>${diag}</div>
+  <div class="seq-chart-diag ${cls}"><b>${headline}</b><br>${diagBody}</div>
 </div>`;
 }
 
