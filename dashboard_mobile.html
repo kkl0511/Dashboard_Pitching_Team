@@ -9119,6 +9119,41 @@ function synthesizeRecordFromTrials(pid, trials, sid){
 
   const sessionMeta = SESSIONS.find(s => s.id === sid) || {date: '2026-05-15', protocol: 'Theia+GRF'};
 
+  // ─── v6.x 패치: Driveline 5 모델 변인 median 합성 ────────────────
+  // parseC3DTxtTrial이 trial별로 추출한 raw 값을 median으로 묶어서
+  // m.faults / m.sequence / m.cog 에 채움. 안 채우면 5 모델 변인 상세표에서
+  // "— deg" / "— deg/s" 로 표시됨.
+  const rnd  = (v, d=0) => v == null ? null : (d === 0 ? Math.round(v) : Math.round(v * Math.pow(10, d)) / Math.pow(10, d));
+  // 어깨/팔꿈치 추가 peak velocity
+  const peakShoulderV = median(trials.map(t => t.peak_shoulder_v),  300, 4500, null);
+  const peakElbowV    = median(trials.map(t => t.peak_elbow_v),     500, 5000, null);
+  // 팔동작 (Arm Action) 5모델 변인
+  const layback         = median(trials.map(t => t.layback_deg),            120, 230, null);
+  const shoulderAbdFp   = median(trials.map(t => t.shoulder_abd_at_fp),     30,  140, null);
+  const elbowFlexFp     = median(trials.map(t => t.elbow_flex_at_fp),       30,  150, null);
+  // 자세 (Posture) 5모델 변인
+  const torsoCounterRot = median(trials.map(t => t.torso_counter_rot),     -120, 30,  null);
+  const torsoFwdTiltFp  = median(trials.map(t => t.torso_fwd_tilt_at_fp),  -45,  60,  null);
+  const torsoRotFp      = median(trials.map(t => t.torso_rot_at_fp),       -120, 120, null);
+  const torsoSideBendMer= median(trials.map(t => t.torso_side_bend_at_mer),-90,  90,  null);
+  const torsoRotBr      = median(trials.map(t => t.torso_rot_at_br),        0,   180, null);
+  // 앞다리 제동 — Lead Knee Extension = |knee_at_BR - knee_at_FP|
+  const leadKneeChanges = trials.map(t =>
+    (t.lead_knee_at_fp != null && t.lead_knee_at_br != null)
+      ? Math.abs(t.lead_knee_at_br - t.lead_knee_at_fp) : null
+  ).filter(v => v != null);
+  const leadKneeChange = leadKneeChanges.length
+    ? leadKneeChanges.sort((a,b)=>a-b)[Math.floor(leadKneeChanges.length/2)]
+    : null;
+  // Stride length: Visual3D STRIDE_LENGTH는 m 단위로 export됨
+  const strideLengthM   = median(trials.map(t => t.stride_length),          0.5, 2.5, null);
+  // 체중이동 (CoG)
+  const maxCogVelo      = median(trials.map(t => t.max_cog_velo_m_s),       0.5, 5.5, null);
+  const cogDecel        = median(trials.map(t => t.cog_decel_m_s),          0.2, 5.5, null);
+  const cogDecelAE      = (cogDecel != null && maxCogVelo != null)
+    ? Math.round((cogDecel - 0.27 * maxCogVelo) * 100) / 100
+    : null;
+
   return {
     athlete_external_id: pid,
     session_id: sid,
@@ -9128,6 +9163,9 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       pelvis_dps: Math.round(peakPelvis),
       trunk_dps:  Math.round(peakTrunk),
       arm_dps:    Math.round(peakArm),
+      // v6.x 패치: 어깨/팔꿈치 peak velocity 추가
+      peak_shoulder_v: rnd(peakShoulderV),
+      peak_elbow_v:    rnd(peakElbowV),
       ete_pct: etePct, speed_gain: speedGainPt,
       proper_seq: true, score: trfScore
     },
@@ -9171,11 +9209,29 @@ function synthesizeRecordFromTrials(pid, trials, sid){
     },
     faults: {
       x_factor_deg: Math.round(xFactor * 10) / 10,
-      lead_knee_change: 12,
+      // v6.x 패치: lead_knee_change를 trial의 (knee_at_BR - knee_at_FP)에서 동적 계산
+      lead_knee_change: leadKneeChange != null ? Math.round(leadKneeChange) : 12,
+      // v6.x 패치: Driveline 5 모델 frame-specific 변인 추가
+      shoulder_er_max_deg:    rnd(layback),
+      shoulder_abd_fp_deg:    rnd(shoulderAbdFp),
+      elbow_flex_fp_deg:      rnd(elbowFlexFp),
+      torso_counter_rot_deg:  rnd(torsoCounterRot),
+      trunk_tilt_at_fc_deg:   rnd(torsoFwdTiltFp),
+      torso_rot_fp_deg:       rnd(torsoRotFp),
+      trunk_lat_tilt_deg:     rnd(torsoSideBendMer),
+      torso_rot_br_deg:       rnd(torsoRotBr),
+      stride_length_m:        strideLengthM != null ? Math.round(strideLengthM * 100) / 100 : null,
+      // scap_load_fp_deg / lead_knee_ext_velo: 표준 c3d.txt export에 없음 (별도 V3D pipeline 필요)
       release_height_sd_cm: 4.0,
       wrist_pos_sd_cm: 2.5, trunk_tilt_sd_deg: 1.8,
       consistency_score: 88, fault_score: 85,
       injury_risk: 'low', fault_count: 1
+    },
+    // v6.x 패치: CoG (체중이동) 변인
+    cog: {
+      decel:    cogDecel != null ? Math.round(cogDecel * 100) / 100 : null,
+      max_velo: maxCogVelo != null ? Math.round(maxCogVelo * 100) / 100 : null,
+      decel_ae: cogDecelAE
     }
   };
 }
