@@ -10932,6 +10932,24 @@ if(__loaded && REAL_DATA_KEYS.size > 0){
   el.style.color = 'var(--good)';
 }
 
+// v6.x: coach.html (다크 모바일 리포트) 가 hidden iframe 으로 본 페이지를 로드해
+//   window.PLAYERS, window.DATA 등을 직접 사용하므로 const → window 명시적 노출.
+//   const 로 선언된 top-level 변수는 globalThis 에 자동 매핑되지 않기 때문.
+if(typeof window !== 'undefined'){
+  window.PLAYERS = PLAYERS;
+  window.SESSIONS = SESSIONS;
+  window.DATA = DATA;
+  window.REAL_DATA_KEYS = REAL_DATA_KEYS;
+  window.parseC3DTxtTrial = parseC3DTxtTrial;
+  window.parseTheiaJson = parseTheiaJson;
+  window.applyTheiaRecord = applyTheiaRecord;
+  window.handleC3DTxtFiles = handleC3DTxtFiles;
+  window.handleJsonFiles = handleJsonFiles;
+  window.synthesizeRecordFromTrials = synthesizeRecordFromTrials;
+  window.segmentTransitionETE = segmentTransitionETE;
+  window.drivelineFiveModelDiagnosis = drivelineFiveModelDiagnosis;
+}
+
 // JSON 인입 와이어업
 setupJsonZone();
 // CSV 인입 와이어업 (v1.16)
