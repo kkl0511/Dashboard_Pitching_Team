@@ -831,23 +831,23 @@ function renderPlayerMain(p, m, dvl5){
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">2</span><span>PROBLEMS</span><span class="h">문제점 — 구속 손실 큰 순 Top 3</span></h2>
+      <h2 class="section-title"><span class="step">2</span><span>ENERGY</span><span class="h">키네틱 체인 시각화 — 어디서 에너지가 새는가</span></h2>
+      <div class="mannequin-wrap">${renderMannequin(p, m, dvl5)}</div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">3</span><span>PROBLEMS</span><span class="h">문제점 — 구속 손실 큰 순 Top 3</span></h2>
       ${renderProblems(dvl5, m)}
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">3</span><span>SOLUTIONS</span><span class="h">해결방안 — 처방 + cue + 관찰</span></h2>
+      <h2 class="section-title"><span class="step">4</span><span>SOLUTIONS</span><span class="h">해결방안 — 처방 + cue + 관찰</span></h2>
       ${renderSolutions(dvl5, m)}
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">4</span><span>FEEDBACK</span><span class="h">피드백 talking points — 분석가 설명용</span></h2>
+      <h2 class="section-title"><span class="step">5</span><span>FEEDBACK</span><span class="h">피드백 talking points — 분석가 설명용</span></h2>
       ${renderTalkingPoints(p, m, dvl5)}
-    </section>
-
-    <section class="section">
-      <h2 class="section-title"><span class="step">·</span><span>POSTURE</span><span class="h">투구 자세 시각화</span></h2>
-      <div class="mannequin-wrap">${renderMannequin(p, m, dvl5)}</div>
     </section>
   `;
 }
@@ -1350,10 +1350,66 @@ function renderMannequin(p, m, dvl5){
   };
   const energyPath = `M ${K.lAnkle[0]} ${K.lAnkle[1]} L ${K.lKnee[0]} ${K.lKnee[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} L ${K.midTorso[0]} ${K.midTorso[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.rElbow[0]} ${K.rElbow[1]} L ${K.rWrist[0]} ${K.rWrist[1]} L ${K.ball[0]} ${K.ball[1]}`;
   const driveLegPath = `M ${K.rAnkle[0]} ${K.rAnkle[1]} L ${K.rKnee[0]} ${K.rKnee[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisC[0]} ${K.pelvisC[1]}`;
+  // Burst circles (leak 발생 분절)
   const burstPT = (tPT.score != null && tPT.score < 60) ? `<circle cx="${K.pelvisC[0]}" cy="${K.pelvisC[1]}" r="22" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="16;28;16" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
   const burstTH = (tTH.score != null && tTH.score < 60) ? `<circle cx="${(K.pelvisC[0]+K.rShoulder[0])/2}" cy="${(K.pelvisC[1]+K.rShoulder[1])/2}" r="26" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="20;32;20" dur="1.3s" repeatCount="indefinite"/></circle>` : '';
   const burstHF = (tHF.score != null && tHF.score < 80) ? `<circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="24" fill="url(#leak-${uid})" opacity="${tHF.score<60?0.85:0.55}"><animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite"/></circle>` : '';
   const burstFH = (tFH.score != null && tFH.score < 80) ? `<circle cx="${(K.rWrist[0]+K.ball[0])/2}" cy="${(K.rWrist[1]+K.ball[1])/2}" r="20" fill="url(#leak-${uid})" opacity="${tFH.score<60?0.85:0.55}"><animate attributeName="r" values="14;24;14" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
+  // ▶ DYNAMIC: 에너지 firing 애니메이션 — 빛나는 공이 lead foot 부터 ball 까지 traveling
+  // SVG path 위 stroke-dasharray + dashoffset 으로 chain 이 점차 채워지는 효과
+  const fireAnim = `<path d="${energyPath}" fill="none" stroke="#fef08a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" stroke-dasharray="40 1200" stroke-dashoffset="1200">
+<animate attributeName="stroke-dashoffset" from="1200" to="0" dur="1.6s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.4;0.95;0.4" dur="1.6s" repeatCount="indefinite"/>
+</path>`;
+  // ▶ Score 라벨 — 각 transition 점수를 분절 옆에 표시
+  const scoreLabel = (cx, cy, label, score) => {
+    if(score == null) return '';
+    const c = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+    return `<g>
+<rect x="${cx-26}" y="${cy-9}" width="52" height="18" rx="3" fill="rgba(20,33,61,0.95)" stroke="${c}" stroke-width="1.5"/>
+<text x="${cx}" y="${cy+4}" font-size="10" font-weight="700" fill="${c}" text-anchor="middle">${label} ${Math.round(score)}</text>
+</g>`;
+  };
+  const labels = [
+    scoreLabel(K.pelvisC[0]+50, K.pelvisC[1]+24, '골→몸', tPT.score),
+    scoreLabel((K.pelvisC[0]+K.rShoulder[0])/2 + 70, (K.pelvisC[1]+K.rShoulder[1])/2 - 30, '몸→팔', tTH.score),
+    scoreLabel(K.rElbow[0]+45, K.rElbow[1]+10, '팔→손목', tHF.score),
+    scoreLabel((K.rWrist[0]+K.ball[0])/2 + 50, (K.rWrist[1]+K.ball[1])/2 - 5, '손→공', tFH.score),
+  ].join('');
+  // ▶ Worst-segment callout — leak 가장 심한 곳 화살표 + 라벨
+  const segNames = {
+    pelvis_to_trunk:    {kr:'골반→몸통 leak',     pos:[K.pelvisC[0], K.pelvisC[1]+12]},
+    trunk_to_humerus:   {kr:'몸통→위팔 leak',     pos:[(K.pelvisC[0]+K.rShoulder[0])/2, (K.pelvisC[1]+K.rShoulder[1])/2]},
+    humerus_to_forearm: {kr:'팔꿈치 너무 빠른 신전', pos:[K.rElbow[0], K.rElbow[1]]},
+    forearm_to_hand:    {kr:'손목 가속 부족',      pos:[(K.rWrist[0]+K.ball[0])/2, (K.rWrist[1]+K.ball[1])/2]},
+  };
+  const all = [
+    {k:'pelvis_to_trunk', s:tPT.score},
+    {k:'trunk_to_humerus', s:tTH.score},
+    {k:'humerus_to_forearm', s:tHF.score},
+    {k:'forearm_to_hand', s:tFH.score},
+  ].filter(x => x.s != null && x.s < 80).sort((a,b)=> a.s-b.s);
+  let calloutSvg = '', calloutTxt = '';
+  if(all.length > 0){
+    const worst = all[0];
+    const info = segNames[worst.k];
+    const [bx, by] = info.pos;
+    // 화살표는 좌측 아래에서 leak 점으로 향하게
+    const ax = 60, ay = 80;
+    calloutSvg = `<g>
+<line x1="${ax+5}" y1="${ay+10}" x2="${bx-15}" y2="${by-5}" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4,3" opacity="0.85"/>
+<polygon points="${bx-15},${by-5} ${bx-22},${by-12} ${bx-22},${by+2}" fill="#ef4444"/>
+<rect x="${ax-5}" y="${ay-2}" width="170" height="22" rx="4" fill="#ef4444"/>
+<text x="${ax+80}" y="${ay+13}" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">⚠ ${info.kr} (${Math.round(worst.s)}점)</text>
+</g>`;
+    calloutTxt = `<div style="margin-top:8px;padding:8px 12px;background:rgba(239,68,68,0.10);border-left:3px solid #ef4444;border-radius:6px;font-size:12px;color:#7f1d1d;line-height:1.5">
+      <b>가장 큰 누출 지점:</b> ${info.kr} — 점수 <b>${Math.round(worst.s)}/100</b>. 분석가 설명 시 이 부분을 가리키며 "여기서 에너지가 새고 있어요" 로 시작.
+    </div>`;
+  } else {
+    calloutTxt = `<div style="margin-top:8px;padding:8px 12px;background:rgba(16,185,129,0.10);border-left:3px solid #10b981;border-radius:6px;font-size:12px;color:#065f46">
+      ✓ 모든 분절 transition 정상 (≥80점). 에너지 누출 없이 잘 흐름.
+    </div>`;
+  }
   const svg = `<svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:380px${isLHP?';transform:scaleX(-1)':''}">
 <defs>
 <linearGradient id="bodyG-${uid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#1a2a47"/><stop offset="100%" stop-color="#14213d"/></linearGradient>
@@ -1398,13 +1454,16 @@ function renderMannequin(p, m, dvl5){
 ${burstPT}${burstTH}${burstHF}${burstFH}
 <path d="${energyPath}" fill="none" stroke="url(#energy-${uid})" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 <path d="${driveLegPath}" fill="none" stroke="url(#drive-${uid})" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+${fireAnim}
+${labels}
+${calloutSvg}
 </svg>
 <div style="font-size:10.5px;color:#64748b;margin-top:6px;line-height:1.5;text-align:center">
-  키네틱 체인 · Foot Strike (측면 view, ${isLHP?'LHP - 좌투':'RHP - 우투'})<br>
-  <span style="color:#94a3b8">메인 체인 (녹→황→적): Lead foot → 몸통 → 공 · 보조 (녹→적): Drive foot → 골반</span>
+  키네틱 체인 · Foot Strike (측면 view, ${isLHP?'LHP - 좌투':'RHP - 우투'}) · <span style="color:#10b981">●</span> ≥80 정상 <span style="color:#f59e0b">●</span> 60-80 주의 <span style="color:#ef4444">●</span> &lt;60 leak<br>
+  <span style="color:#94a3b8">노란 빛: 에너지 firing 시뮬레이션 (Lead foot → 골반 → 몸통 → 어깨 → 팔꿈치 → 손목 → 공)</span>
 </div>`;
   // 다크 배경에서는 흰색 카드로 감싸 X-ray 처럼 표시
-  return `<div style="background:#fff;border-radius:8px;padding:14px 12px 10px;width:100%">${svg}</div>`;
+  return `<div style="background:#fff;border-radius:8px;padding:14px 12px 10px;width:100%">${svg}${calloutTxt}</div>`;
 }
 
 // ════════════════════════════════════════════════════════
