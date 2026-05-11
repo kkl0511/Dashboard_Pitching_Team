@@ -14,3 +14,6 @@ sample_data/2026-05-15_1차측정/01_theia/*/*.c3d.txt
 docs/preview-*.jpg
 docs/*.pdf
 TestPlayer_static_report.html
+
+# Personal Access Token (workspace 옆에 보관, repo 안엔 절대 commit 금지)
+.gh-token
