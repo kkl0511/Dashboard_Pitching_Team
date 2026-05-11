@@ -962,10 +962,28 @@
     <div class="desc">5축 라디아 · 키네틱 시퀀스 · 분절간 ETE · GRF · 에너지 손실 Top 3</div>
   </div>
 
+  <!-- v6.x Phase 5: Composite Mechanics — Pro 도넛 + 5축 progress bar -->
+  <div class="panel" id="p-composite-panel">
+    <h2>📊 Composite Mechanics <span class="badge">5 모델 종합</span></h2>
+    <div class="composite">
+      <div class="composite-donut">
+        <div class="ring" id="p-comp-ring" style="--ring-deg:0deg">
+          <div class="inner">
+            <div>
+              <div class="score-num" id="p-comp-score">—</div>
+              <div class="score-label">Composite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="composite-bars" id="p-comp-bars"></div>
+    </div>
+  </div>
+
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
   <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">3-1. 메카닉 5 모델 <span class="badge" style="background:var(--accent-bg);color:var(--accent)">Driveline 표준</span></h2>
+      <h2 style="font-size:15px">3-1. 메카닉 5 모델 — 라디아 (분석가용) <span class="badge">Driveline 표준</span></h2>
       <div class="chart-wrap" style="height:300px"><canvas id="p-radar"></canvas></div>
       <!-- v5.36: Driveline 변인 Per 1km/h 표 (분석가용 details 폴더) -->
       <details style="margin-top:12px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
@@ -1185,10 +1203,24 @@
     </div>
   </div>
 
-  <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (이전 ELI 6 zone 섹션은 Driveline 5 모델과 중복으로 제거)
-       Z1↔3-2 시퀀싱 / Z2↔Posture(X-factor) / Z3↔Block / Z4↔Posture(trunk tilt) / Z5↔Arm(Layback) / Z6↔CoG(감속) -->
+  <!-- v6.x Phase 5: ETE — 분절 Peak Timing SVG (Pro 스타일) -->
   <div class="panel">
-    <h2 style="font-size:15px">3-5. 메카닉 결함 — 에너지 손실 Top 3 <span class="badge" style="background:#fee9e9;color:#cf222e">Driveline 분석 기반</span></h2>
+    <h2>🔗 Energy Transfer (ETE) <span class="badge">분절간 lag + Peak timing</span></h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">
+      Proximal-to-distal sequence — 골반 → 몸통 → 위팔 → 아래팔 → 손 순서로 peak ω 도달 timing
+    </div>
+    <div class="ete-grid">
+      <div class="ete-bars" id="p-pro-ete-bars"></div>
+      <div class="sequence-diagram">
+        <div class="title">Segment Peak Timing</div>
+        <svg id="p-pro-seq-svg" class="seq-svg" viewBox="0 0 240 280" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5.39: 3-5. 메카닉 결함 — 에너지 손실 Top 3 (Pro 스타일 .weakness-list) -->
+  <div class="panel">
+    <h2>🎯 약점 Top 3 + 처방 <span class="badge">5 모델 + ETE 결합</span></h2>
     <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">
       <b>5 모델 중요도 높음 변인의 음의 차이 (km/h)</b> + <b>분절간 ETE 100점 미만 transition</b> 결합 → 구속 손실 큰 순 Top 3.
       <b>훈련 처방 1순위</b>.
@@ -6009,6 +6041,172 @@ function renderPlayerSelect(){
   });
 }
 
+// v6.x Phase 5: Pro Composite Mechanics 도넛 + 5축 progress bar 렌더
+function renderProComposite(dvl5){
+  const ring    = document.getElementById('p-comp-ring');
+  const scoreEl = document.getElementById('p-comp-score');
+  const barsEl  = document.getElementById('p-comp-bars');
+  if(!ring || !scoreEl || !barsEl) return;
+  if(!dvl5){
+    scoreEl.textContent = '—';
+    ring.style.setProperty('--ring-deg', '0deg');
+    barsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">데이터 부족</div>';
+    return;
+  }
+  const models = [
+    {key:'arm_action', label:'팔동작'},
+    {key:'posture',    label:'자세'},
+    {key:'rotation',   label:'회전 속도'},
+    {key:'block',      label:'앞다리 제동'},
+    {key:'cog',        label:'체중이동'},
+  ];
+  const scores = models.map(mdl => dvl5[mdl.key]?.score).filter(s => s != null);
+  const composite = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+  scoreEl.textContent = composite;
+  // 0~150 기준 ceiling, 100=elite, 도넛은 0~360deg 매핑
+  const ringDeg = Math.min(360, Math.max(0, composite/150 * 360));
+  ring.style.setProperty('--ring-deg', `${ringDeg}deg`);
+  const gradeOf = s =>
+    s >= 110 ? {cls:'elite', lbl:'Elite+'} :
+    s >= 90  ? {cls:'elite', lbl:'Elite'}  :
+    s >= 70  ? {cls:'above', lbl:'Above'}  :
+    s >= 50  ? {cls:'avg',   lbl:'Avg'}    :
+    s >= 30  ? {cls:'below', lbl:'Below'}  :
+               {cls:'poor',  lbl:'Poor'};
+  barsEl.innerHTML = models.map(mdl => {
+    const s = dvl5[mdl.key]?.score;
+    if(s == null) return `<div class="bar-row"><div class="bar-label">${mdl.label}</div><div class="bar-track"></div><div class="bar-value"><span class="num" style="color:var(--muted)">—</span></div></div>`;
+    const g = gradeOf(s);
+    const pct = Math.min(100, Math.max(0, s/150 * 100));
+    return `<div class="bar-row">
+      <div class="bar-label">${mdl.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-value"><span class="num">${Math.round(s)}</span><span class="grade ${g.cls}">${g.lbl}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// v6.x Phase 5: Pro ETE bars + Segment Peak Timing SVG 렌더
+function renderProSequence(m){
+  const barsEl = document.getElementById('p-pro-ete-bars');
+  const svgEl  = document.getElementById('p-pro-seq-svg');
+  if(!barsEl || !svgEl) return;
+  const A = (typeof ANALYTICS !== 'undefined') ? ANALYTICS : null;
+  if(!A?.segmentTransitionETE){
+    barsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">ANALYTICS 미로드</div>';
+    return;
+  }
+  const trans = A.segmentTransitionETE({
+    peak_pelvis_v:  m.sequence?.pelvis_dps,
+    peak_trunk_v:   m.sequence?.trunk_dps,
+    peak_humerus_v: m.sequence?.arm_dps,
+    peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+    peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+    pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+    trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+    humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+    forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms,
+  });
+  if(!trans){
+    barsEl.innerHTML = '<div style="color:var(--muted);font-size:12px">ETE 산출 불가</div>';
+    return;
+  }
+  // 4 transition lag bar
+  const transRows = [
+    {key:'pelvis_to_trunk',     label:'골반 → 몸통',   num:'①'},
+    {key:'trunk_to_humerus',    label:'몸통 → 위팔',   num:'②'},
+    {key:'humerus_to_forearm',  label:'위팔 → 아래팔', num:'③'},
+    {key:'forearm_to_hand',     label:'아래팔 → 손',   num:'④'},
+  ];
+  const maxAbsLag = Math.max(70, ...transRows.map(r => Math.abs(trans[r.key]?.lag_ms ?? 0)));
+  barsEl.innerHTML = transRows.map(r => {
+    const t = trans[r.key];
+    if(!t || t.score == null){
+      return `<div class="ete-row"><div class="label"><span class="num">${r.num}</span> ${r.label}</div><div class="lag-track"></div><div class="ete-value"><span class="score" style="color:var(--muted)">—</span></div></div>`;
+    }
+    const lag = t.lag_ms ?? 0;
+    const score = t.score;
+    const pct = Math.min(100, Math.abs(lag) / maxAbsLag * 100);
+    let cls = '';
+    if(score < 80) cls = 'poor';
+    else if(score < 95) cls = 'below';
+    let gradeCls, gradeLbl;
+    if(score >= 95) { gradeCls = 'elite'; gradeLbl = 'Elite'; }
+    else if(score >= 85) { gradeCls = 'above'; gradeLbl = 'Above'; }
+    else if(score >= 70) { gradeCls = 'below'; gradeLbl = 'Below'; }
+    else { gradeCls = 'poor'; gradeLbl = lag < 0 ? 'Reversed' : 'Poor'; }
+    const lagStr = lag != null ? (Math.abs(lag) < 1 ? lag.toFixed(1) : Math.round(lag)) + ' ms' : '—';
+    return `<div class="ete-row">
+      <div class="label"><span class="num">${r.num}</span> ${r.label}</div>
+      <div class="lag-track"><div class="lag-fill ${cls}" style="width:${pct}%">${lagStr}</div></div>
+      <div class="ete-value"><span class="score">${Math.round(score)}</span><span class="grade ${gradeCls}">${gradeLbl}</span></div>
+    </div>`;
+  }).join('');
+  // 분절 Peak Timing SVG (Pelvis 기준 lag 누적)
+  const segments = [
+    {name:'Pelvis',  vel: m.sequence?.pelvis_dps,            t:0},
+    {name:'Trunk',   vel: m.sequence?.trunk_dps,             t:(trans.pelvis_to_trunk?.lag_ms ?? 0)},
+    {name:'Humerus', vel: m.sequence?.arm_dps,               t:(trans.pelvis_to_trunk?.lag_ms ?? 0) + (trans.trunk_to_humerus?.lag_ms ?? 0)},
+    {name:'Forearm', vel: m.energy?.transfer?.peak_forearm_v, t:(trans.pelvis_to_trunk?.lag_ms ?? 0) + (trans.trunk_to_humerus?.lag_ms ?? 0) + (trans.humerus_to_forearm?.lag_ms ?? 0)},
+    {name:'Hand',    vel: m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v, t:(trans.pelvis_to_trunk?.lag_ms ?? 0) + (trans.trunk_to_humerus?.lag_ms ?? 0) + (trans.humerus_to_forearm?.lag_ms ?? 0) + (trans.forearm_to_hand?.lag_ms ?? 0)},
+  ];
+  const maxT = Math.max(120, ...segments.map(s => Math.abs(s.t)));
+  const minT = Math.min(0, ...segments.map(s => s.t));
+  const range = maxT - minT;
+  const yOf = t => 20 + ((t - minT) / range) * 200;
+  let segHtml = '<line x1="20" y1="20" x2="20" y2="220" stroke="#d4d4d4" stroke-width="1.5"/>';
+  segments.forEach((s, i) => {
+    const y = yOf(s.t);
+    let color = '#14213d';
+    // 역전 (이전보다 t 작아짐) → 빨강
+    if(i > 0 && s.t < segments[i-1].t) color = '#e63946';
+    // 거의 동시 (lag < 5ms) → 노랑
+    else if(i > 0 && Math.abs(s.t - segments[i-1].t) < 5) color = '#ca8a04';
+    const tStr = (s.t >= 0 ? '+' : '') + (Math.abs(s.t) < 1 ? s.t.toFixed(1) : Math.round(s.t)) + ' ms';
+    const velStr = s.vel != null ? Math.round(s.vel) + ' °/s' : '—';
+    segHtml += `<circle cx="20" cy="${y}" r="6" fill="${color}"/>`;
+    segHtml += `<text x="36" y="${y-2}" font-size="11" font-weight="700" fill="${color}">${s.name}</text>`;
+    segHtml += `<text x="36" y="${y+12}" font-size="10" fill="#6c757d">${tStr} · ${velStr}</text>`;
+  });
+  // 범례
+  const allFwd = segments.every((s, i) => i === 0 || s.t >= segments[i-1].t);
+  segHtml += `<text x="20" y="252" font-size="9.5" font-weight="600" fill="#6c757d">SEQUENCE INTEGRITY</text>`;
+  segHtml += `<circle cx="22" cy="266" r="4" fill="${allFwd ? '#00854a' : '#e63946'}"/>`;
+  segHtml += `<text x="32" y="270" font-size="10" fill="#6c757d">${allFwd ? '정상 (proximal → distal)' : '⚠ 역전 발생'}</text>`;
+  svgEl.innerHTML = segHtml;
+}
+
+// v6.x Phase 5: Pro 약점 Top 3 (.weakness-list) 렌더
+function renderProWeaknessTop3(top3, rxMap, eteRxMap){
+  const wrap = document.getElementById('p-energy-loss-top3');
+  if(!wrap) return;
+  if(!top3 || top3.length === 0){
+    wrap.innerHTML = `<div style="padding:14px;background:#dafbe1;border-radius:5px;color:#1a7f37;font-weight:600">✅ 큰 에너지 손실 영역 없음 — 5 모델 + ETE 모두 elite 수준</div>`;
+    return;
+  }
+  wrap.innerHTML = '<div class="weakness-list">' + top3.map((c, i) => {
+    const rx = c.type==='ete' ? (eteRxMap?.[c.model||''] || '해당 변인 강화 drill')
+                              : (rxMap?.[c.var_lbl] || '해당 변인 강화 drill');
+    const valStr = c.type==='ete'
+      ? `점수 ${Math.round(c.value)} <span style="color:var(--muted)">(${c.ete_fault || 'gain·lag 누수'})</span>`
+      : `${c.unit==='m/s'? c.value.toFixed(2) : Math.round(c.value)} ${c.unit||''} <span style="color:var(--muted)">(Elite ${c.unit==='m/s'? c.elite.toFixed(2) : Math.round(c.elite)} ${c.unit||''})</span>`;
+    return `<div class="weakness-item">
+      <div class="weakness-rank">${i+1}</div>
+      <div class="weakness-body">
+        <div class="category">${c.model_lbl || ''}</div>
+        <div class="name">${c.var_lbl}</div>
+        <div class="prescription">💡 ${rx}</div>
+        <div class="current-vs-target">현재: <b>${valStr}</b></div>
+      </div>
+      <div class="weakness-impact">
+        <div class="gain">+${c.loss.toFixed(1)}</div>
+        <div class="gain-unit">km/h</div>
+        <div class="gain-label">예상 향상</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
 function renderPlayerView(pid){
   const p = PLAYERS.find(x=>x.id===pid);
   const m = DATA[p.id][1]; // 1차
@@ -6945,26 +7143,12 @@ function v514_renderMechanicTables(m, p){
           'humerus_to_forearm':'위팔→아래팔 — 너무 이른 elbow 신전 방지 (valgus stress ↑)',
           'forearm_to_hand':'아래팔→손 — release 시점 손 가속 cueing (towel drill)'
         };
-        if(top3.length === 0){
-          top3wrap.innerHTML = `<div style="padding:14px;background:#dafbe1;border-radius:5px;color:#1a7f37;font-weight:600">✅ 큰 에너지 손실 영역 없음 — 5 모델 + ETE 모두 elite 수준</div>`;
-        } else {
-          top3wrap.innerHTML = top3.map((c,i) => {
-            const num = i+1;
-            const numColor = ['#cf222e','#bc4c00','#8250df'][i];
-            const rx = c.type==='ete' ? eteRxMap[c.model||''] : (rxMap[c.var_lbl] || '해당 변인 강화 drill');
-            const valStr = c.type==='ete'
-              ? `점수 ${c.value} <span style="color:var(--muted);font-size:11px">(${c.ete_fault || 'gain·lag 누수'})</span>`
-              : `${c.unit==='m/s'?c.value.toFixed(2):Math.round(c.value)} ${c.unit} <span style="color:var(--muted);font-size:11px">(Elite ${c.unit==='m/s'?c.elite.toFixed(2):Math.round(c.elite)} ${c.unit})</span>`;
-            return `<div style="position:relative;padding:8px 11px 8px 48px;background:#fff5f5;border:1px solid #ffaaa3;border-radius:5px;margin:5px 0;font-size:12px">
-              <div style="position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:${numColor};color:#fff;text-align:center;line-height:28px;font-weight:700">${num}</div>
-              <div style="font-weight:700;color:${numColor};margin-bottom:4px">${c.model_lbl} — ${c.var_lbl}</div>
-              <div style="font-size:11.5px"><b>현재:</b> ${valStr}</div>
-              <div style="font-size:11.5px"><b>추정 구속 손실:</b> <span style="color:#cf222e;font-weight:600">−${c.loss.toFixed(1)} km/h</span></div>
-              <div style="font-size:11.5px;margin-top:4px;color:#1a7f37"><b>💪 처방:</b> ${rx}</div>
-            </div>`;
-          }).join('');
-        }
+        // v6.x Phase 5: Pro .weakness-list 스타일로 렌더 (외부 함수 호출)
+        renderProWeaknessTop3(top3, rxMap, eteRxMap);
       }
+      // v6.x Phase 5: Composite Mechanics 도넛 + 5축 progress bar + Sequence Timeline 렌더
+      renderProComposite(dvl5);
+      renderProSequence(m);
     }
   }
 
