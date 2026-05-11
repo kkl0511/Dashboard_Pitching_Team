@@ -5,99 +5,189 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>상동고 투구 리포트 통합 대시보드 (v1.1 · 상반기 1차 측정)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- v6.x Phase 4: Pro 디자인 시스템 적용 (mobile) -->
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-    /* v5.42 — Linear 풍 디자인 토큰 (회색 9단계 + accent B + score Y + shadow 제거) */
-    /* 회색 스케일 (Tailwind neutral 풍, 모든 무채색 단일 출처) */
-    --gray-50: #fafafa;
-    --gray-100:#f5f5f5;
-    --gray-200:#e5e5e5;
-    --gray-300:#d4d4d4;
-    --gray-400:#a3a3a3;
-    --gray-500:#737373;
-    --gray-600:#525252;
-    --gray-700:#404040;
-    --gray-800:#262626;
-    --gray-900:#171717;
+    /* v6.x — KBO Pro Edition 디자인 시스템 (mobile) */
+    --gray-50: #fafafa; --gray-100:#f5f5f5; --gray-200:#e5e5e5;
+    --gray-300:#d4d4d4; --gray-400:#a3a3a3; --gray-500:#737373;
+    --gray-600:#525252; --gray-700:#404040; --gray-800:#262626; --gray-900:#171717;
 
-    /* 기본 (회색 스케일 alias) */
-    --bg:        var(--gray-50);
-    --panel:     #ffffff;
-    --panel2:    var(--gray-100);
-    --line:      var(--gray-200);
-    --line-soft: #f0f0f0;
-    --text:      var(--gray-900);
-    --text-soft: var(--gray-700);
-    --muted:     var(--gray-500);
-    --neutral:   var(--gray-500);
+    --bg:         #ffffff;
+    --panel:      #ffffff;
+    --panel2:     #fafafa;
+    --line:       #e5e5e5;
+    --line-soft:  #f0f0f0;
 
-    /* Accent — 옵션 B (학술 친화 파랑 유지) */
-    --accent:    #0969da;
-    --accent-bg: #ddf4ff;
-    /* --accent2 삭제 권장이나 호환을 위해 회색 alias 로 유지 */
-    --accent2:   var(--gray-700);
+    --text:       #14213d;
+    --text-soft:  #2c3e5c;
+    --muted:      #6c757d;
+    --neutral:    var(--gray-500);
 
-    /* 상태 — 옵션 Y (채도 낮춘 traffic-light) */
-    --good:    #166534; --good-bg:#f0fdf4;
-    --warn:    #ca8a04; --warn-bg:#fefce8;
-    --bad:     #991b1b; --bad-bg:#fef2f2;
+    --accent:     #e63946;
+    --accent-soft:#ff6b6b;
+    --accent-bg:  #fef2f2;
+    --accent2:    var(--gray-700);
 
-    /* 프로토콜 (Theia=accent, Uplift=차분한 보라) */
+    --header-bg:  #14213d;
+    --header-bg-2:#1a2a47;
+    --header-text:#ffffff;
+
+    --grade-elite: #00854a;
+    --grade-above: #14213d;
+    --grade-avg:   #6c757d;
+    --grade-below: #ca8a04;
+    --grade-poor:  #e63946;
+
+    --good:    var(--grade-elite); --good-bg:#f0fdf4;
+    --warn:    var(--grade-below); --warn-bg:#fefce8;
+    --bad:     var(--grade-poor);  --bad-bg:#fef2f2;
+
     --theia:  var(--accent);
     --uplift: #8b5cf6;
 
-    /* Shadow 제거 — 1px border로 panel 구분 (Linear 풍) */
     --shadow: none;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text)}
-  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo",
-       "Pretendard","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
-  header{background:#fff;border-bottom:1px solid var(--line);padding:18px 28px}
-  header .top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
-  header h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px;font-weight:600}
-  header .ver{color:var(--muted);font-size:13px;font-weight:400;margin-left:6px}
-  header .sub{color:var(--muted);font-size:12.5px}
-  header .meta{font-size:12px;color:var(--muted);text-align:right}
-  header .meta b{color:var(--text);font-weight:600}
+  body{
+    font-family:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    font-size:14px;line-height:1.55;
+    font-feature-settings:"ss01","cv11";
+    -webkit-font-smoothing:antialiased;
+  }
 
-  nav.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);
-           background:#fff;padding:0 28px;position:sticky;top:0;z-index:10}
-  nav.tabs button{background:transparent;border:none;color:var(--muted);
-                  padding:13px 18px;font-size:13.5px;cursor:pointer;
-                  border-bottom:2px solid transparent;font-weight:500;font-family:inherit;
-                  display:flex;gap:6px;align-items:center}
+  /* HEADER (Pro 다크 네이비, mobile compact) */
+  header{
+    background:var(--header-bg);color:var(--header-text);
+    padding:18px 16px;position:relative;overflow:hidden;
+  }
+  header::before{
+    content:'';position:absolute;top:0;left:0;bottom:0;width:4px;
+    background:var(--accent);z-index:1;
+  }
+  header::after{
+    content:'';position:absolute;top:0;right:0;bottom:0;width:30%;
+    background:linear-gradient(90deg,transparent,var(--header-bg-2));pointer-events:none;
+  }
+  header .top{
+    position:relative;z-index:1;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;
+  }
+  header h1{
+    margin:0 0 4px;font-size:18px;letter-spacing:-0.02em;font-weight:700;
+    color:var(--header-text);
+  }
+  header .ver{color:rgba(255,255,255,0.65);font-size:11px;font-weight:500;margin-left:6px}
+  header .sub{color:rgba(255,255,255,0.75);font-size:12px;font-weight:500}
+  header .sub b{color:var(--header-text);font-weight:600}
+  header .meta{font-size:11px;color:rgba(255,255,255,0.75);text-align:right;line-height:1.6}
+  header .meta b{color:var(--header-text);font-weight:600}
+
+  nav.tabs{
+    display:flex;gap:0;border-bottom:1px solid var(--line);
+    background:var(--panel);padding:0 16px;position:sticky;top:0;z-index:10;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  nav.tabs button{
+    background:transparent;border:none;color:var(--muted);
+    padding:12px 14px;font-size:13px;cursor:pointer;
+    border-bottom:2px solid transparent;font-weight:600;font-family:inherit;
+    display:flex;gap:6px;align-items:center;white-space:nowrap;
+    letter-spacing:-0.01em;
+  }
   nav.tabs button:hover{color:var(--text)}
-  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-  nav.tabs button .num{background:var(--accent-bg);color:var(--accent);font-size:11px;
-                       padding:1px 6px;border-radius:10px;font-weight:600}
-  main{padding:22px 28px;max-width:1500px;margin:0 auto}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+  nav.tabs button .num{
+    background:var(--accent-bg);color:var(--accent);
+    font-size:10.5px;padding:2px 7px;border-radius:10px;font-weight:600;
+  }
+  main{padding:18px 16px;max-width:1500px;margin:0 auto}
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;
-         padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
-  .panel h2{margin:0 0 14px;font-size:15px;font-weight:600;
-            display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .panel h2 .badge{font-size:10.5px;background:var(--panel2);color:var(--muted);
-                   padding:3px 8px;border-radius:4px;font-weight:500;
-                   border:1px solid var(--line)}
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow);
+  }
+  .panel h2{
+    margin:0 0 14px;font-size:15px;font-weight:700;letter-spacing:-0.01em;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .panel h2 .badge{
+    font-size:10.5px;background:var(--panel2);color:var(--muted);
+    padding:3px 8px;border-radius:4px;font-weight:500;
+    border:1px solid var(--line);text-transform:uppercase;letter-spacing:0.5px;
+  }
   .panel h3{margin:0 0 10px;font-size:13.5px;font-weight:600;color:var(--text-soft)}
   .grid{display:grid;gap:14px}
   .grid-4{grid-template-columns:repeat(4,1fr)}
   .grid-3{grid-template-columns:repeat(3,1fr)}
   .grid-2{grid-template-columns:repeat(2,1fr)}
 
-  .kpi{background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;
-       padding:14px 16px}
-  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;
-              letter-spacing:.5px;margin-bottom:6px;font-weight:600}
-  .kpi .value{font-size:24px;font-weight:600;color:var(--text)}
-  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:4px}
-  .kpi .delta.up{color:var(--good)}
-  .kpi .delta.down{color:var(--bad)}
+  /* KPI — Pro 스타일 */
+  .kpi{background:transparent;border:none;border-radius:0;padding:0}
+  .kpi .label{
+    color:var(--muted);font-size:11px;text-transform:uppercase;
+    letter-spacing:0.8px;margin-bottom:6px;font-weight:600;
+  }
+  .kpi .value{
+    font-size:26px;font-weight:700;color:var(--text);letter-spacing:-0.02em;
+    font-feature-settings:"tnum";line-height:1.1;
+  }
+  .kpi .value .unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:4px}
+  .kpi .delta{font-size:11.5px;color:var(--muted);margin-top:4px;font-weight:500}
+  .kpi .delta.up{color:var(--grade-elite)}
+  .kpi .delta.down{color:var(--accent)}
+
+  /* Section head + KPI row (Pro) */
+  .section-head{
+    margin:20px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line);
+  }
+  .section-head h2{
+    margin:0;font-size:16px;font-weight:700;letter-spacing:-0.01em;color:var(--text);
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .section-head .desc{margin-top:4px;font-size:12px;color:var(--muted)}
+
+  .kpi-row{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:6px 0 16px;
+  }
+  .kpi-row .kpi + .kpi{border-left:1px solid var(--line);padding-left:18px}
+  .kpi-row.cols-3{grid-template-columns:repeat(3,1fr)}
+  .kpi-row.cols-2{grid-template-columns:repeat(2,1fr)}
+
+  /* ────────────────── 모바일 반응형 (≤600px) ────────────────── */
+  @media (max-width: 600px) {
+    body{font-size:13px}
+    header{padding:14px 12px}
+    header h1{font-size:16px}
+    header .ver{font-size:10.5px;display:block;margin-left:0;margin-top:2px}
+    header .top{align-items:flex-start;flex-direction:column}
+    header .meta{text-align:left;font-size:10.5px}
+    nav.tabs{padding:0 8px;gap:0}
+    nav.tabs button{padding:10px 10px;font-size:12.5px}
+    nav.tabs button .num{font-size:9.5px;padding:1px 6px}
+    main{padding:14px 12px}
+    .panel{padding:14px 14px;margin-bottom:12px}
+    .panel h2{font-size:14px;gap:6px}
+    .grid-4{grid-template-columns:repeat(2,1fr)}
+    .grid-3{grid-template-columns:repeat(2,1fr)}
+    .grid-2{grid-template-columns:1fr}
+    .kpi-row{grid-template-columns:repeat(2,1fr);gap:14px}
+    .kpi-row .kpi + .kpi{border-left:none;padding-left:0}
+    .kpi-row .kpi:nth-child(odd){border-left:none;padding-left:0}
+    .kpi .value{font-size:22px}
+    .section-head h2{font-size:15px}
+  }
+  @media (max-width: 380px) {
+    .kpi-row{grid-template-columns:1fr}
+    .grid-4, .grid-3{grid-template-columns:1fr}
+  }
 
   .protocol-tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:3px;
                 font-weight:600;letter-spacing:.2px;border:1px solid}
-  .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#aacaf0}
+  .protocol-tag.theia{background:var(--accent-bg);color:var(--theia);border-color:#f5d0d0}
   .protocol-tag.uplift{background:#fbefff;color:var(--uplift);border-color:#d8b9f0}
   .protocol-tag.empty{background:var(--panel2);color:var(--gray-400);border-color:var(--line-soft)}
   .protocol-tag.fitness{background:#fff3e7;color:#bc4c00;border-color:#fbc996}
@@ -254,17 +344,17 @@
   .real-marker::after{
     content:''; position:absolute; top:3px; right:3px;
     width:6px; height:6px; border-radius:50%;
-    background:#0969da; box-shadow:0 0 0 1.5px #fff;
+    background:var(--accent); box-shadow:0 0 0 1.5px #fff;
     pointer-events:none;
   }
   /* 진행 그리드의 done 셀에서는 다른 색(이미 초록 배경) */
-  .progress-grid .real-marker::after{background:#0969da}
+  .progress-grid .real-marker::after{background:var(--accent)}
   /* 히트맵 cell-score(짙은 배경)에서는 흰 점 + 진한 테두리 */
   table.heatmap .cell-score.real-marker::after{background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.4)}
 
   .real-legend{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
   .real-legend .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
-                    background:#0969da;box-shadow:0 0 0 1.5px #fff;border:1px solid var(--line-soft)}
+                    background:var(--accent);box-shadow:0 0 0 1.5px #fff;border:1px solid var(--line-soft)}
 
   /* 평소: 인쇄 전용 영역 숨김 */
   .batch-print-only, .coach-print-only{display:none}
@@ -281,7 +371,7 @@
                          border-radius:5px;padding:7px 9px}
   .pcard .kpi-row .lbl{font-size:9.5px;color:#656d76;text-transform:uppercase;letter-spacing:.4px}
   .pcard .kpi-row .val{font-size:16px;font-weight:700;margin-top:2px}
-  .pcard .sec-title{font-size:11.5px;font-weight:700;background:#0969da;color:#fff;
+  .pcard .sec-title{font-size:11.5px;font-weight:700;background:var(--accent);color:#fff;
                     padding:4px 8px;border-radius:3px;margin:10px 0 6px;display:inline-block}
   .pcard .sec-title.tr{background:#1a7f37}
   .pcard .sec-title.lk{background:#cf222e}
@@ -311,7 +401,7 @@
   .coach-rep h1{margin:0 0 4px;font-size:20px;font-weight:700}
   .coach-rep .doc-meta{color:#444;font-size:11px;margin-bottom:12px;
                        padding-bottom:8px;border-bottom:2px solid #1f2328}
-  .coach-rep h2{font-size:13px;font-weight:700;background:#0969da;color:#fff;
+  .coach-rep h2{font-size:13px;font-weight:700;background:var(--accent);color:#fff;
                 padding:5px 10px;border-radius:3px;margin:14px 0 8px;display:inline-block}
   .coach-rep h2.warn{background:#cf222e}
   .coach-rep h2.ok{background:#1a7f37}
@@ -442,7 +532,7 @@
       </div>
       <div>현재 데이터: <b id="data-status">샘플 데이터 (실측 데이터 미입력)</b>
         &nbsp;<span id="storage-badge" class="pill warn" style="font-size:10px">저장된 데이터 없음</span>
-        &nbsp;<span class="pill" style="font-size:10px;background:#ddf4ff;color:#0969da" id="analytics-badge"
+        &nbsp;<span class="pill" style="font-size:10px;background:var(--accent-bg);color:var(--accent)" id="analytics-badge"
           title="잠재구속·ELI는 analytics.js 통계 모듈로 산출 (Stodden 2001/MacWilliams 1998/Werner 2008/Lehman 2013/Aguinaldo 2009 근거)">
           analytics v2.1
         </span></div>
@@ -512,7 +602,7 @@
           <!-- v5.40: 식별·구속·체력·메카닉(5 모델+ETE+GRF)·제구·부상·종합 -->
           <tr class="group-header" style="background:#f6f8fa;font-size:10.5px;color:var(--muted)">
             <th colspan="3" style="text-align:left;padding-left:10px">식별</th>
-            <th colspan="2" class="right" style="background:#f0f6ff;color:#0969da">구속</th>
+            <th colspan="2" class="right" style="background:#f0f6ff;color:var(--accent)">구속</th>
             <th colspan="1" class="right" style="background:#fff3e7;color:#bc4c00">체력</th>
             <th colspan="5" class="right" style="background:#dafbe1;color:#1a7f37">메카닉 (Driveline 5 모델 + ETE + GRF)</th>
             <th colspan="1" class="right" style="background:#fff8c5;color:#9a6700">제구</th>
@@ -605,13 +695,13 @@
     <div id="player-meta-line" class="player-meta"></div>
 
     <!-- v5.14 흐름 ── ① 현재 상태 ── -->
-    <div style="margin:14px 0 6px;padding:8px 12px;background:linear-gradient(90deg,#0969da10,transparent);border-left:4px solid #0969da;border-radius:4px">
-      <div style="font-size:14px;font-weight:600;color:#0969da">📍 1. 현재 상태</div>
+    <div style="margin:14px 0 6px;padding:8px 12px;background:linear-gradient(90deg,var(--accent)10,transparent);border-left:4px solid var(--accent);border-radius:4px">
+      <div style="font-size:14px;font-weight:600;color:var(--accent)">📍 1. 현재 상태</div>
     </div>
 
     <!-- v5.13: 4 KPI (측정 구속 + 향상 시나리오 3종) -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px">
-      <div class="kpi" style="border-left:3px solid #0969da">
+      <div class="kpi" style="border-left:3px solid var(--accent)">
         <div class="label">📍 현재 측정 구속</div>
         <div class="value" id="p-velo">—</div>
         <div class="delta">최고 <b id="p-velo-max">—</b> · <span id="p-velo-group">—</span></div>
@@ -660,7 +750,7 @@
   <!-- 라디아 + 키네틱 시퀀스 (v5.3: 0.85:1.5 비율, 키네틱 강조) -->
   <div class="grid" style="display:grid;grid-template-columns:0.85fr 1.5fr;gap:14px;align-items:start">
     <div class="panel">
-      <h2 style="font-size:15px">3-1. 메카닉 5 모델 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline 표준</span></h2>
+      <h2 style="font-size:15px">3-1. 메카닉 5 모델 <span class="badge" style="background:var(--accent-bg);color:var(--accent)">Driveline 표준</span></h2>
       <div class="chart-wrap" style="height:300px"><canvas id="p-radar"></canvas></div>
       <!-- v5.36: Driveline 변인 Per 1km/h 표 (분석가용 details 폴더) -->
       <details style="margin-top:12px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:6px;padding:8px 14px">
@@ -844,13 +934,13 @@
         </div>
       </div>
       <!-- FP2 — 앞발 -->
-      <div style="background:#ddf4ff;border-left:4px solid #0969da;padding:10px;border-radius:4px">
+      <div style="background:var(--accent-bg);border-left:4px solid var(--accent);padding:10px;border-radius:4px">
         <div style="font-size:11.5px;color:var(--muted)">🦵 앞발 (Lead Leg / Block)</div>
         <div style="font-size:14px;font-weight:600;margin:4px 0">FP2 Peak Vertical</div>
         <div style="font-size:22px;font-weight:600" id="p-grf-lead-pct">—</div>
         <div style="font-size:11px;color:var(--muted)">% Body Weight (목표 ≥110%)</div>
         <div id="p-grf-lead-bar" style="margin-top:8px;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
-          <div id="p-grf-lead-fill" style="height:100%;background:#0969da;width:0%;transition:width .5s"></div>
+          <div id="p-grf-lead-fill" style="height:100%;background:var(--accent);width:0%;transition:width .5s"></div>
         </div>
       </div>
       <!-- LHEI 종합 -->
@@ -929,7 +1019,7 @@
         <div class="row"><span>Release height SD</span><span class="v" id="p-rh-sd">—</span></div>
         <div class="row"><span>Wrist position SD</span><span class="v" id="p-wp-sd">—</span></div>
         <div class="row"><span>Trunk tilt SD</span><span class="v" id="p-tt-sd">—</span></div>
-        <div class="grp-title">제구 통합 점수 <span style="font-size:10px;color:#0969da">v3.0-B</span></div>
+        <div class="grp-title">제구 통합 점수 <span style="font-size:10px;color:var(--accent)">v3.0-B</span></div>
         <div class="row"><span>통합 (Theia 0.5 + Rapsodo 0.5)</span><span class="v" id="p-cmd-cmp">—</span></div>
         <div class="row" style="font-size:11px;color:var(--muted)"><span>↳ Theia 운동학 / Rapsodo 결과</span><span class="v" id="p-cmd-detail">—</span></div>
         <div id="p-cmd-warnings" style="font-size:11px;color:var(--bad);margin-top:4px"></div>
@@ -974,7 +1064,7 @@
 <section style="display:none" id="hidden-fitness-source">
   <!-- 체력 종합 — Driveline HP Assessment 6축 (v5.25) -->
   <div class="panel" id="card-hp-assessment">
-    <h2>💪 체력 종합 — HP Composite 6축 <span class="badge" style="background:#ddf4ff;color:#0969da">Driveline HP Assessment 표준</span></h2>
+    <h2>💪 체력 종합 — HP Composite 6축 <span class="badge" style="background:var(--accent-bg);color:var(--accent)">Driveline HP Assessment 표준</span></h2>
     <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">
       Driveline HP Assessment 6축 (Strength · Relative Strength · Power · Relative Power · Reactive Strength · Upper Body Power).
       <b>100 = HS group 평균</b>, 본인 위치 + 90+ mph cohort 목표 동시 비교.
@@ -1007,7 +1097,7 @@
               <th style="text-align:right;padding:6px;color:var(--muted)">&lt;80 mph</th>
               <th style="text-align:right;padding:6px;color:var(--muted)">80-85</th>
               <th style="text-align:right;padding:6px;color:var(--muted)">85-90</th>
-              <th style="text-align:right;padding:6px;color:var(--muted);background:#ddf4ff">90+ mph</th>
+              <th style="text-align:right;padding:6px;color:var(--muted);background:var(--accent-bg)">90+ mph</th>
               <th style="text-align:right;padding:6px;color:var(--muted)">HP 점수</th>
             </tr>
           </thead>
@@ -1498,9 +1588,9 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
       }
       (ds.data||[]).forEach(function(p,i){
         if(!p||typeof p.x!=='number') return;
-        var c=Array.isArray(bg)?bg[i]:(bg||'#0969da80');
+        var c=Array.isArray(bg)?bg[i]:(bg||'var(--accent)80');
         var r=Array.isArray(ds.pointRadius)?ds.pointRadius[i]:(ds.pointRadius||4);
-        svg+='<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="'+r+'" fill="'+c+'" stroke="'+(Array.isArray(br)?br[i]:br||'#0969da')+'" stroke-width="1"/>';
+        svg+='<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="'+r+'" fill="'+c+'" stroke="'+(Array.isArray(br)?br[i]:br||'var(--accent)')+'" stroke-width="1"/>';
       });
     });
     var xt=opts.scales&&opts.scales.x&&opts.scales.x.title&&opts.scales.x.title.text||'';
@@ -1532,7 +1622,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
       var groupX=M.l+li*groupW+2;
       dss.forEach(function(ds,di){
         var v=ds.data[li]; if(typeof v!=='number') return;
-        var c=Array.isArray(ds.backgroundColor)?ds.backgroundColor[li]:(ds.backgroundColor||'#0969da');
+        var c=Array.isArray(ds.backgroundColor)?ds.backgroundColor[li]:(ds.backgroundColor||'var(--accent)');
         var x=groupX+di*barW;
         var y=yPx(Math.max(0,v)), h=Math.abs(yPx(v)-yPx(0));
         svg+='<rect x="'+x+'" y="'+y+'" width="'+(barW-1)+'" height="'+h+'" fill="'+c+'" rx="1"/>';
@@ -1559,7 +1649,7 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
     // datasets
     (data.datasets||[]).forEach(function(ds,di){
       var pts=(ds.data||[]).map(function(v,i){return pt(i,v||0).join(',');}).join(' ');
-      var fill=ds.backgroundColor||'rgba(9,105,218,0.18)', stk=ds.borderColor||'#0969da';
+      var fill=ds.backgroundColor||'rgba(9,105,218,0.18)', stk=ds.borderColor||'var(--accent)';
       var dash=ds.borderDash?' stroke-dasharray="4,3"':'';
       svg+='<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="1.5"'+dash+'/>';
     });
@@ -1587,8 +1677,8 @@ P001,정예준,2007-03-15,M,180.0,82.33,25.41,R,
     // lines
     dss.forEach(function(ds,di){
       var pts=(ds.data||[]).map(function(v,i){return typeof v==='number'?(xPx(i)+','+yPx(v)):null;}).filter(Boolean).join(' ');
-      svg+='<polyline points="'+pts+'" fill="none" stroke="'+(ds.borderColor||'#0969da')+'" stroke-width="2"/>';
-      (ds.data||[]).forEach(function(v,i){if(typeof v==='number')svg+='<circle cx="'+xPx(i)+'" cy="'+yPx(v)+'" r="3" fill="'+(ds.borderColor||'#0969da')+'"/>';});
+      svg+='<polyline points="'+pts+'" fill="none" stroke="'+(ds.borderColor||'var(--accent)')+'" stroke-width="2"/>';
+      (ds.data||[]).forEach(function(v,i){if(typeof v==='number')svg+='<circle cx="'+xPx(i)+'" cy="'+yPx(v)+'" r="3" fill="'+(ds.borderColor||'var(--accent)')+'"/>';});
     });
     return svg+'</svg>';
   }
@@ -5561,7 +5651,7 @@ function buildM1Table(){
     <tr data-pid="${r.pid}">
       <!-- 식별 -->
       <td><b>${r.name}</b>${realDot}</td>
-      <td class="right">${r.grade?`<span style="background:#ddf4ff;color:#0969da;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">고${r.grade}</span>`:'—'}</td>
+      <td class="right">${r.grade?`<span style="background:var(--accent-bg);color:var(--accent);padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600">고${r.grade}</span>`:'—'}</td>
       <td class="right">${r.arm}</td>
       <!-- 구속 -->
       <td class="right" style="background:#f0f6ff"><b>${fmt(r.velo,1)}</b></td>
@@ -5738,7 +5828,7 @@ function renderM1Charts(){
   const colors = points.map(p=>{
     if(p.x>=70 && p.y>=70) return '#1a7f37';        // 메카닉+ETE 모두 elite
     if(p.x>=70 && p.y<70)  return '#bf8700';        // 메카닉 OK / ETE 누수
-    if(p.x<70  && p.y>=70) return '#0969da';        // ETE 좋지만 메카닉 약함
+    if(p.x<70  && p.y>=70) return 'var(--accent)';        // ETE 좋지만 메카닉 약함
     return '#cf222e';                               // 둘 다 부족
   });
   chartsM1.q = new Chart(document.getElementById('chart-quadrant'), {
@@ -5787,7 +5877,7 @@ function renderM1Charts(){
   chartsM1.vp = new Chart(document.getElementById('chart-velo-potential'), {
     type:'scatter',
     data:{datasets:[
-      {label:'선수', data:vp, backgroundColor:'rgba(9,105,218,.7)', borderColor:'#0969da', pointRadius:6},
+      {label:'선수', data:vp, backgroundColor:'rgba(9,105,218,.7)', borderColor:'var(--accent)', pointRadius:6},
       {label:'대각선 (측정=잠재)', type:'line', data:[{x:minV,y:minV},{x:maxV,y:maxV}],
        borderColor:'#cf222e', borderDash:[5,4], pointRadius:0, showLine:true, fill:false}
     ]},
@@ -5874,7 +5964,7 @@ function renderPlayerView(pid){
     : `<span class="pill warn" title="샘플 데이터 — JSON 인입 시 자동 교체">샘플</span>`;
   document.getElementById('player-meta-line').innerHTML =
     `<span><b>${p.name}</b> (${p.id}) ${dataBadge}</span>` +
-    (p.grade ? `<span><b style="background:#0969da;color:#fff;padding:2px 7px;border-radius:4px;font-size:11px">고${p.grade}</b></span>` : '') +
+    (p.grade ? `<span><b style="background:var(--accent);color:#fff;padding:2px 7px;border-radius:4px;font-size:11px">고${p.grade}</b></span>` : '') +
     `<span>투구손: <b>${p.arm==='R'?'우투':'좌투'}</b></span>` +
     `<span>신장: <b>${p.height} cm</b></span>` +
     `<span>체중: <b>${p.weight} kg</b></span>` +
@@ -5912,7 +6002,7 @@ function renderPlayerView(pid){
     hop_rsi:    m.fitness?.pogo?.rsi_ms,
     grip_kg:    null    // 한국 cohort grip 데이터 부족 → default 사용
   };
-  const colorByGain = g => g > 8 ? '#1a7f37' : g > 4 ? '#bc4c00' : g > 1 ? '#0969da' : '#656d76';
+  const colorByGain = g => g > 8 ? '#1a7f37' : g > 4 ? '#bc4c00' : g > 1 ? 'var(--accent)' : '#656d76';
 
   // [3] 💪 체력 향상 기대 구속
   if(A?.expectedVelocityFromFitness){
@@ -6040,8 +6130,8 @@ function renderPlayerView(pid){
       datasets:[{
         label: `본인 (Total ${dvl5?.total ?? '—'})`,
         data: myData5,
-        backgroundColor:'rgba(9,105,218,.20)', borderColor:'#0969da', borderWidth:2.2, pointRadius:4,
-        pointBackgroundColor:'#0969da', order: 1
+        backgroundColor:'rgba(9,105,218,.20)', borderColor:'var(--accent)', borderWidth:2.2, pointRadius:4,
+        pointBackgroundColor:'var(--accent)', order: 1
       },{
         label: '🟧 고교 평균 (Median Elite 100)',
         data: [100,100,100,100,100],
@@ -6130,9 +6220,9 @@ function renderPlayerView(pid){
 
     // 분절 색상 — 품질에 따라 채도 조절 (좋음=선명, 나쁨=회색조)
     const segColors = quality === 'good'
-      ? { pelvis: '#0969da', trunk: '#1a7f37', arm: '#bc4c00' }
+      ? { pelvis: 'var(--accent)', trunk: '#1a7f37', arm: '#bc4c00' }
       : quality === 'normal'
-        ? { pelvis: '#0969da', trunk: '#1a7f37', arm: '#bc4c00' }
+        ? { pelvis: 'var(--accent)', trunk: '#1a7f37', arm: '#bc4c00' }
         : { pelvis: '#8b949e', trunk: '#8b949e', arm: '#cf222e' };
     const fillAlpha = quality === 'good' ? 0.20 : quality === 'normal' ? 0.15 : 0.10;
     const hex2rgba = (h, a) => {
@@ -6302,7 +6392,7 @@ function renderPlayerView(pid){
           return `
           <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
                       background:#fff;border:1px solid var(--line-soft);border-radius:5px;margin-bottom:6px">
-            <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'#0969da'};
+            <span style="flex:0 0 22px;height:22px;background:${i===0?'#cf222e':i===1?'#bf8700':'var(--accent)'};
                          color:#fff;border-radius:50%;text-align:center;font-weight:700;
                          line-height:22px;font-size:11px">${i+1}</span>
             ${c.image ? `<img src="assets/fault_images/${c.image}" alt="${c.defect}"
@@ -6482,7 +6572,7 @@ function v516_renderFitnessHexRadar(m, p){
           backgroundColor: 'rgba(101,109,118,.04)', borderColor: '#656d76', borderWidth: 1.4,
           borderDash: [4,3], pointRadius: 0, order: 2 },
         { label: '🟦 90+ mph cohort 목표', data: elitemphRef,
-          backgroundColor: 'rgba(9,105,218,.04)', borderColor: '#0969da', borderWidth: 1.5,
+          backgroundColor: 'rgba(9,105,218,.04)', borderColor: 'var(--accent)', borderWidth: 1.5,
           borderDash: [6,4], pointRadius: 0, order: 3 }
       ]
     },
@@ -6531,7 +6621,7 @@ function v516_renderFitnessHexRadar(m, p){
     let html = `<div style="background:#f6f8fa;padding:10px 12px;border-radius:6px;margin-bottom:10px">`;
     html += `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">HP Composite Score</div>`;
     html += `<div style="font-size:24px;font-weight:600;color:#bc4c00">${dx.overall_score ?? '—'}<span style="font-size:13px;color:var(--muted)"> / 100 (HS 평균)</span></div>`;
-    if(dominantVG) html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">체력 수준 ≈ <b style="color:#0969da">${dominantVG} mph cohort</b></div>`;
+    if(dominantVG) html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">체력 수준 ≈ <b style="color:var(--accent)">${dominantVG} mph cohort</b></div>`;
     html += `</div>`;
     if(top) html += `<div style="background:#f0fff4;border-left:3px solid #1a7f37;padding:8px 10px;border-radius:4px;margin-bottom:6px">
       <div style="font-size:11px;color:var(--muted)">▲ 강점</div>
@@ -6551,7 +6641,7 @@ function v516_renderFitnessHexRadar(m, p){
       if(unit === 'm/s' || unit === 'W/kg' || unit === 'N/kg') return v.toFixed(2);
       return Math.round(v).toString();
     };
-    const colorScore = s => s == null ? '#656d76' : s >= 130 ? '#1a7f37' : s >= 100 ? '#0969da' : s >= 75 ? '#bc4c00' : '#cf222e';
+    const colorScore = s => s == null ? '#656d76' : s >= 130 ? '#1a7f37' : s >= 100 ? 'var(--accent)' : s >= 75 ? '#bc4c00' : '#cf222e';
     cohortBody.innerHTML = axisOrder.map(k => {
       const a = dx[k];
       const myCellColor = a.not_measured ? 'var(--muted)' : '#1f2328';
@@ -6562,7 +6652,7 @@ function v516_renderFitnessHexRadar(m, p){
         <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['<80'], a.unit)}</td>
         <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['80-85'], a.unit)}</td>
         <td style="text-align:right;padding:6px;color:var(--muted)">${fmtV(a.velo_group_refs['85-90'], a.unit)}</td>
-        <td style="text-align:right;padding:6px;background:#ddf4ff;font-weight:500">${fmtV(a.velo_group_refs['90+'], a.unit)}</td>
+        <td style="text-align:right;padding:6px;background:var(--accent-bg);font-weight:500">${fmtV(a.velo_group_refs['90+'], a.unit)}</td>
         <td style="text-align:right;padding:6px;color:${colorScore(a.score)};font-weight:600">${a.not_measured ? '—' : (a.score ?? '—')}</td>
       </tr>`;
     }).join('');
@@ -6668,7 +6758,7 @@ function v514_renderMechanicTables(m, p){
   const A = ANALYTICS;
   const fmtPctile = pct => {
     if(pct == null) return '<span style="color:var(--muted)">—</span>';
-    const c = pct >= 75 ? '#1a7f37' : pct >= 50 ? '#0969da' : pct >= 25 ? '#bc4c00' : '#cf222e';
+    const c = pct >= 75 ? '#1a7f37' : pct >= 50 ? 'var(--accent)' : pct >= 25 ? '#bc4c00' : '#cf222e';
     return `<span style="color:${c};font-weight:600">${pct}</span>`;
   };
 
@@ -6836,8 +6926,8 @@ function v514_renderMechanicTables(m, p){
       ete_pct:    m.energy?.transfer?.ete_pct
     };
     const order = ['pelvis_dps','trunk_dps','arm_dps','x_factor','stride_pct','hp_ratio_pct','ete_pct'];
-    const eBg = e => e === 'velo' ? '#dafbe1' : e === 'cmd' ? '#fce7e8' : e === 'cmd_velo' ? '#ddf4ff' : '#f6f8fa';
-    const eC  = e => e === 'velo' ? '#1a7f37' : e === 'cmd' ? '#cf222e' : e === 'cmd_velo' ? '#0969da' : '#656d76';
+    const eBg = e => e === 'velo' ? '#dafbe1' : e === 'cmd' ? '#fce7e8' : e === 'cmd_velo' ? 'var(--accent-bg)' : '#f6f8fa';
+    const eC  = e => e === 'velo' ? '#1a7f37' : e === 'cmd' ? '#cf222e' : e === 'cmd_velo' ? 'var(--accent)' : '#656d76';
     const eLabel = e => e === 'velo' ? '⚾ 구속' : e === 'cmd' ? '🎯 제구' : e === 'cmd_velo' ? '🎯⚾ 제구·구속' : '—';
     const fmtVal = (v, unit) => {
       if(v == null) return '<span style="color:var(--muted)">—</span>';
@@ -6900,7 +6990,7 @@ function v514_renderMechanicTables(m, p){
     ];
     const colorScore = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#bc4c00' : s >= 40 ? '#d4a017' : '#cf222e';
     eliBody.innerHTML = zones.map(([z, desc, score]) => `<tr style="border-bottom:1px solid #f0f3f6">
-      <td style="padding:5px 6px;font-weight:600;color:#0969da">${z}</td>
+      <td style="padding:5px 6px;font-weight:600;color:var(--accent)">${z}</td>
       <td style="padding:5px 6px;color:var(--muted)">${desc}</td>
       <td style="text-align:right;padding:5px 6px;font-weight:600;color:${colorScore(score)}">${score ?? '—'}</td>
     </tr>`).join('');
@@ -6918,7 +7008,7 @@ function v514_renderMechanicTables(m, p){
       { lbl: '몸통 (Trunk)',   v: gen.mech_energy_trunk_J,   ref: refKE.trunk },
       { lbl: '팔  (Humerus)',  v: gen.mech_energy_humerus_J, ref: refKE.humerus }
     ];
-    const colorByRatio = r => r == null ? '#656d76' : r >= 1.1 ? '#1a7f37' : r >= 0.85 ? '#0969da' : r >= 0.65 ? '#bc4c00' : '#cf222e';
+    const colorByRatio = r => r == null ? '#656d76' : r >= 1.1 ? '#1a7f37' : r >= 0.85 ? 'var(--accent)' : r >= 0.65 ? '#bc4c00' : '#cf222e';
     enBody.innerHTML = segments.map((s, i) => {
       const ratio = s.v != null ? s.v / s.ref : null;
       const c = colorByRatio(ratio);
@@ -6927,7 +7017,7 @@ function v514_renderMechanicTables(m, p){
       if(i < segments.length - 1 && s.v != null && segments[i+1].v != null){
         trans = (segments[i+1].v / s.v * 100).toFixed(0);
       }
-      const tColor = trans == null ? '#656d76' : (+trans) >= 100 ? '#1a7f37' : (+trans) >= 70 ? '#0969da' : '#cf222e';
+      const tColor = trans == null ? '#656d76' : (+trans) >= 100 ? '#1a7f37' : (+trans) >= 70 ? 'var(--accent)' : '#cf222e';
       return `<tr style="border-bottom:1px solid #f0f3f6">
         <td style="padding:5px 6px;font-weight:500">${s.lbl}</td>
         <td style="text-align:right;padding:5px 6px;color:${c};font-weight:600">${s.v != null ? Math.round(s.v) : '—'} J</td>
@@ -6943,7 +7033,7 @@ function v514_renderMechanicTables(m, p){
     const speedGainPT = trf.speed_gain_pt;
     const speedGainTA = trf.speed_gain_ta;
     const ratio = trf.ratio_humerus_to_pelvis_pct;
-    const c = ete == null ? '#656d76' : ete >= 80 ? '#1a7f37' : ete >= 70 ? '#0969da' : ete >= 60 ? '#bc4c00' : '#cf222e';
+    const c = ete == null ? '#656d76' : ete >= 80 ? '#1a7f37' : ete >= 70 ? 'var(--accent)' : ete >= 60 ? '#bc4c00' : '#cf222e';
     eteEl.innerHTML = `
       <div style="font-weight:600;margin-bottom:4px">⚡ 에너지 전달 효율 (ETE)</div>
       <div>전체 전달율: <b style="color:${c};font-size:14px">${ete != null ? ete + '%' : '—'}</b>
@@ -7008,7 +7098,7 @@ function v514_renderMechanicTables(m, p){
     const leadEl = document.getElementById('p-grf-lead-pct');
     const leadFill = document.getElementById('p-grf-lead-fill');
     if(leadEl && leadPct != null){
-      const c = leadPct >= 110 ? '#1a7f37' : leadPct >= 90 ? '#0969da' : leadPct >= 70 ? '#bc4c00' : '#cf222e';
+      const c = leadPct >= 110 ? '#1a7f37' : leadPct >= 90 ? 'var(--accent)' : leadPct >= 70 ? '#bc4c00' : '#cf222e';
       leadEl.innerHTML = `<span style="color:${c}">${leadPct.toFixed(1)}%</span>`;
       if(leadFill) leadFill.style.width = Math.min(100, leadPct / 150 * 100) + '%';
     } else if(leadEl){ leadEl.textContent = '—'; }
@@ -7016,7 +7106,7 @@ function v514_renderMechanicTables(m, p){
     // LHEI 종합 점수
     const lheiEl = document.getElementById('p-grf-lhei-score');
     if(lheiEl && grf.lhei != null){
-      const c = grf.lhei >= 80 ? '#1a7f37' : grf.lhei >= 60 ? '#0969da' : grf.lhei >= 40 ? '#bc4c00' : '#cf222e';
+      const c = grf.lhei >= 80 ? '#1a7f37' : grf.lhei >= 60 ? 'var(--accent)' : grf.lhei >= 40 ? '#bc4c00' : '#cf222e';
       lheiEl.innerHTML = `<span style="color:${c}">${grf.lhei}</span> <span style="font-size:13px;color:var(--muted)">/100</span>`;
     }
 
@@ -7101,7 +7191,7 @@ function v514_renderMechanicTables(m, p){
 <stop offset="80%" stop-color="${segColor(tHF.score)}"/>
 <stop offset="100%" stop-color="${segColor(tFH.score)}"/>
 </linearGradient>
-<linearGradient id="drive-${uid}" gradientUnits="userSpaceOnUse" x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.pelvisC[0]}" y2="${K.pelvisC[1]}"><stop offset="0%" stop-color="#00854a"/><stop offset="100%" stop-color="#0969da"/></linearGradient>
+<linearGradient id="drive-${uid}" gradientUnits="userSpaceOnUse" x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.pelvisC[0]}" y2="${K.pelvisC[1]}"><stop offset="0%" stop-color="#00854a"/><stop offset="100%" stop-color="var(--accent)"/></linearGradient>
 <radialGradient id="leak-${uid}"><stop offset="0%" stop-color="#fee2e2" stop-opacity="0.95"/><stop offset="40%" stop-color="#ef4444" stop-opacity="0.75"/><stop offset="100%" stop-color="#7f1d1d" stop-opacity="0"/></radialGradient>
 <radialGradient id="moundShadow-${uid}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000" stop-opacity="0.18"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
 </defs>
@@ -7162,7 +7252,7 @@ ${burstPT}${burstTH}${burstHF}${burstFH}
     } else {
       const TKEYS = ['pelvis_to_trunk','trunk_to_humerus','humerus_to_forearm','forearm_to_hand'];
       const SEG_LABEL = ['🦴 골반','💪 몸통','🤲 위팔','✊ 아래팔','👋 손'];
-      const statusColor = s => s === 'ideal' ? '#1a7f37' : s === 'acceptable' ? '#0969da' : s === 'fault' ? '#cf222e' : '#656d76';
+      const statusColor = s => s === 'ideal' ? '#1a7f37' : s === 'acceptable' ? 'var(--accent)' : s === 'fault' ? '#cf222e' : '#656d76';
       const statusBadge = s => s === 'ideal' ? '✅ 이상적' : s === 'acceptable' ? '🟦 허용' : s === 'fault' ? '❌ 결함' : '—';
 
       // v5.40: 동적 마네킹 SVG (본인 데이터 기반 키네틱 체인 + 라벨 6개) — chain 위에 prepend
@@ -7256,7 +7346,7 @@ ${burstPT}${burstTH}${burstHF}${burstFH}
       grfHEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:10px;background:#f6f8fa;border-radius:4px">GRF 수평 성분 데이터 없음 (Force Plate Y/X 시계열 필요)</div>';
     } else {
       const fmtV = (v, u, p=1) => v == null ? '—' : v.toFixed(p) + (u ? ' ' + u : '');
-      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#0969da' : s >= 40 ? '#bc4c00' : '#cf222e';
+      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? 'var(--accent)' : s >= 40 ? '#bc4c00' : '#cf222e';
 
       function metricRow(m){
         const c = scoreColor(m.score);
@@ -7299,8 +7389,8 @@ ${burstPT}${burstTH}${burstHF}${burstFH}
       driveHtml += `</tbody></table></div>`;
 
       // Lead leg (4 metrics)
-      let leadHtml = `<div style="background:#ddf4ff;padding:8px 10px;border-radius:4px;margin-bottom:8px">
-        <div style="font-weight:600;font-size:12.5px;color:#0969da;margin-bottom:6px">🦵 Lead Leg (앞발) — 블록 (∫F·dt = 운동량 흡수)</div>
+      let leadHtml = `<div style="background:var(--accent-bg);padding:8px 10px;border-radius:4px;margin-bottom:8px">
+        <div style="font-weight:600;font-size:12.5px;color:var(--accent);margin-bottom:6px">🦵 Lead Leg (앞발) — 블록 (∫F·dt = 운동량 흡수)</div>
         <table style="width:100%;border-collapse:collapse;font-size:11.5px">
           <thead><tr style="color:var(--muted);font-size:10.5px">
             <th style="text-align:left;padding:3px 8px">변인</th>
@@ -7340,7 +7430,7 @@ ${burstPT}${burstTH}${burstHF}${burstFH}
       nfEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:10px;background:#f6f8fa;border-radius:4px">NewtForce 데이터 없음 (Force Plate 시계열 필요)</div>';
     } else {
       const fmtV = (v, u, p=1) => v == null ? '—' : v.toFixed(p) + (u ? ' ' + u : '');
-      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? '#0969da' : s >= 40 ? '#bc4c00' : '#cf222e';
+      const scoreColor = s => s == null ? '#656d76' : s >= 80 ? '#1a7f37' : s >= 60 ? 'var(--accent)' : s >= 40 ? '#bc4c00' : '#cf222e';
 
       const overallC = scoreColor(nf.overall_score);
       const ampC = scoreColor(nf.amplitude_score);
@@ -7606,7 +7696,7 @@ function renderRapsodoFB(rap, player){
       </div>
 
       <!-- ② Spin & Stuff -->
-      <div class="scard" style="border-top:3px solid #0969da">
+      <div class="scard" style="border-top:3px solid var(--accent)">
         <h3>② Spin & Stuff (회전·구위)</h3>
         <div class="row"><span>회전수 (Spin)</span><span class="v" style="font-size:16px;font-weight:700">${fb.spin.avg} rpm</span></div>
         <div class="row"><span>True Spin</span><span class="v">${fb.true_spin_avg} rpm</span></div>
@@ -7709,8 +7799,8 @@ function renderRapsodoFB(rap, player){
   chartsP.rapMov = new Chart(document.getElementById('rap-mov-chart'), {
     type: 'scatter',
     data: {datasets: [
-      {label:'개별 throw', data: throwsPts, backgroundColor:'rgba(13,109,253,0.5)', borderColor:'#0969da', pointRadius:4},
-      {label:'평균 ◆', data: [avgPt], backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:9, pointStyle:'rectRot'},
+      {label:'개별 throw', data: throwsPts, backgroundColor:'rgba(13,109,253,0.5)', borderColor:'var(--accent)', pointRadius:4},
+      {label:'평균 ◆', data: [avgPt], backgroundColor:'var(--accent)', borderColor:'var(--accent)', pointRadius:9, pointStyle:'rectRot'},
       {label:`${RAP_COHORT} 코호트 ✚`, data: [cohPt], backgroundColor:'#cf222e', borderColor:'#cf222e', pointRadius:9, pointStyle:'crossRot', borderWidth:3}
     ]},
     options: {
@@ -7735,7 +7825,7 @@ function renderRapsodoFB(rap, player){
     type: 'scatter',
     data: {datasets: [
       {label:'팀 동료', data: teamSC.filter(p=>!p.isMe), backgroundColor:'rgba(101,109,118,0.4)', borderColor:'#656d76', pointRadius:4},
-      {label:'본인', data: teamSC.filter(p=>p.isMe), backgroundColor:'#0969da', borderColor:'#0969da', pointRadius:10, pointStyle:'rectRot'}
+      {label:'본인', data: teamSC.filter(p=>p.isMe), backgroundColor:'var(--accent)', borderColor:'var(--accent)', pointRadius:10, pointStyle:'rectRot'}
     ]},
     options: {
       responsive:true, maintainAspectRatio:false,
@@ -7758,8 +7848,8 @@ function renderOutcomeDiagnosis(m, p){
   const d = m.velocity.diagnosis;
   if(!d){ wrap.innerHTML = ''; return; }
 
-  const aeColor = d.ae_kmh >= 3 ? '#1a7f37' : d.ae_kmh >= -3 ? '#0969da' : '#cf222e';
-  const aeBg    = d.ae_kmh >= 3 ? '#dafbe1' : d.ae_kmh >= -3 ? '#ddf4ff' : '#ffebe9';
+  const aeColor = d.ae_kmh >= 3 ? '#1a7f37' : d.ae_kmh >= -3 ? 'var(--accent)' : '#cf222e';
+  const aeBg    = d.ae_kmh >= 3 ? '#dafbe1' : d.ae_kmh >= -3 ? 'var(--accent-bg)' : '#ffebe9';
   const groupColor = (g) => ({미달:'#7e57c2',평균:'#e91e63',우수:'#ff9800',Elite:'#ff6f00'})[g] || '#656d76';
 
   wrap.innerHTML = `
@@ -7866,13 +7956,13 @@ function renderHPAssessment(m, p){
 
     // 본인 vertical line
     html += `<div style="position:absolute;left:${Math.max(0,Math.min(100,myPct))}%;top:0;bottom:0;
-              width:3px;background:#0969da;transform:translateX(-50%);box-shadow:0 0 4px rgba(9,105,218,.5)" title="본인 ${v.value}">
+              width:3px;background:var(--accent);transform:translateX(-50%);box-shadow:0 0 4px rgba(9,105,218,.5)" title="본인 ${v.value}">
             </div>
             <div style="position:absolute;left:${Math.max(0,Math.min(100,myPct))}%;top:-8px;transform:translate(-50%,-100%);
-              background:#0969da;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600">▼ ${typeof v.value === 'number' ? v.value.toFixed(1) : v.value}</div>`;
+              background:var(--accent);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600">▼ ${typeof v.value === 'number' ? v.value.toFixed(1) : v.value}</div>`;
 
     html += `</div>
-      <div style="text-align:right;font-weight:700;color:#0969da">
+      <div style="text-align:right;font-weight:700;color:var(--accent)">
         ${typeof v.value === 'number' ? v.value.toFixed(1) : v.value}<br>
         <span style="font-size:9px;color:var(--muted);font-weight:400">${v.unit}</span>
       </div>
@@ -7913,7 +8003,7 @@ function renderTierOverlay(m, p){
   }
   if(items.length === 0){ wrap.innerHTML = ''; return; }
 
-  const tierColors = { kr_hs_elite: '#0969da', college: '#bc4c00', mlb: '#a40e26' };
+  const tierColors = { kr_hs_elite: 'var(--accent)', college: '#bc4c00', mlb: '#a40e26' };
   const tierLabels = { kr_hs_elite: '🇰🇷 KR Elite', college: '🇺🇸 College', mlb: '🇺🇸 MLB' };
 
   let html = `<div class="panel" style="background:#fafbfc;padding:14px 16px;margin:0">
@@ -7930,7 +8020,7 @@ function renderTierOverlay(m, p){
       const t = it.tier[c];
       if(!t) return;
       const pct = t.percentile;
-      const color = pct >= 75 ? '#1a7f37' : pct >= 50 ? '#0969da' : pct >= 25 ? '#bf8700' : '#cf222e';
+      const color = pct >= 75 ? '#1a7f37' : pct >= 50 ? 'var(--accent)' : pct >= 25 ? '#bf8700' : '#cf222e';
       html += `<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;margin:2px 0">
         <span style="flex:0 0 75px;color:${tierColors[c]}">${tierLabels[c]}</span>
         <div style="flex:1;height:8px;background:#eaeef2;border-radius:4px;position:relative">
@@ -8256,7 +8346,7 @@ function renderLongTab(){
       labels: SESSIONS.map(s=>`${s.label}\n(${s.protocol==='Theia+GRF'?'T+GRF':'Uplift'})`),
       datasets:[
         {label:'평균 구속 (km/h)', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].velocity.measured_kmh))),
-         borderColor:'#0969da', backgroundColor:'rgba(9,105,218,.1)', tension:.3, yAxisID:'y', pointRadius:5},
+         borderColor:'var(--accent)', backgroundColor:'rgba(9,105,218,.1)', tension:.3, yAxisID:'y', pointRadius:5},
         {label:'평균 종합점수', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].velocity.score))),
          borderColor:'#8250df', tension:.3, yAxisID:'y2', pointRadius:5},
         {label:'평균 시퀀스', data:SESSIONS.map(s=>avg(PLAYERS.map(p=>DATA[p.id][s.id].sequence.score))),
@@ -8270,8 +8360,8 @@ function renderLongTab(){
       plugins:{legend:{labels:{color:'#1f2328'}}},
       scales:{
         x:{ticks:{color:'#656d76'},grid:{color:'#eaeef2'}},
-        y:{position:'left',title:{display:true,text:'구속 (km/h)',color:'#0969da'},
-           ticks:{color:'#0969da'},grid:{color:'#eaeef2'}},
+        y:{position:'left',title:{display:true,text:'구속 (km/h)',color:'var(--accent)'},
+           ticks:{color:'var(--accent)'},grid:{color:'#eaeef2'}},
         y2:{position:'right',title:{display:true,text:'점수 (0~100)',color:'#8250df'},
             ticks:{color:'#8250df'},grid:{drawOnChartArea:false},min:0,max:100}
       }
@@ -8289,7 +8379,7 @@ function renderLongTab(){
 /* ── Phase 3 (v2.2): 통일 색상 팔레트 + 향상된 툴팁/애니메이션 ──
    colorblind-safe 팔레트 (Wong 2011 + GitHub 디자인) */
 const CHART_PALETTE = {
-  primary:    '#0969da',   // 본인/주력 — 청
+  primary:    'var(--accent)',   // 본인/주력 — 청
   secondary:  '#8250df',   // 보조 — 보라
   accent:     '#1a7f37',   // 양호/긍정 — 녹
   warning:    '#bf8700',   // 주의 — 황
@@ -8303,7 +8393,7 @@ const CHART_PALETTE = {
     return this.danger;
   },
   // 5색 시리즈 (라인/그룹 비교)
-  series: ['#0969da', '#8250df', '#1a7f37', '#bf8700', '#cf222e']
+  series: ['var(--accent)', '#8250df', '#1a7f37', '#bf8700', '#cf222e']
 };
 
 function chartOpts(opts={}){
@@ -10009,7 +10099,7 @@ function compactPlayerCard(pid, sid){
     <g>
       ${[0.2,0.4,0.6,0.8,1.0].map(f=>`<polygon points="${ringPts(f)}" fill="none" stroke="#d0d7de" stroke-width="0.5"/>`).join('')}
       ${axes.map((a,i)=>{const [x,y] = point(i, 100); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#d0d7de" stroke-width="0.5"/>`;}).join('')}
-      <polygon points="${polyPts}" fill="#0969da" fill-opacity="0.2" stroke="#0969da" stroke-width="2"/>
+      <polygon points="${polyPts}" fill="var(--accent)" fill-opacity="0.2" stroke="var(--accent)" stroke-width="2"/>
       ${labels}
     </g>
   </svg>`;
@@ -10032,7 +10122,7 @@ function compactPlayerCard(pid, sid){
 
   // causal chains
   const causal = (el.causal_chains || []).map((c,i)=>{
-    const bg = i===0 ? '#cf222e' : i===1 ? '#bf8700' : '#0969da';
+    const bg = i===0 ? '#cf222e' : i===1 ? '#bf8700' : 'var(--accent)';
     return `<div class="causal">
       <span class="num" style="background:${bg}">${i+1}</span>
       <span style="flex:1"><b>${c.defect}</b> · ${c.zone_label||c.zone}</span>
@@ -10088,7 +10178,7 @@ function compactPlayerCard(pid, sid){
     <div class="sec-title">⚡ 메카닉 — Driveline 5 모델 + 분절간 ETE + 관절 파워 (v5.40)</div>
     <div class="row3">
       <div class="mini-card">
-        <div class="ttl" style="color:#0969da">① 분절 운동에너지 + 관절 파워 <span style="float:right">${eg.score ?? '—'}</span></div>
+        <div class="ttl" style="color:var(--accent)">① 분절 운동에너지 + 관절 파워 <span style="float:right">${eg.score ?? '—'}</span></div>
         <div class="kv"><span>투구 어깨 / 팔꿈치 (W)</span><b>${eg.shoulder_W ?? '—'} / ${eg.elbow_W ?? '—'}</b></div>
         <div class="kv"><span>힙 R/L (W)</span><b>${eg.hip_R_W ?? '—'} / ${eg.hip_L_W ?? '—'}</b></div>
         <div class="kv"><span>무릎 R/L (W)</span><b>${eg.knee_R_W ?? '—'} / ${eg.knee_L_W ?? '—'}</b></div>
