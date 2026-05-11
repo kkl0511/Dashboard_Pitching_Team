@@ -343,8 +343,12 @@
   </div>
 </main>
 
-<!-- dashboard.html을 hidden iframe 으로 로드 → 분석 함수·데이터 공유 -->
-<iframe id="data-iframe" src="dashboard.html?embed=coach" aria-hidden="true"></iframe>
+<!-- dashboard.html을 hidden iframe 으로 로드 → 분석 함수·데이터 공유.
+     src 에 timestamp 추가해 GitHub Pages 캐시 우회 (배포 직후 새 버전 즉시 로드) -->
+<iframe id="data-iframe" aria-hidden="true"></iframe>
+<script>
+  document.getElementById('data-iframe').src = 'dashboard.html?embed=coach&_=' + Date.now();
+</script>
 
 <script>
 // ════════════════════════════════════════════════════════
