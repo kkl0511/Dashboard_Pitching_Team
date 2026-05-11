@@ -236,6 +236,73 @@
     text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;
   }
   .solution-item .drill{font-size:15px;color:var(--text);font-weight:600;line-height:1.5}
+  /* ── v3 enriched cards: 분석가가 코치·선수에게 설명할 때 쓸 reference ── */
+  .top3-item{grid-template-columns:46px 1fr 100px}
+  .top3-item .body .info{
+    display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--text-soft);line-height:1.55;
+  }
+  .top3-item .body .info .lbl{
+    color:var(--accent);font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+    text-transform:uppercase;margin-right:6px;
+  }
+  .solution-item .cue{
+    margin-top:10px;padding:10px 12px;background:var(--panel);border-radius:8px;
+    border-left:3px solid var(--accent);font-size:13.5px;color:var(--text);line-height:1.6;
+  }
+  .solution-item .cue .lbl{
+    color:var(--accent);font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+    text-transform:uppercase;display:block;margin-bottom:4px;
+  }
+  .solution-item .observe{
+    margin-top:8px;padding:10px 12px;background:rgba(56,189,248,0.08);border-radius:8px;
+    font-size:12.5px;color:var(--text-soft);line-height:1.55;
+  }
+  .solution-item .observe .lbl{
+    color:#7dd3fc;font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+    text-transform:uppercase;display:block;margin-bottom:4px;
+  }
+  /* Composite bar 해석 */
+  .bar-row .bar-interp{
+    grid-column:2/4;font-size:11.5px;color:var(--muted);margin-top:-4px;line-height:1.5;
+  }
+  .composite-bars{gap:18px}
+  /* Sequence 진단 박스 */
+  .seq-diagnosis{
+    margin-top:10px;padding:12px 14px;background:var(--panel-2);border-radius:8px;
+    font-size:12.5px;color:var(--text-soft);line-height:1.6;border-left:3px solid var(--accent);
+  }
+  .seq-diagnosis .lbl{
+    color:var(--accent);font-weight:700;font-size:10.5px;letter-spacing:0.6px;
+    text-transform:uppercase;margin-right:6px;
+  }
+  /* TALKING POINTS */
+  .talking-points{
+    background:linear-gradient(180deg, rgba(255,107,107,0.06), var(--panel-2));
+    border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:10px;padding:18px 20px;
+  }
+  .talking-points h3{
+    margin:0 0 12px;font-size:14px;color:var(--accent);font-weight:700;
+    text-transform:uppercase;letter-spacing:0.6px;
+  }
+  .talking-points .tp-block{
+    margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--line);
+  }
+  .talking-points .tp-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .talking-points .tp-step{
+    color:var(--accent);font-weight:700;font-size:11.5px;letter-spacing:0.4px;
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  .talking-points .tp-script{
+    font-size:14px;color:var(--text);line-height:1.7;
+  }
+  .talking-points .tp-script q{
+    quotes:'\201C' '\201D';color:var(--text);font-style:italic;
+  }
+  .talking-points .tp-note{
+    font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5;
+  }
 
   /* ── 마네킹 ── */
   .mannequin-wrap{
@@ -786,8 +853,13 @@ function renderPlayerMain(p, m, dvl5){
     </section>
 
     <section class="section">
-      <h2 class="section-title"><span class="step">3</span><span>SOLUTIONS</span><span class="h">해결방안 — 우선순위 처방</span></h2>
+      <h2 class="section-title"><span class="step">3</span><span>SOLUTIONS</span><span class="h">해결방안 — 처방 + cue + 관찰</span></h2>
       ${renderSolutions(dvl5, m)}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><span class="step">4</span><span>FEEDBACK</span><span class="h">피드백 talking points — 분석가 설명용</span></h2>
+      ${renderTalkingPoints(p, m, dvl5)}
     </section>
 
     <section class="section">
@@ -797,6 +869,47 @@ function renderPlayerMain(p, m, dvl5){
   `;
 }
 
+function compositeBarInterp(modelKey, score){
+  if(score == null) return '데이터 없음';
+  const elite = score >= 130, above = score >= 110, avg = score >= 90;
+  const M = {
+    arm_action: {
+      elite:'어깨 외회전·견갑 부하·팔 가속 모두 강함. 부상 모니터링만.',
+      above:'팔동작 좋은 편. Layback / scap retraction 미세 조정 가능.',
+      avg:  '팔동작 평균. Layback 또는 어깨 가속 둘 중 하나가 약함.',
+      below:'팔동작 약함. Layback·외전·내회전 중 1개 이상 elite 미달.'
+    },
+    posture: {
+      elite:'X-factor·트렁크 각도 정렬 elite. 회전 자세 안정.',
+      above:'자세 좋음. forward tilt 또는 side bend 미세 조정.',
+      avg:  '자세 평균. 분리각 또는 트렁크 회전 1개가 약함.',
+      below:'자세 약함. early opening 또는 분리 부족 — 폼 재정비 필요.'
+    },
+    rotation: {
+      elite:'골반·몸통 회전 속도 elite. Speed Gain 정상.',
+      above:'회전 속도 양호. 몸통이 골반의 1.6× 근처면 OK.',
+      avg:  '회전 속도 평균. 골반 또는 몸통 가속 부족.',
+      below:'회전 속도 약함. 코어 power · 골반 단독 가속 drill 필요.'
+    },
+    block: {
+      elite:'앞다리 block elite. 운동량→회전 변환 효율 최고.',
+      above:'앞다리 제동 양호. Stride length 또는 knee ext 추가 다듬기.',
+      avg:  '앞다리 평균. knee collapse 또는 stride 부족 가능.',
+      below:'앞다리 약함. Lead leg 강화 + AP impulse 18-28%BW·s 목표.'
+    },
+    cog: {
+      elite:'체중이동 elite. 추진과 감속 모두 효율적.',
+      above:'체중이동 양호. CoG velocity 또는 decel 미세 조정.',
+      avg:  '체중이동 평균. 뒷발 push 또는 앞발 block 1개 약함.',
+      below:'체중이동 약함. Explosive stride drill + 앞발 block 통합.'
+    }
+  };
+  const m = M[modelKey] || {};
+  if(elite) return m.elite || '';
+  if(above) return m.above || '';
+  if(avg)   return m.avg   || '';
+  return m.below || '';
+}
 function renderComposite(dvl5, composite){
   if(!dvl5) return '<div class="empty-state">데이터 부족</div>';
   const models = [
@@ -808,10 +921,12 @@ function renderComposite(dvl5, composite){
     if(s == null) return `<div class="bar-row"><div class="bar-label">${m.l}</div><div class="bar-track"></div><div class="bar-value"><span class="num" style="color:var(--muted)">—</span></div></div>`;
     const g = gradeOf(s);
     const pct = Math.min(100, Math.max(0, s/150 * 100));
+    const interp = compositeBarInterp(m.k, s);
     return `<div class="bar-row">
       <div class="bar-label">${m.l}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
       <div class="bar-value"><span class="num">${Math.round(s)}</span><span class="grade ${g.cls}">${g.lbl}</span></div>
+      <div class="bar-interp">${interp}</div>
     </div>`;
   }).join('');
   return `<div class="composite">
@@ -850,27 +965,70 @@ function renderSequence(m){
   const okBadge = allFwd
     ? '<span class="seq-status ok">✓ 정상 (proximal → distal)</span>'
     : '<span class="seq-status bad">⚠ 역전 발생</span>';
-  return `<div class="seq-grid">${stepsHtml}${okBadge}</div>`;
+  // 진단 메시지 — 어디서 역전·lag 부족이 발생했는지 plain language 로
+  let diagMsg = '';
+  if(allFwd){
+    const trf = m.energy?.transfer || {};
+    const ptl = trf.pelvis_to_trunk_lag_ms;
+    const thl = trf.trunk_to_humerus_lag_ms ?? trf.trunk_to_arm_lag_ms;
+    if(ptl != null && thl != null){
+      const pAlert = ptl < 5 || ptl > 25;
+      const tAlert = thl < 50 || thl > 110;
+      if(!pAlert && !tAlert){
+        diagMsg = `골반(${Math.round(ptl)}ms)→몸통→위팔 순서가 모두 정상 범위. Kinetic chain 효율 양호. 이 시퀀스를 유지하면서 각 분절의 peak 속도를 올리는 것이 다음 단계.`;
+      } else {
+        const issues = [];
+        if(pAlert) issues.push(`골반→몸통 lag ${Math.round(ptl)}ms (정상 5-25ms)`);
+        if(tAlert) issues.push(`몸통→위팔 lag ${Math.round(thl)}ms (정상 50-110ms)`);
+        diagMsg = `순서는 정상이나 timing 이 어긋남: ${issues.join(', ')}. ${ptl > 25 ? '골반과 몸통이 너무 천천히 분리됨 — 분리 drill 필요. ' : ''}${thl < 50 ? '몸통과 위팔이 동시 가속 — Layback 더 유지해야 함. ' : ''}${thl > 110 ? '위팔이 너무 늦게 따라옴 — 어깨 flexibility 점검. ' : ''}`;
+      }
+    }
+  } else {
+    diagMsg = '분절 가속 순서가 역전됨 — 정상은 골반 → 몸통 → 위팔 → 아래팔 → 손 순서로 peak 가 발생해야 효율적. 역전이 있으면 운동량 전달이 끊겨 구속 손실. 골반 단독 회전 후 몸통 따라가는 drill 부터 점검 필요.';
+  }
+  const diagBox = diagMsg ? `<div class="seq-diagnosis"><span class="lbl">진단</span>${diagMsg}</div>` : '';
+  return `<div class="seq-grid">${stepsHtml}${okBadge}</div>${diagBox}`;
 }
 
+function infoFor(c){
+  if(c.type === 'ete') return ETE_INFO[c.model||''] || null;
+  return VAR_INFO[c.var_lbl] || null;
+}
+function diagnosisFor(c){
+  // 현재값과 elite 기준 비교 → "왜 문제인지" 한 줄 진단
+  if(c.elite == null || c.value == null) return null;
+  const diff = c.value - c.elite;
+  const absPct = Math.abs(diff/c.elite*100);
+  const dir = diff < 0 ? '부족' : '초과';
+  const sev = absPct >= 30 ? '큰' : absPct >= 15 ? '중간' : '작은';
+  return `Elite 기준 대비 <b>${Math.abs(diff).toFixed(diff%1?1:0)}${c.unit||''}</b> ${dir} (<b>${absPct.toFixed(0)}% ${sev} gap</b>) → 잠재 구속 <b>${c.loss.toFixed(1)} km/h</b> 손실로 환산.`;
+}
 function renderProblems(dvl5, m){
   const top3 = computeTop3(dvl5, m);
   if(top3.length === 0){
     return '<div style="padding:18px;background:rgba(74,222,128,0.10);border-radius:8px;color:var(--grade-elite);text-align:center;font-weight:600">✅ 큰 문제 영역 없음 — 모든 모델이 elite 수준</div>';
   }
-  return `<div class="top3">${top3.map((c, i) => `
+  return `<div class="top3">${top3.map((c, i) => {
+    const info = infoFor(c);
+    const diag = diagnosisFor(c);
+    return `
     <div class="top3-item">
       <div class="rank">${i+1}</div>
       <div class="body">
         <div class="name">${c.var_lbl}</div>
         <div class="meta">${c.model_lbl || ''} · 현재 <b style="color:var(--text)">${formatVal(c.value, c.unit)}</b> ${c.elite ? '· Elite ' + formatVal(c.elite, c.unit) : ''}</div>
+        ${info || diag ? `<div class="info">
+          ${info?.def ? `<div><span class="lbl">정의</span>${info.def}</div>` : ''}
+          ${info?.why ? `<div><span class="lbl">의미</span>${info.why}</div>` : ''}
+          ${diag ? `<div><span class="lbl">진단</span>${diag}</div>` : ''}
+        </div>` : ''}
       </div>
       <div class="impact">
         <div class="gain">+${c.loss.toFixed(1)}</div>
         <div class="gain-unit">km/h 잠재</div>
       </div>
     </div>
-  `).join('')}</div>`;
+  `;}).join('')}</div>`;
 }
 
 function renderSolutions(dvl5, m){
@@ -878,12 +1036,231 @@ function renderSolutions(dvl5, m){
   if(top3.length === 0) return '<div style="color:var(--muted);text-align:center;padding:14px">처방 필요 영역 없음</div>';
   return top3.map((c, i) => {
     const drill = drillFor(c);
+    const info = infoFor(c);
     return `<div class="solution-item">
-      <div class="rank">처방 ${i+1}</div>
+      <div class="rank">처방 ${i+1} · ${c.var_lbl}</div>
       <div class="drill">${drill}</div>
+      ${info?.cue ? `<div class="cue"><span class="lbl">선수에게 직접 말할 cue</span>${info.cue}</div>` : ''}
+      ${info?.observe ? `<div class="observe"><span class="lbl">코치 관찰 체크포인트</span>${info.observe}</div>` : ''}
     </div>`;
   }).join('');
 }
+
+// ▶ TALKING POINTS — 분석가가 선수에게 피드백할 때 쓸 자동 생성 스크립트
+function renderTalkingPoints(p, m, dvl5){
+  if(!dvl5) return '';
+  const composite = compositeScore(dvl5);
+  const top3 = computeTop3(dvl5, m);
+  const measured = m.velocity?.measured_kmh;
+  let potential = m.velocity?.potential_kmh ?? m.velocity?.predicted_kmh;
+  const upside = (measured && potential) ? (potential - measured).toFixed(1) : null;
+  const grade = composite >= 130 ? 'elite' : composite >= 110 ? 'above-avg' : composite >= 90 ? 'average' : 'below-avg';
+  const gradeMsg = {
+    'elite':'전체적으로 elite 수준이다. 이 폼을 유지하면서 미세 조정만 하면 된다.',
+    'above-avg':'전체적으로 평균 이상이다. 몇 가지만 다듬으면 더 올라갈 여지가 크다.',
+    'average':'평균 수준이다. 우선순위 1-2개만 집중하면 빠르게 개선 가능하다.',
+    'below-avg':'개선 여지가 많다. 욕심 부리지 말고 가장 큰 약점 1개에만 집중하자.'
+  }[grade];
+
+  const intro = `${p.name} 선수, 오늘 측정 결과를 같이 볼게요. 종합 점수는 <b>${composite}점</b>으로 ${gradeMsg}`;
+
+  let body = '';
+  if(top3.length > 0){
+    const top1 = top3[0];
+    const info = infoFor(top1);
+    body += `<div class="tp-block">
+      <div class="tp-step">1단계 — 가장 큰 약점 짚기</div>
+      <div class="tp-script">현재 가장 큰 손실은 <b>${top1.var_lbl}</b>이에요. ${info?.def || ''} 현재 측정값은 <b>${formatVal(top1.value, top1.unit)}</b>인데 elite 기준은 <b>${formatVal(top1.elite, top1.unit)}</b>이라서, 이것만 채워도 <b>+${top1.loss.toFixed(1)} km/h</b> 잠재력이 있어요.</div>
+      <div class="tp-note">왜 중요한지: ${info?.why || '—'}</div>
+    </div>`;
+    if(info?.cue){
+      body += `<div class="tp-block">
+        <div class="tp-step">2단계 — 선수에게 cue 전달 (그대로 말해주세요)</div>
+        <div class="tp-script"><q>${info.cue}</q></div>
+        ${info.observe ? `<div class="tp-note">코치 관찰: ${info.observe}</div>` : ''}
+      </div>`;
+    }
+    if(top3.length >= 2){
+      const c2 = top3[1];
+      const i2 = infoFor(c2);
+      body += `<div class="tp-block">
+        <div class="tp-step">3단계 — 두 번째 우선순위</div>
+        <div class="tp-script">두 번째는 <b>${c2.var_lbl}</b> (+${c2.loss.toFixed(1)} km/h 잠재). ${i2?.cue ? `<q>${i2.cue}</q>` : (i2?.why || '')}</div>
+      </div>`;
+    }
+  }
+  if(upside){
+    body += `<div class="tp-block">
+      <div class="tp-step">마무리 — 동기 부여</div>
+      <div class="tp-script">현재 <b>${measured} km/h</b>이지만 메카닉 잠재력은 <b>${potential} km/h</b>이에요. <b>+${upside} km/h</b> 향상 여지가 있다는 뜻 — 충분히 가능합니다.</div>
+    </div>`;
+  }
+  // 부상 위험 경고
+  const risk = m.faults?.injury_risk;
+  if(risk === 'high' || risk === 'mid'){
+    body += `<div class="tp-block" style="background:rgba(248,113,113,0.06);padding:10px 12px;border-radius:8px">
+      <div class="tp-step" style="color:#fca5a5">⚠ 안전 멘트</div>
+      <div class="tp-script">부상 위험 ${risk==='high'?'높음':'중간'} — 구속 욕심보다 폼 안정이 먼저예요. ${m.faults?.fault_count}개 결함 잡고 가요.</div>
+    </div>`;
+  }
+
+  return `<div class="talking-points">
+    <h3>오늘 피드백 — Analyst Talking Script</h3>
+    <div class="tp-block"><div class="tp-step">시작</div><div class="tp-script">${intro}</div></div>
+    ${body}
+  </div>`;
+}
+
+// v3: 변인별 상세 정보 — 분석가가 코치/선수에게 설명할 때 쓸 reference.
+// def: 변인이 무엇인가, why: 왜 중요한가, cue: 선수에게 직접 말해줄 한 문장, observe: 코치가 영상에서 볼 포인트
+const VAR_INFO = {
+  'Layback (어깨 최대 외회전)':{
+    def:'스트라이드 후 어깨가 최대로 뒤로 젖혀지는 외회전 각도',
+    why:'클수록 sling-shot 효과 ↑ → 구속 ↑. 단 220° 초과 시 회전근개 과부하.',
+    cue:'"공을 잡은 손이 머리 뒤까지 뒤로 떨어진다" — Layback 끝까지 가져가라',
+    observe:'옆에서 보면 위팔이 어깨 라인 뒤로 넘어가는지. 90° 외전 + 충분한 외회전.'
+  },
+  'Elbow Extension Velo':{
+    def:'팔꿈치 신전(펴짐) peak 각속도',
+    why:'너무 이른 신전 = valgus stress ↑ (Tommy John). MER 직후 신전이 이상적.',
+    cue:'"팔꿈치를 미리 펴지 말고 마지막 순간에 채라"',
+    observe:'슬로우 모션에서 MER(최대 외회전) 시점에도 팔꿈치가 굽혀져 있는지.'
+  },
+  'Shoulder Abduction at FP':{
+    def:'앞발 착지(FP) 시점 어깨 외전 각도',
+    why:'90° ± 10° 정상. 너무 낮으면 sidearm → 부상 ↑. 너무 높으면 release 불안정.',
+    cue:'"앞발 닿는 순간, 위팔이 어깨 높이에 — Y자가 아니라 T자 모양"',
+    observe:'정면에서 본 FP 시점 위팔 라인이 수평인지.'
+  },
+  'Scap Load at FP':{
+    def:'FP 시점 견갑(scapula) 후방 retraction 각도',
+    why:'클수록 견갑 안정 + 광배 활성 → 구속 ↑. 작으면 라운드 숄더 → release 약화.',
+    cue:'"등 뒤에서 어깨뼈 두 개가 만나도록 모았다가 던진다"',
+    observe:'뒤에서 본 FP 시점 견갑이 척추쪽으로 모여있는지 (날개뼈 retraction).'
+  },
+  'Shoulder Rotation Velo':{
+    def:'어깨 내회전 peak 각속도. 팔동작의 최종 explosive 단계.',
+    why:'4,500+ deg/s = elite. Layback 충분 + explosive IR transition 이 핵심.',
+    cue:'"채찍처럼 — 팔을 던지지 말고 손목을 채라"',
+    observe:'Release 직전 위팔의 폭발적 내회전. 팔꿈치 위치는 고정, 손이 가속.'
+  },
+  'Elbow Flexion at FP':{
+    def:'FP 시점 팔꿈치 굴곡 각도',
+    why:'90~110° 정상. 90° 미만 = inverted W (부상). 130° 초과 = 너무 굽힘 (구속 손실).',
+    cue:'"팔꿈치는 직각보다 살짝 더 굽혀 — 90~100° 사이"',
+    observe:'FP 시점 팔꿈치가 직각 근처인지. L자보다 살짝 더 닫힌 V자.'
+  },
+  'Peak Hip-Shoulder Sep at FP (X-factor)':{
+    def:'골반-몸통 최대 분리각 (X-factor)',
+    why:'클수록 stretch-reflex ↑ → 구속 ↑. 30° 미만 = 분리 부족.',
+    cue:'"골반은 먼저 홈쪽으로, 어깨는 끝까지 닫아둬라"',
+    observe:'위에서 본 골반 라인과 어깨 라인의 어긋남 — 골반이 먼저 열린다.'
+  },
+  'Peak Torso Counter Rot':{
+    def:'와인드업 시점 몸통 반대(3루) 회전 최대',
+    why:'깊을수록 회전 거리 ↑ → torque ↑. 0° 근처 = under-rotation.',
+    cue:'"등판이 타자한테 보이게 — 몸통을 더 감아라"',
+    observe:'와인드업 정점에서 등이 타자에게 얼마나 보이는지.'
+  },
+  'Torso Forward Tilt at FP':{
+    def:'FP 시점 시상면 trunk 전방 기울기',
+    why:'+5° ± 5° 정상. 음수(standing tall) = 구속 손실. 너무 양수 = collapse.',
+    cue:'"앞발 닿을 때 가슴은 살짝 앞으로 — 서있지 말고 앞으로 기대"',
+    observe:'옆에서 본 FP 시점 trunk 가 약간 앞으로 기울어있는지.'
+  },
+  'Torso Rotation at FP':{
+    def:'FP 시점 trunk Z (수평면 회전)',
+    why:'Closed (0° 근처) = 회전 여지 큼 → 구속 ↑. Early opening = 구속 손실.',
+    cue:'"앞발 닿을 때까지 가슴을 닫아둬 — 어깨 마지막에 열려라"',
+    observe:'FP 시점 가슴이 타자를 향해 너무 일찍 열렸는지.'
+  },
+  'Torso Rotation at BR':{
+    def:'Release 시점 trunk Z. 110°+ = full follow-through.',
+    why:'90° 미만 = 회전 부족 (early stop). 110° 초과 = 완전 follow-through.',
+    cue:'"끝까지 회전해라 — 글러브가 오른쪽 무릎(좌투는 왼쪽)까지 와야 한다"',
+    observe:'follow-through 후 가슴이 1루 방향까지 회전했는지.'
+  },
+  'Torso Side Bend at MER':{
+    def:'MER 시점 contralateral side bend (반대측 옆굴곡)',
+    why:'20~30° 정상 — high arm slot 유지. 0° 근처 = sidearm.',
+    cue:'"릴리스 직전 머리를 글러브쪽으로 — 몸통이 옆으로 기울게"',
+    observe:'release 시점 머리가 글러브쪽으로 기울었는지 (overhand 일수록 큼).'
+  },
+  'Pelvis Rotation Velo':{
+    def:'골반 axial peak 각속도. Kinetic chain 의 시작.',
+    why:'600+ deg/s = elite. 골반이 빨라야 분절 카스케이드 효율.',
+    cue:'"하체부터 회전 시작 — 골반이 어깨를 끌어가라"',
+    observe:'골반이 먼저 열리고 어깨가 따라오는지.'
+  },
+  'Torso Rotation Velo':{
+    def:'몸통 axial peak 각속도. 골반의 ~1.6× 가 정상.',
+    why:'Speed Gain (Trunk/Pelvis) = 1.4~2.0 elite range.',
+    cue:'"골반이 멈추는 순간 가슴이 폭발적으로 회전"',
+    observe:'골반 회전이 멈춘 후 몸통이 가속되는 분리감.'
+  },
+  'Lead Knee Extension':{
+    def:'앞발 무릎의 FC → BR 간 신전(펴짐) 변화량',
+    why:'양수(신전) = good block. 음수(knee collapse) = 구속 손실 + 부상 위험.',
+    cue:'"앞발 무릎을 펴면서 던져라 — 무릎이 무너지면 안된다"',
+    observe:'옆에서 본 FP→BR 간 무릎이 펴지는지, 굽혀지는지.'
+  },
+  'Stride Length':{
+    def:'Drive foot ↔ Lead foot 수평 거리 (FP 시점)',
+    why:'신장의 80~100% = elite. 너무 짧으면 추진력 부족, 너무 길면 lead leg overload.',
+    cue:'"보폭을 키 만큼 — 한 걸음 더 멀리 던진다고 생각해"',
+    observe:'발자국 거리가 키와 비슷한지. 시각적으로 확인 가능.'
+  },
+  'CoG Decel AE':{
+    def:'CoG 감속의 회귀 잔차. 구속 통제 후 lead leg 추가 효율.',
+    why:'양수 = 구속 대비 우수 block. 음수 = block 효율 부족.',
+    cue:'"앞발이 닿는 순간 벽에 부딪힌 듯 멈춰라 — 회전만 가속"',
+    observe:'FP 후 몸통이 앞으로 더 나가는지, 그 자리에서 회전만 하는지.'
+  },
+  'Peak Lead Knee Ext Velo':{
+    def:'앞발 무릎 신전 peak 각속도',
+    why:'빠를수록 explosive block → trunk 회전 가속 ↑.',
+    cue:'"앞발이 땅을 차고 일어선다는 느낌 — 무릎을 빠르게 펴라"',
+    observe:'FP 직후 앞다리가 폭발적으로 펴지는 속도.'
+  },
+  'CoG Decel':{
+    def:'CoG peak velocity 대비 BR 시점 감속량',
+    why:'클수록 효과적 block (운동량 → 회전 변환). 작으면 lead leg 추진 약함.',
+    cue:'"앞으로 나가던 몸을 앞다리로 멈춰서 — 그 힘으로 채라"',
+    observe:'release 시점 몸통이 앞으로 더 흘러가는지, 멈추는지.'
+  },
+  'Max CoG Velo':{
+    def:'몸 전체 무게중심의 홈 방향 peak 속도',
+    why:'빠를수록 stride 단계 추진력 ↑. 1.5 m/s 미만 = 추진 부족.',
+    cue:'"뒷발로 마운드를 차고 — 몸 전체를 홈쪽으로 던져라"',
+    observe:'와인드업 후 holding 없이 곧바로 강한 추진이 있는지.'
+  }
+};
+const ETE_INFO = {
+  'pelvis_to_trunk':{
+    def:'골반 peak ω → 몸통 peak ω 시간 차',
+    why:'정상: 골반 먼저, 몸통 늦게(5~25ms). 음수=역전, 구속 손실.',
+    cue:'"하체 회전을 먼저 끝내고 가슴을 따라가게 — 동시에 가지 마라"',
+    observe:'골반 회전이 명확히 먼저 시작되는지.'
+  },
+  'trunk_to_humerus':{
+    def:'몸통 peak ω → 위팔 peak ω 시간 차',
+    why:'클수록 stretch-reflex 활용. 너무 짧으면 동시 발화 (속도 손실).',
+    cue:'"몸통이 회전하는 동안 팔은 뒤에 남아있어라 — Layback 유지"',
+    observe:'몸통 회전 중 위팔이 뒤로 끌려가는 모양인지.'
+  },
+  'humerus_to_forearm':{
+    def:'위팔 peak ω → 아래팔 peak ω 시간 차',
+    why:'너무 짧으면 너무 이른 elbow 신전 → valgus stress ↑.',
+    cue:'"팔꿈치는 마지막에 펴라 — 위팔 가속 끝나고 채라"',
+    observe:'슬로우에서 elbow 신전이 늦게 일어나는지.'
+  },
+  'forearm_to_hand':{
+    def:'아래팔 peak ω → 손 peak ω 시간 차',
+    why:'손이 마지막 가속 단계. 역전 시 release 약화.',
+    cue:'"손목을 마지막 순간에 채라 — 손가락 끝까지 가속"',
+    observe:'release 직전 손목 스냅이 살아있는지.'
+  }
+};
 
 const RX_MAP = {
   'Layback (어깨 최대 외회전)':'어깨 모빌리티 (sleeper stretch) · long-toss · plyo-ball Layback drill',
