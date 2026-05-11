@@ -390,17 +390,7 @@
   }
   .model-trend-row .session-val.empty{color:var(--muted);font-weight:500}
 
-  /* ── Drop zone ── */
-  .upload-zone{
-    margin:18px 0;padding:22px;
-    background:var(--panel);border:2px dashed var(--line);border-radius:12px;
-    text-align:center;cursor:pointer;transition:all 0.15s;
-  }
-  .upload-zone:hover{border-color:var(--accent);background:var(--accent-bg)}
-  .upload-zone.drag{border-color:var(--accent);background:var(--accent-bg)}
-  .upload-zone .ico{font-size:24px;margin-bottom:8px}
-  .upload-zone .hint{font-size:12px;color:var(--muted);margin-top:4px}
-  #upload-result{margin-top:10px;font-size:12px}
+  /* v3: drop zone CSS 제거 — 코칭용에는 데이터 입력 없음 */
   .pill{display:block;padding:4px 10px;border-radius:5px;font-size:11.5px;font-weight:600;margin:3px 0}
   .pill.good{background:rgba(74,222,128,0.15);color:var(--grade-elite)}
   .pill.warn{background:rgba(251,191,36,0.15);color:var(--grade-below)}
@@ -495,14 +485,7 @@
     <div id="trend-content"></div>
   </section>
 
-  <!-- 데이터 인입 (모든 탭 공유) -->
-  <div class="upload-zone" id="upload-zone">
-    <div class="ico">📥</div>
-    <div><b>c3d.txt 또는 JSON 파일을 끌어놓거나 클릭</b></div>
-    <div class="hint">현장에서 측정한 파일을 즉시 분석. 여러 trial 동시 가능.</div>
-    <input type="file" id="upload-input" accept=".c3d.txt,.json,.txt" multiple style="display:none">
-    <div id="upload-result"></div>
-  </div>
+  <!-- v3: 코칭용에는 데이터 입력 없음. 데이터는 분석가가 dashboard.html 에서 입력 → 같은 도메인 localStorage 로 자동 공유. -->
 </main>
 
 <iframe id="data-iframe" aria-hidden="true"></iframe>
@@ -1330,28 +1313,98 @@ function computeTop3(dvl5, m){
   return candidates.slice(0, 3);
 }
 
+// v3: Pro 마네킹 (dashboard.html renderMannequinSvg 포팅) — Foot Strike pose + 키네틱 체인 + burst circle
+// 좌투(LHP)는 좌우 반전. 다크 페이지지만 흰색 카드 안에 표시 (X-ray 느낌).
 function renderMannequin(p, m, dvl5){
-  const composite = compositeScore(dvl5);
-  let bodyColor = '#4ade80';
-  if(composite < 80) bodyColor = '#93c5fd';
-  if(composite < 60) bodyColor = '#fbbf24';
-  if(composite < 40) bodyColor = '#f87171';
-  return `<svg viewBox="0 0 400 240" style="width:100%;max-width:380px;height:auto" xmlns="http://www.w3.org/2000/svg">
-    <line x1="20" y1="220" x2="380" y2="220" stroke="#243046" stroke-width="2"/>
-    <ellipse cx="320" cy="218" rx="60" ry="6" fill="#1a2a47"/>
-    <ellipse cx="220" cy="115" rx="22" ry="38" fill="${bodyColor}" opacity="0.9"/>
-    <circle cx="218" cy="62" r="16" fill="${bodyColor}" opacity="0.9"/>
-    <line x1="225" y1="92" x2="270" y2="55" stroke="${bodyColor}" stroke-width="9" stroke-linecap="round" opacity="0.85"/>
-    <line x1="270" y1="55" x2="295" y2="85" stroke="${bodyColor}" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
-    <circle cx="295" cy="88" r="5" fill="${bodyColor}"/>
-    <line x1="215" y1="100" x2="180" y2="140" stroke="${bodyColor}" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
-    <line x1="218" y1="150" x2="245" y2="218" stroke="${bodyColor}" stroke-width="11" stroke-linecap="round" opacity="0.85"/>
-    <line x1="218" y1="150" x2="170" y2="218" stroke="${bodyColor}" stroke-width="11" stroke-linecap="round" opacity="0.85"/>
-    <path d="M 170 215 Q 200 190 215 150 Q 230 100 270 60" stroke="${bodyColor}" stroke-width="2" fill="none" stroke-dasharray="3,3" opacity="0.6"/>
-    <text x="50" y="40" font-size="14" font-weight="700" fill="#cbd5e1" font-family="Inter">Composite</text>
-    <text x="50" y="76" font-size="36" font-weight="800" fill="${bodyColor}" font-family="Inter">${composite}</text>
-    <text x="50" y="98" font-size="11" fill="#94a3b8" font-family="Inter">/100 (5 모델 평균)</text>
-  </svg>`;
+  const segETE = WIN?.segmentTransitionETE;
+  if(!segETE){
+    return '<div class="empty-state"><div style="color:var(--muted);font-size:13px">자세 시각화 — 데이터 로딩 대기</div></div>';
+  }
+  const trans = segETE({
+    peak_pelvis_v:  m.sequence?.pelvis_dps,
+    peak_trunk_v:   m.sequence?.trunk_dps,
+    peak_humerus_v: m.sequence?.arm_dps,
+    peak_forearm_v: m.energy?.transfer?.peak_forearm_v,
+    peak_hand_v:    m.sequence?.peak_hand_v ?? m.energy?.transfer?.peak_forearm_v,
+    pelvis_to_trunk_lag_ms:    m.energy?.transfer?.pelvis_to_trunk_lag_ms,
+    trunk_to_humerus_lag_ms:   m.energy?.transfer?.trunk_to_humerus_lag_ms ?? m.energy?.transfer?.trunk_to_arm_lag_ms,
+    humerus_to_forearm_lag_ms: m.energy?.transfer?.humerus_to_forearm_lag_ms,
+    forearm_to_hand_lag_ms:    m.energy?.transfer?.forearm_to_hand_lag_ms
+  });
+  if(!trans) return '<div class="empty-state">자세 시각화 — 데이터 부족</div>';
+  const tPT = trans.pelvis_to_trunk    || {};
+  const tTH = trans.trunk_to_humerus   || {};
+  const tHF = trans.humerus_to_forearm || {};
+  const tFH = trans.forearm_to_hand    || {};
+  const segColor = s => s == null ? '#00854a' : s >= 80 ? '#00854a' : s >= 60 ? '#ca8a04' : '#e63946';
+  const uid = 'm' + Math.random().toString(36).slice(2, 8);
+  const isLHP = p.arm === 'L';
+  // 키 포인트 (RHP 기준, viewBox 600x420)
+  const K = {
+    head:[295,78], rShoulder:[328,132], lShoulder:[268,132],
+    rElbow:[400,132], rWrist:[400,60], ball:[398,45],
+    lElbow:[200,132], lWrist:[212,215], glove:[218,228],
+    pelvisR:[315,225], pelvisL:[282,225], pelvisC:[298,225], midTorso:[298,200],
+    rKnee:[390,295], rAnkle:[460,362], rToe:[495,370],
+    lKnee:[175,285], lAnkle:[155,360], lToe:[115,367]
+  };
+  const energyPath = `M ${K.lAnkle[0]} ${K.lAnkle[1]} L ${K.lKnee[0]} ${K.lKnee[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} L ${K.midTorso[0]} ${K.midTorso[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.rElbow[0]} ${K.rElbow[1]} L ${K.rWrist[0]} ${K.rWrist[1]} L ${K.ball[0]} ${K.ball[1]}`;
+  const driveLegPath = `M ${K.rAnkle[0]} ${K.rAnkle[1]} L ${K.rKnee[0]} ${K.rKnee[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisC[0]} ${K.pelvisC[1]}`;
+  const burstPT = (tPT.score != null && tPT.score < 60) ? `<circle cx="${K.pelvisC[0]}" cy="${K.pelvisC[1]}" r="22" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="16;28;16" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
+  const burstTH = (tTH.score != null && tTH.score < 60) ? `<circle cx="${(K.pelvisC[0]+K.rShoulder[0])/2}" cy="${(K.pelvisC[1]+K.rShoulder[1])/2}" r="26" fill="url(#leak-${uid})" opacity="0.75"><animate attributeName="r" values="20;32;20" dur="1.3s" repeatCount="indefinite"/></circle>` : '';
+  const burstHF = (tHF.score != null && tHF.score < 80) ? `<circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="24" fill="url(#leak-${uid})" opacity="${tHF.score<60?0.85:0.55}"><animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite"/></circle>` : '';
+  const burstFH = (tFH.score != null && tFH.score < 80) ? `<circle cx="${(K.rWrist[0]+K.ball[0])/2}" cy="${(K.rWrist[1]+K.ball[1])/2}" r="20" fill="url(#leak-${uid})" opacity="${tFH.score<60?0.85:0.55}"><animate attributeName="r" values="14;24;14" dur="1.2s" repeatCount="indefinite"/></circle>` : '';
+  const svg = `<svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:380px${isLHP?';transform:scaleX(-1)':''}">
+<defs>
+<linearGradient id="bodyG-${uid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#1a2a47"/><stop offset="100%" stop-color="#14213d"/></linearGradient>
+<linearGradient id="energy-${uid}" gradientUnits="userSpaceOnUse" x1="${K.lAnkle[0]}" y1="${K.lAnkle[1]}" x2="${K.ball[0]}" y2="${K.ball[1]}">
+<stop offset="0%"  stop-color="#00854a"/>
+<stop offset="35%" stop-color="${segColor(tPT.score)}"/>
+<stop offset="55%" stop-color="${segColor(tTH.score)}"/>
+<stop offset="80%" stop-color="${segColor(tHF.score)}"/>
+<stop offset="100%" stop-color="${segColor(tFH.score)}"/>
+</linearGradient>
+<linearGradient id="drive-${uid}" gradientUnits="userSpaceOnUse" x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.pelvisC[0]}" y2="${K.pelvisC[1]}"><stop offset="0%" stop-color="#00854a"/><stop offset="100%" stop-color="#ff6b6b"/></linearGradient>
+<radialGradient id="leak-${uid}"><stop offset="0%" stop-color="#fee2e2" stop-opacity="0.95"/><stop offset="40%" stop-color="#ef4444" stop-opacity="0.75"/><stop offset="100%" stop-color="#7f1d1d" stop-opacity="0"/></radialGradient>
+<radialGradient id="moundShadow-${uid}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000" stop-opacity="0.18"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+</defs>
+<path d="M 580 362 Q 480 360 400 365 Q 250 372 20 370" fill="none" stroke="#d4d4d4" stroke-width="1.5" stroke-dasharray="4,4"/>
+<rect x="440" y="358" width="60" height="6" rx="1" fill="#a3a3a3" opacity="0.5"/>
+<ellipse cx="300" cy="378" rx="240" ry="9" fill="url(#moundShadow-${uid})"/>
+<circle cx="${K.head[0]}" cy="${K.head[1]}" r="22" fill="url(#bodyG-${uid})" stroke="#1a2a47" stroke-width="1.2"/>
+<line x1="292" y1="100" x2="298" y2="128" stroke="#14213d" stroke-width="13" stroke-linecap="round"/>
+<path d="M ${K.lShoulder[0]} ${K.lShoulder[1]} L ${K.rShoulder[0]} ${K.rShoulder[1]} L ${K.pelvisR[0]} ${K.pelvisR[1]} L ${K.pelvisL[0]} ${K.pelvisL[1]} Z" fill="url(#bodyG-${uid})" stroke="#1a2a47" stroke-width="1.2"/>
+<line x1="${K.rShoulder[0]}" y1="${K.rShoulder[1]}" x2="${K.rElbow[0]}" y2="${K.rElbow[1]}" stroke="#14213d" stroke-width="18" stroke-linecap="round"/>
+<circle cx="${K.rElbow[0]}" cy="${K.rElbow[1]}" r="11" fill="#1a2a47"/>
+<line x1="${K.rElbow[0]}" y1="${K.rElbow[1]}" x2="${K.rWrist[0]}" y2="${K.rWrist[1]}" stroke="#14213d" stroke-width="16" stroke-linecap="round"/>
+<circle cx="${K.rWrist[0]}" cy="${K.rWrist[1]}" r="9" fill="#1a2a47"/>
+<circle cx="${K.ball[0]}" cy="${K.ball[1]}" r="9" fill="#fff" stroke="#14213d" stroke-width="1.5"/>
+<circle cx="${K.ball[0]+3}" cy="${K.ball[1]-3}" r="2.8" fill="#e63946"/>
+<line x1="${K.lShoulder[0]}" y1="${K.lShoulder[1]}" x2="${K.lElbow[0]}" y2="${K.lElbow[1]}" stroke="#14213d" stroke-width="17" stroke-linecap="round"/>
+<circle cx="${K.lElbow[0]}" cy="${K.lElbow[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.lElbow[0]}" y1="${K.lElbow[1]}" x2="${K.lWrist[0]}" y2="${K.lWrist[1]}" stroke="#14213d" stroke-width="15" stroke-linecap="round"/>
+<ellipse cx="${K.glove[0]}" cy="${K.glove[1]}" rx="14" ry="11" fill="#1a2a47" stroke="#0a1424" stroke-width="1.2"/>
+<line x1="${K.pelvisR[0]}" y1="${K.pelvisR[1]}" x2="${K.rKnee[0]}" y2="${K.rKnee[1]}" stroke="#14213d" stroke-width="22" stroke-linecap="round"/>
+<circle cx="${K.rKnee[0]}" cy="${K.rKnee[1]}" r="12" fill="#1a2a47"/>
+<line x1="${K.rKnee[0]}" y1="${K.rKnee[1]}" x2="${K.rAnkle[0]}" y2="${K.rAnkle[1]}" stroke="#14213d" stroke-width="20" stroke-linecap="round"/>
+<circle cx="${K.rAnkle[0]}" cy="${K.rAnkle[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.rAnkle[0]}" y1="${K.rAnkle[1]}" x2="${K.rToe[0]}" y2="${K.rToe[1]}" stroke="#14213d" stroke-width="14" stroke-linecap="round"/>
+<path d="M 495 372 Q 510 374 525 374" stroke="#a3a3a3" stroke-width="2.5" stroke-dasharray="2,3" fill="none" opacity="0.6"/>
+<line x1="${K.pelvisL[0]}" y1="${K.pelvisL[1]}" x2="${K.lKnee[0]}" y2="${K.lKnee[1]}" stroke="#14213d" stroke-width="22" stroke-linecap="round"/>
+<circle cx="${K.lKnee[0]}" cy="${K.lKnee[1]}" r="12" fill="#1a2a47"/>
+<line x1="${K.lKnee[0]}" y1="${K.lKnee[1]}" x2="${K.lAnkle[0]}" y2="${K.lAnkle[1]}" stroke="#14213d" stroke-width="20" stroke-linecap="round"/>
+<circle cx="${K.lAnkle[0]}" cy="${K.lAnkle[1]}" r="10" fill="#1a2a47"/>
+<line x1="${K.lAnkle[0]}" y1="${K.lAnkle[1]}" x2="${K.lToe[0]}" y2="${K.lToe[1]}" stroke="#14213d" stroke-width="14" stroke-linecap="round"/>
+${burstPT}${burstTH}${burstHF}${burstFH}
+<path d="${energyPath}" fill="none" stroke="url(#energy-${uid})" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+<path d="${driveLegPath}" fill="none" stroke="url(#drive-${uid})" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+</svg>
+<div style="font-size:10.5px;color:#64748b;margin-top:6px;line-height:1.5;text-align:center">
+  키네틱 체인 · Foot Strike (측면 view, ${isLHP?'LHP - 좌투':'RHP - 우투'})<br>
+  <span style="color:#94a3b8">메인 체인 (녹→황→적): Lead foot → 몸통 → 공 · 보조 (녹→적): Drive foot → 골반</span>
+</div>`;
+  // 다크 배경에서는 흰색 카드로 감싸 X-ray 처럼 표시
+  return `<div style="background:#fff;border-radius:8px;padding:14px 12px 10px;width:100%">${svg}</div>`;
 }
 
 // ════════════════════════════════════════════════════════
@@ -1471,54 +1524,7 @@ function renderTrendForPlayer(pid){
   `;
 }
 
-// ════════════════════════════════════════════════════════
-//  Drop zone
-// ════════════════════════════════════════════════════════
-const dz = $('upload-zone'), dzInput = $('upload-input'), dzResult = $('upload-result');
-dz.addEventListener('click', () => dzInput.click());
-dzInput.addEventListener('change', e => { if(e.target.files.length) handleFiles([...e.target.files]); });
-['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
-['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
-dz.addEventListener('drop', e => { if(e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
-
-async function handleFiles(files){
-  if(!WIN || (!WIN.handleC3DTxtFiles && !WIN.handleJsonFiles)){
-    dzResult.innerHTML = '<div class="pill bad">분석 모듈 미준비 — 잠시 후 재시도</div>';
-    return;
-  }
-  dzResult.innerHTML = '<div class="pill warn">처리 중...</div>';
-  const c3d = files.filter(f => /\.c3d\.txt$/i.test(f.name));
-  const json = files.filter(f => /\.json$/i.test(f.name));
-  let messages = [];
-  try {
-    if(c3d.length && WIN.handleC3DTxtFiles){
-      const r = await WIN.handleC3DTxtFiles(c3d);
-      messages.push(...(r.messages||[]));
-    }
-    if(json.length){
-      for(const f of json){
-        const text = await f.text();
-        const obj = JSON.parse(text);
-        const recs = WIN.parseTheiaJson?.(obj);
-        if(recs?.length){
-          recs.forEach(rec => WIN.applyTheiaRecord?.(rec));
-          messages.push(`✓ ${f.name}: ${recs.length}개 레코드 적용`);
-        } else messages.push(`⚠ ${f.name}: 인식 가능한 레코드 없음`);
-      }
-    }
-  } catch(e){
-    messages.push(`✗ 처리 실패: ${e.message}`);
-  }
-  dzResult.innerHTML = messages.map(msg => {
-    const cls = msg.startsWith('✓') ? 'good' : msg.startsWith('⚠') ? 'warn' : msg.startsWith('  ') ? '' : 'bad';
-    return cls ? `<div class="pill ${cls}">${msg}</div>` : `<div style="color:var(--muted);font-size:11px;margin:2px 0 2px 8px">${msg}</div>`;
-  }).join('');
-  // 모든 탭 다시 렌더
-  initCoach();
-  if(CURRENT_TAB === 'team') renderTeam();
-  if(CURRENT_TAB === 'player' && CURRENT_PID) renderForPlayer(CURRENT_PID);
-  if(CURRENT_TAB === 'trend' && CURRENT_TREND_PID) renderTrendForPlayer(CURRENT_TREND_PID);
-}
+// v3: drop zone 제거 — 코칭용에는 데이터 입력 없음. 데이터는 분석가가 dashboard.html 에서 입력.
 </script>
 
 </body>
