@@ -4812,6 +4812,12 @@ const ANALYTICS = {
 // 브라우저 빌드에서 직접 접근 가능
 if(typeof window !== 'undefined') window.ANALYTICS = ANALYTICS;
 
+// v6.x 패치: 코드 곳곳에서 짧은 별칭 `A` 로 ANALYTICS 를 참조하므로 전역 alias 등록
+//   (이 한 줄이 빠지면 renderM1Charts 등이 ReferenceError: A is not defined 으로 죽고,
+//   초기화 스크립트가 setupJsonZone/setupCSVZone 호출 전에 중단되어 모든 드롭존이 무반응이 됨.)
+const A = ANALYTICS;
+if(typeof window !== 'undefined') window.A = ANALYTICS;
+
 
 /* ===== js/data.js ===== */
 /* ╔══════════════════════════════════════════════════════════╗
