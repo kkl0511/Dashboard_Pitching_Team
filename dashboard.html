@@ -8774,9 +8774,10 @@ function parseC3DTxtTrial(text){
     if(!arr.length || frameIdx >= arr.length) return null;
     return arr[frameIdx];
   };
-  // MER frame 찾기 (max external rotation)
-  let merFrame = null;
-  {
+  // MER frame 찾기 — v6.x: V3D event Max_Shoulder_Int_Rot 우선, 없으면 fallback (Pitching_Shoulder_Angle_Z max)
+  let merFrame = findEventFrame('Max_Shoulder_Int_Rot');
+  if(merFrame === null){
+    // Fallback: Pitching_Shoulder_Angle_Z 의 abs max
     const arr = colByName('Pitching_Shoulder_Angle_Z');
     if(arr.length){
       const sub = arr.slice(winStart, winEnd);
@@ -8870,6 +8871,9 @@ function parseC3DTxtTrial(text){
     mer_frame:              merFrame,
     layback_deg:            safeMaxAbs(colByNameWindow('Pitching_Shoulder_Angle_Z')),
     shoulder_abd_at_fp:     valueAtFrame('Pitching_Shoulder_Angle_Y', fcEvent),
+    // v6.x: Scap Load at FP — Pitching_Shoulder_Angle_X 가 c3d.txt 에 있으면 자동 추출
+    //   Driveline 표준 (LEAD shoulder X) 부호 기준으로 ×−1 (V3D Manual §11.1)
+    scap_load_at_fp:        (() => { const v = valueAtFrame('Pitching_Shoulder_Angle_X', fcEvent); return v == null ? null : -v; })(),
     elbow_flex_at_fp:       valueAtFrame('Pitching_Elbow_Angle_X', fcEvent),
     hip_shoulder_sep_at_fp: valueAtFrame('Trunk_wrt_Pelvis_Angle_Z', fcEvent),
     torso_counter_rot:      (() => { const arr = colByNameWindow('Trunk_wrt_Pelvis_Angle_Z').filter(v => v !== null); return arr.length ? Math.min(...arr) : null; })(),
@@ -8879,6 +8883,8 @@ function parseC3DTxtTrial(text){
     torso_rot_at_br:        valueAtFrame('Trunk_Angle_Z', brEvent),
     lead_knee_at_fp:        valueAtFrame('Lead_Knee_Angle_X', fcEvent),
     lead_knee_at_br:        valueAtFrame('Lead_Knee_Angle_X', brEvent),
+    // v6.x: Hand peak ω (ETE forearm→hand 의 source). Pitching_Hand_Ang_Vel_X 컬럼 활용
+    peak_hand_v:            safeMaxAbs(colByNameWindow('Pitching_Hand_Ang_Vel_X')),
     max_cog_velo_m_s:       maxCogVelo,
     cog_decel_m_s:          cogDecel
   };
@@ -8993,10 +8999,14 @@ function synthesizeRecordFromTrials(pid, trials, sid){
   // 어깨/팔꿈치 추가 peak velocity
   const peakShoulderV = median(trials.map(t => t.peak_shoulder_v),  300, 4500, null);
   const peakElbowV    = median(trials.map(t => t.peak_elbow_v),     500, 5000, null);
+  // v6.x: 손 peak 각속도 (ETE forearm→hand)
+  const peakHandV     = median(trials.map(t => t.peak_hand_v),      500, 8000, null);
   // 팔동작 (Arm Action) 5모델 변인
   const layback         = median(trials.map(t => t.layback_deg),            120, 230, null);
   const shoulderAbdFp   = median(trials.map(t => t.shoulder_abd_at_fp),     30,  140, null);
   const elbowFlexFp     = median(trials.map(t => t.elbow_flex_at_fp),       30,  150, null);
+  // v6.x: Scap Load at FP — Pitching_Shoulder_Angle_X (이미 ×−1 처리된 값) at FC
+  const scapLoadFp      = median(trials.map(t => t.scap_load_at_fp),       -120, 120, null);
   // 자세 (Posture) 5모델 변인 — V3D lab frame Z → Driveline (90 − value) 변환을 median 이전에 적용
   //   raw V3D Trunk_Angle_Z at FC ≈ +90~+130° → Driveline closed = 90−raw ≈ −40~0°
   //   raw V3D Trunk_Angle_Z at BR ≈ −30~+20° → Driveline open    = 90−raw ≈ +70~+120°
@@ -9034,9 +9044,10 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       pelvis_dps: Math.round(peakPelvis),
       trunk_dps:  Math.round(peakTrunk),
       arm_dps:    Math.round(peakArm),
-      // v6.x 패치: 어깨/팔꿈치 peak velocity 추가 (Elbow Extension Velo, Shoulder Rotation Velo 보조)
+      // v6.x 패치: 어깨/팔꿈치/손 peak velocity 추가
       peak_shoulder_v: rnd(peakShoulderV),
       peak_elbow_v:    rnd(peakElbowV),
+      peak_hand_v:     rnd(peakHandV),    // v6.x: Pitching_Hand_Ang_Vel_X 활용
       ete_pct: etePct, speed_gain: speedGainPt,
       proper_seq: true, score: trfScore
     },
@@ -9090,6 +9101,7 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       // v6.x 패치: Driveline 5 모델 frame-specific 변인 추가
       shoulder_er_max_deg:    rnd(layback),
       shoulder_abd_fp_deg:    rnd(shoulderAbdFp),
+      scap_load_fp_deg:       rnd(scapLoadFp),    // v6.x: Pitching_Shoulder_Angle_X 활용 (자동 ×−1)
       elbow_flex_fp_deg:      rnd(elbowFlexFp),
       // v6.x: torsoCounterRot/torsoRotFp/torsoRotBr 은 median 단계에서 이미 (90 − V3D) 변환됨
       torso_counter_rot_deg:  rnd(torsoCounterRot),
@@ -9098,7 +9110,7 @@ function synthesizeRecordFromTrials(pid, trials, sid){
       trunk_lat_tilt_deg:     rnd(torsoSideBendMer),
       torso_rot_br_deg:       rnd(torsoRotBr),
       stride_length_m:        strideLengthM != null ? Math.round(strideLengthM * 100) / 100 : null,
-      // scap_load_fp_deg / lead_knee_ext_velo: c3d.txt 표준 export에 없음 (별도 V3D pipeline 추출 필요) — null 유지
+      // lead_knee_ext_velo: V3D pipeline 에 Compute_Derivative(Lead_Knee_Angle) 추가 필요 — 현재 null
       release_height_sd_cm: 4.0,
       wrist_pos_sd_cm: 2.5, trunk_tilt_sd_deg: 1.8,
       consistency_score: 88, fault_score: 85,
