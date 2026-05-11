@@ -9299,7 +9299,33 @@ async function handleC3DTxtFiles(files){
     messages.push(`✗ PID ${detectedPID} 가 PLAYERS 명단에 없음`);
     return {messages, applied};
   }
-  messages.push(`  · 선수 PID: ${detectedPID} ${PLAYERS.find(p => p.id === detectedPID).name}`);
+  const player = PLAYERS.find(p => p.id === detectedPID);
+  messages.push(`  · 선수 PID: ${detectedPID} ${player.name}`);
+
+  // v6.x 패치: c3d.txt path 헤더에서 RHP/LHP 자동 감지
+  let detectedArm = null;
+  for(const ft of fileTexts){
+    const head = ft.text.slice(0, 2000);
+    const folderM = head.match(/Markerless\s+(Right|Left)-handed/i);
+    if(folderM){ detectedArm = folderM[1].toUpperCase()[0]; break; }
+    const fileM = head.match(/(?:Fastball|Curveball|Slider|Changeup|Sinker|Cutter)\s+(RH|LH)\s+Markerless/i);
+    if(fileM){ detectedArm = fileM[1][0].toUpperCase(); break; }
+  }
+  if(detectedArm){
+    if(!player.arm || player.arm === detectedArm){
+      if(!player.arm){
+        player.arm = detectedArm;
+        messages.push(`  · 우/좌완 자동 감지 → PLAYERS.${detectedPID}.arm = '${detectedArm}' (자동 등록)`);
+      } else {
+        messages.push(`  · 우/좌완 확인: ${detectedArm}HP (PLAYERS profile 일치)`);
+      }
+    } else {
+      messages.push(`  ⚠ 우/좌완 불일치: c3d.txt 는 ${detectedArm}HP 인데 PLAYERS.${detectedPID}.arm = '${player.arm}' — c3d 파일 기준 우선`);
+      player.arm = detectedArm;
+    }
+  } else {
+    messages.push(`  · 우/좌완 자동 감지 실패 — PLAYERS.${detectedPID}.arm = '${player.arm || '(미설정)'}' 사용`);
+  }
 
   // 파일별 trial summary 추출
   const trials = [];
